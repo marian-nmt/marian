@@ -1,15 +1,35 @@
 #pragma once
+#include "common/logging.h" // for ABORT and ABORT_IF
 
+#if __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#endif
 #include "half_float/umHalf.h"
+#if __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 #include <string>
 #include <functional>
+#include <type_traits>
 
 #ifndef __CUDA_ARCH__
 #include <immintrin.h>
 #endif
 
+#ifdef __CUDACC__ // nvcc is compiling this code
+  #if (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__))
+    #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
+  #else
+    #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
+  #endif
+#else // other compiler, likely host code. Sould be fine with seeing the correct includes with host code
+  #define COMPILE_FP16 1
+#endif
+
+#ifdef _MSC_VER
 // @BUGBUG: Visual Studio somehow fails on template expansions for float16.
 //          To be able to build on Windows, we temporarily disable this, until the greater merge has happened.
 #define DISPATCH_BY_TYPE0(type, func) \
@@ -47,6 +67,43 @@ do { \
     default: ABORT("Unknown type {}", type); \
   } \
 } while(0)
+#else
+#define DISPATCH_BY_TYPE0(type, func) \
+do { \
+  switch(type) { \
+    case Type::int8:    return func<int8_t  >(); \
+    case Type::int16:   return func<int16_t >(); \
+    case Type::int32:   return func<int32_t >(); \
+    case Type::int64:   return func<int64_t >(); \
+    case Type::uint8:   return func<uint8_t >(); \
+    case Type::uint16:  return func<uint16_t>(); \
+    case Type::uint32:  return func<uint32_t>(); \
+    case Type::uint64:  return func<uint64_t>(); \
+    case Type::float16: return func<float16 >(); \
+    case Type::float32: return func<float   >(); \
+    case Type::float64: return func<double  >(); \
+    default: ABORT("Unknown type {}", type); \
+  } \
+} while(0)
+
+#define DISPATCH_BY_TYPE1(type, func, arg1) \
+do { \
+  switch(type) { \
+    case Type::int8:    return func<int8_t  >(arg1); \
+    case Type::int16:   return func<int16_t >(arg1); \
+    case Type::int32:   return func<int32_t >(arg1); \
+    case Type::int64:   return func<int64_t >(arg1); \
+    case Type::uint8:   return func<uint8_t >(arg1); \
+    case Type::uint16:  return func<uint16_t>(arg1); \
+    case Type::uint32:  return func<uint32_t>(arg1); \
+    case Type::uint64:  return func<uint64_t>(arg1); \
+    case Type::float16: return func<float16 >(arg1); \
+    case Type::float32: return func<float   >(arg1); \
+    case Type::float64: return func<double  >(arg1); \
+    default: ABORT("Unknown type {}", type); \
+  } \
+} while(0)
+#endif
 
 #define DISPATCH_BY_TYPE2(type, func, arg1, arg2) \
 do { \
@@ -288,14 +345,35 @@ void matchOrAbort(Type type) {
            type);
 }
 
-template <typename T>
+namespace typeFitting { // own namespace instead of in class, otherwise we get error "explicit specialization in non-namespace scope"
+
+  // compares max for different types as constexpr, so can be used at compile-time to determine if RequestType type max fits into ReturnType max, see std::conditional below.
+  template <typename RequestType, typename ReturnType>
+  constexpr bool fitsIntoMax() { return std::numeric_limits<RequestType>::max() <= std::numeric_limits<ReturnType>::max(); } // for built-in types everything is constexpr
+
+  // add specializations here when needed
+  template <> constexpr bool fitsIntoMax<float16, float>() { return true; };  // for float16 conversion to float is not constexpr, hence specializations
+  template <> constexpr bool fitsIntoMax<float, float16>() { return false; }; // for float16 conversion to float is not constexpr, hence specializations
+}
+
+template <typename ReturnType>
 class NumericLimits {
 private:
-  template <typename L>
+  
+  template <typename MaxType> void setLimitsMax() {
+    max    = (ReturnType)std::numeric_limits<MaxType>::max();
+    lowest = (ReturnType)std::numeric_limits<MaxType>::lowest();
+  }
+
+  template <typename RequestType>
   void setLimits() {
-    max    = (T)std::numeric_limits<L>::max();
-    min    = (T)std::numeric_limits<L>::min();
-    lowest = (T)std::numeric_limits<L>::lowest();
+    // check if the maximum of type RequestType fits into ReturnType
+    constexpr bool fits = typeFitting::fitsIntoMax<RequestType, ReturnType>();
+    // and then use the smaller of each types to determine max, min, lowest.
+    using MaxType = typename std::conditional<fits, RequestType, ReturnType>::type;
+    setLimitsMax<MaxType>();
+    // @TODO: should we rather abort if the RequestType does not fit into ReturnType instead of clipping to smaller type? 
+    // ABORT_IF(!fits, "Type {} is too small to contain max of type {}", typeId<ReturnType>(), typeId<RequestType>());
   }
 
   void setLimits(Type type) {
@@ -303,9 +381,8 @@ private:
   }
 
 public:
-  T max;
-  T min;
-  T lowest;
+  ReturnType max;
+  ReturnType lowest;
 
   NumericLimits(Type type) {
     setLimits(type);

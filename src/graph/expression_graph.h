@@ -128,6 +128,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
   Type saveType_{Type::float32};      // Type used for saving to disk, can be different, e.g. double or float16.
 
   bool inferenceOnly_{false};
+
   bool optimized_{false};     // during inference, use optimizations that might lead to precision loss, e.g. 8-bit MatMul.
   bool checkpointing_{false}; // use gradient checkpointing if true
 
@@ -150,7 +151,7 @@ public:
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false, bool optimized = false);
+  ExpressionGraph(bool inference = false);
 
   virtual ~ExpressionGraph() {
     clear();

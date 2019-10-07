@@ -14,11 +14,17 @@
 namespace marian {
 
 struct UnaryNodeOp : public NaryNodeOp {
-  UnaryNodeOp(Expr a, Shape shape, Type value_type = Type::float32)
+  UnaryNodeOp(Expr a, Shape shape, Type value_type)
       : NaryNodeOp({a}, shape, value_type) {}
 
-  UnaryNodeOp(Expr a, Type value_type = Type::float32)
+  UnaryNodeOp(Expr a, Type value_type)
       : NaryNodeOp({a}, a->shape(), value_type) {}
+
+  UnaryNodeOp(Expr a, Shape shape)
+      : NaryNodeOp({a}, shape, a->value_type()) {}
+
+  UnaryNodeOp(Expr a)
+      : NaryNodeOp({a}, a->shape(), a->value_type()) {}
 
   const std::string color() override { return "yellow"; }
 };
@@ -737,7 +743,7 @@ private:
   Expr reshapee_;
 
 public:
-  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape, a->value_type()), reshapee_(a) {
+  ReshapeNodeOp(Expr a, Shape shape) : UnaryNodeOp(a, shape), reshapee_(a) {
     ABORT_IF(a->shape().elements() != shape.elements(),
              "Reshape must not change the number of elements (from {} to {})", a->shape().toString(), shape.toString());
     Node::destroy_ = false;

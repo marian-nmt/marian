@@ -56,6 +56,7 @@ public:
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
+    options_->set("shuffle", "none");
     options_->set("cost-type", "ce-rescore"); // indicates that to keep separate per-batch-item scoresForSummary
 
     if(options_->get<bool>("n-best"))
@@ -69,10 +70,16 @@ public:
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
+
+      auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
+      graph->setParameterType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
+
+      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
       if (device.type == DeviceType::cpu) {
         graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
         graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
       }
+
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }
@@ -95,7 +102,7 @@ public:
     LOG(info, "Scoring");
 
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
-    batchGenerator->prepare(false);
+    batchGenerator->prepare();
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(

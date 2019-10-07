@@ -1,3 +1,5 @@
+// This software contains source code provided by NVIDIA Corporation.
+
 /*
  * Copyright 1993-2015 NVIDIA Corporation.  All rights reserved.
  *
@@ -6,8 +8,32 @@
  * this software. Any use, reproduction, disclosure, or distribution of
  * this software and related documentation outside the terms of the EULA
  * is strictly prohibited.
- *
  */
+
+/*
+MJD: Relevant text from the NVIDIA EULA:
+
+2.1 Sample Source Code Modification, Ownership and Distribution
+
+Subject to the terms of the SLA and this Supplement, NVIDIA hereby grants you a non-
+exclusive, non-transferable license, without the right to sublicense, during the applicable
+license term unless earlier terminated pursuant to the SLA, to have Authorized Users
+modify and create derivative works of CUDA Licensed Software that constitutes sample
+source code, when provided to you by NVIDIA in source code form. You hold all rights,
+title and interest in and to your modifications and derivative works of the sample source
+code software that you create as permitted hereunder (collective, Derivatives”), subject
+to NVIDIA’s underlying Intellectual Property Rights in and to the CUDA Licensed
+Software; provided, however that you grant NVIDIA and its Affiliates an irrevocable,
+perpetual, nonexclusive, worldwide, royalty-free paid-up license to make, have made,
+use, have used, reproduce, license, distribute, sublicense, transfer and otherwise
+commercialize Derivatives including (without limitation) with the CUDA Licensed
+Software or other NVIDIA products, technologies or materials. You may distribute the
+CUDA Supplement to Software License Agreement End User License Agreements (EULA) 
+DR-06739-001_v01_v9.0 | 14 sample source code as delivered by NVIDIA and/or your Derivatives, 
+provided that all NVIDIA copyright notices and trademarks are maintained and used properly 
+and the sample source code includes the following notice: “This software contains source code
+provided by NVIDIA Corporation.”
+*/
 
 #pragma once
 
@@ -17,9 +43,9 @@
 
 namespace marian {
 
-template <unsigned int blockSize>
+template <unsigned int blockSize, typename AccType>
 __device__ void
-reduceBlock(volatile float *sdata, float mySum, const unsigned int tid)
+reduceBlock(volatile AccType *sdata, AccType mySum, const unsigned int tid)
 {
     sdata[tid] = mySum;
     __syncthreads();
@@ -89,29 +115,29 @@ reduceBlock(volatile float *sdata, float mySum, const unsigned int tid)
     }
 }
 
-template <unsigned int blockSize, bool nIsPow2, class Functor>
+template <unsigned int blockSize, bool nIsPow2, typename T, typename AccType, class Functor>
 __device__ void
-reduceBlocks(Functor f, float *g_idata, float *g_odata, unsigned int n)
+reduceBlocks(Functor f, T *g_idata, AccType *g_odata, unsigned int n)
 {
-    extern __shared__ float sdata[];
+    extern __shared__ AccType sdata[];
 
     // perform first level of reduction,
     // reading from global memory, writing to shared memory
     unsigned int tid = threadIdx.x;
     unsigned int i = blockIdx.x*(blockSize*2) + threadIdx.x;
     unsigned int gridSize = blockSize*2*gridDim.x;
-    float mySum = 0;
+    AccType mySum = 0;
 
     // we reduce multiple elements per thread.  The number is determined by the
     // number of active thread blocks (via gridDim).  More blocks will result
     // in a larger gridSize and therefore fewer elements per thread
     while (i < n)
     {
-        mySum += f(g_idata[i]);
+        mySum += f((AccType)g_idata[i]);
 
         // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
         if (nIsPow2 || i + blockSize < n)
-            mySum += f(g_idata[i+blockSize]);
+            mySum += f((AccType)g_idata[i+blockSize]);
 
         i += gridSize;
     }
@@ -147,15 +173,15 @@ cudaError_t setRetirementCount(int retCnt)
 // For more details on the reduction algorithm (notably the multi-pass approach), see
 // the "reduction" sample in the CUDA SDK.
 
-template <unsigned int blockSize, bool nIsPow2, class Functor>
-__global__ void reduceSinglePass(Functor f, float *g_idata, float *g_odata, unsigned int n)
+template <unsigned int blockSize, bool nIsPow2, typename T, typename AccType, class Functor>
+__global__ void reduceSinglePass(Functor f, T *g_idata, AccType *g_odata, unsigned int n)
 {
 
     //
     // PHASE 1: Process all inputs assigned to this block
     //
 
-    reduceBlocks<blockSize, nIsPow2>(f, g_idata, g_odata, n);
+    reduceBlocks<blockSize, nIsPow2, T, AccType>(f, g_idata, g_odata, n);
 
     //
     // PHASE 2: Last block finished will process all partial sums
@@ -165,7 +191,7 @@ __global__ void reduceSinglePass(Functor f, float *g_idata, float *g_odata, unsi
     {
         const unsigned int tid = threadIdx.x;
         __shared__ bool amLast;
-        extern float __shared__ smem[];
+        extern AccType __shared__ smem[];
 
         // wait until all outstanding memory instructions in this thread are finished
         __threadfence();
@@ -184,7 +210,7 @@ __global__ void reduceSinglePass(Functor f, float *g_idata, float *g_odata, unsi
         if (amLast)
         {
             int i = tid;
-            float mySum = 0;
+            AccType mySum = 0;
 
             while (i < gridDim.x)
             {
@@ -210,20 +236,20 @@ bool isPow2(unsigned int x)
     return ((x&(x-1))==0);
 }
 
-template <class Functor>
-void ReduceAll(Functor f, Tensor out, Tensor in)
+template <typename T, typename AccType, class Functor>
+void ReduceAll(Functor f, Tensor blockMem, Tensor in)
 {
-    cudaSetDevice(out->getDeviceId().no);
+    cudaSetDevice(in->getDeviceId().no);
     int size = in->shape().elements();
     int threads = std::min(MAX_THREADS, size);
     int blocks  = std::min(MAX_BLOCKS, size / threads  + (size % threads != 0));
 
     dim3 dimBlock(threads, 1, 1);
     dim3 dimGrid(blocks, 1, 1);
-    int smemSize = threads * sizeof(float);
+    int smemSize = threads * sizeof(AccType);
 
-    float* d_idata = in->data();
-    float* d_odata = out->data();
+    T* d_idata = in->data<T>();
+    AccType* d_odata = blockMem->data<AccType>();
 
     // choose which of the optimized versions of reduction to launch
     if (isPow2(size))
@@ -231,43 +257,43 @@ void ReduceAll(Functor f, Tensor out, Tensor in)
         switch (threads)
         {
             case 512:
-                reduceSinglePass<512, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<512, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 256:
-                reduceSinglePass<256, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<256, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 128:
-                reduceSinglePass<128, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<128, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 64:
-                reduceSinglePass< 64, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 64, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 32:
-                reduceSinglePass< 32, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 32, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 16:
-                reduceSinglePass< 16, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 16, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  8:
-                reduceSinglePass<  8, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  8, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  4:
-                reduceSinglePass<  4, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  4, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  2:
-                reduceSinglePass<  2, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  2, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  1:
-                reduceSinglePass<  1, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  1, true, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
         }
     }
@@ -276,43 +302,43 @@ void ReduceAll(Functor f, Tensor out, Tensor in)
         switch (threads)
         {
             case 512:
-                reduceSinglePass<512, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<512, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 256:
-                reduceSinglePass<256, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<256, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 128:
-                reduceSinglePass<128, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<128, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 64:
-                reduceSinglePass< 64, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 64, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 32:
-                reduceSinglePass< 32, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 32, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case 16:
-                reduceSinglePass< 16, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass< 16, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  8:
-                reduceSinglePass<  8, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  8, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  4:
-                reduceSinglePass<  4, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  4, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  2:
-                reduceSinglePass<  2, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  2, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
 
             case  1:
-                reduceSinglePass<  1, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
+                reduceSinglePass<  1, false, T, AccType><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
                 break;
         }
     }

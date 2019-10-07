@@ -21,7 +21,7 @@ public:
              "than gru-nematus, use --type s2s");
 
     ABORT_IF(options_->get<int>("dec-cell-high-depth") > 1,
-             "--type nematus does not support "
+             "--type nematus does not currently support "
              "--dec-cell-high-depth > 1, use --type s2s");
   }
 

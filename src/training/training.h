@@ -66,16 +66,14 @@ public:
     model->setTypicalTrgBatchWords(batchGenerator->estimateTypicalTrgBatchWords()); // needed for dynamic MB scaling
     model->load();
 
-    // @TODO: shuffle_ as a private attribute in BG
-    auto shuffle = !options_->get<bool>("no-shuffle");
     bool restored = !options_->get<bool>("no-restore-corpus")
-                    && batchGenerator->restore(trainState, shuffle);
+                    && batchGenerator->restore(trainState);
 
     // -- main training loop
     scheduler->started();
     while(scheduler->keepGoing()) {
       if(!restored)
-        batchGenerator->prepare(shuffle);
+        batchGenerator->prepare();
       restored = false;
 
       // main training loop for one epoch
