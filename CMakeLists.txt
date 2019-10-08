@@ -22,6 +22,7 @@ option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
 option(USE_FBGEMM "Use FBGEMM" ON)
+option(USE_DOXYGEN "Build documentation with Doxygen" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -346,9 +347,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 
-
+if(USE_DOXYGEN)
 # Add a target to generate API documentation with Doxygen
-#find_package(Doxygen)
+find_package(Doxygen)
 if(DOXYGEN_FOUND)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
            ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
@@ -358,4 +359,4 @@ if(DOXYGEN_FOUND)
    COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
-
+endif(USE_DOXYGEN)
