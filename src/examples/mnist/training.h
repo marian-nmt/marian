@@ -40,7 +40,7 @@ public:
 
     // Run training
     while(scheduler->keepGoing()) {
-      batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
+      batchGenerator->prepare();
       for(auto batch : *batchGenerator) {
         if(!scheduler->keepGoing())
            break;

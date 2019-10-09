@@ -5,9 +5,8 @@
 
 namespace marian {
 
-ExpressionGraph::ExpressionGraph(bool inference, bool optimized)
+ExpressionGraph::ExpressionGraph(bool inference)
   : inferenceOnly_(inference),
-    optimized_(optimized),
     backend_(nullptr) {}
 
 void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {

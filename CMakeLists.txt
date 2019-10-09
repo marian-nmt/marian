@@ -22,6 +22,7 @@ option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
 option(USE_FBGEMM "Use FBGEMM" ON)
+option(USE_DOXYGEN "Build documentation with Doxygen" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -232,9 +233,9 @@ endif(COMPILE_CUDA)
 
 # TODO: make compatible with older CUDA versions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
 else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_30; -gencode=arch=compute_30,code=sm_30; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 if(NOT MSVC)
   # @TODO: add warnings here too
@@ -346,7 +347,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 
-
+if(USE_DOXYGEN)
 # Add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
@@ -355,7 +356,7 @@ if(DOXYGEN_FOUND)
   add_custom_target(doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating API documentation with Doxygen" VERBATIM
+   COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
-
+endif(USE_DOXYGEN)

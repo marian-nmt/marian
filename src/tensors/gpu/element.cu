@@ -4,6 +4,7 @@
 #include "functional/functional.h"
 #include "functional/tensor.h"
 #include "functional/tmp.h"
+
 #include "tensors/gpu/cuda_helpers.h"
 
 namespace marian {
@@ -62,12 +63,14 @@ void Element(Functor functor, Tensor out, Tensors... tensors) {
 
   if(out->type() == Type::float32) {
     ElementTyped<float>(functor, out, tensors...);
-#if 0
   } else if(out->type() == Type::float16) {
-    ElementTyped<half>(functor, out, tensors...);
+#if COMPILE_FP16
+    ElementTyped<__half>(functor, out, tensors...);
+#else
+    ABORT("FP16 not supported with chosen current hardware or CUDA version");
+#endif
   } else if(out->type() == Type::float64) {
     ElementTyped<double>(functor, out, tensors...);
-#endif
   } else {
     ABORT("Type {} not yet supported", out->type());
   }

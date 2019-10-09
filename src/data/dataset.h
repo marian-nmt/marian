@@ -21,7 +21,7 @@ protected:
 
 public:
   typedef Batch batch_type;
-  typedef Ptr<Batch> batch_ptr;
+  typedef Ptr<Batch> batch_ptr; // @TODO: rename to camel case
   typedef Iterator iterator;
   typedef SampleType Sample;
 

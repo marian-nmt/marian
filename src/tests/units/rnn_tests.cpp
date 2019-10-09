@@ -6,10 +6,11 @@
 
 using namespace marian;
 
-void tests(DeviceType type) {
-  auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
+template <typename T>
+void tests(DeviceType type, Type floatType = Type::float32) {
+  auto floatApprox = [](T x, T y) { return x == Approx(y).epsilon(0.01); };
 
-  std::vector<WordIndex> vWords = {
+  std::vector<IndexType> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,
@@ -20,7 +21,7 @@ void tests(DeviceType type) {
     0, 0, 0, 0
   };
 
-  std::vector<float> vMask = {
+  std::vector<T> vMask = {
     1, 1, 1, 1,
     1, 1, 1, 1,
     1, 1, 1, 1,
@@ -35,10 +36,11 @@ void tests(DeviceType type) {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
+    graph->setParameterType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
-    std::vector<float> values;
+    std::vector<T> values;
 
     auto input = graph->constant({4, 1, 4},
                                  inits::glorotUniform());
@@ -58,14 +60,14 @@ void tests(DeviceType type) {
     CHECK(output->shape() == Shape({4, 1, 4}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vOutput({
+    std::vector<T> vOutput({
       0.637288, 0.906478, 0.603604, 0.152291,
       -0.5333, -0.854558, 0.458454, -0.179582,
       0.736857, 0.964425, 0.43848, 0.0261131,
       -0.533659, -0.733491, -0.953666, -0.965717
     });
 #else
-    std::vector<float> vOutput({
+    std::vector<T> vOutput({
       -0.523228, 0.645143, 0.430939, 0.273439,
       -0.747293, 0.131912, 0.115222, 0.363874,
       0.367535, -0.819531, -0.313036, -0.387701,
@@ -82,10 +84,11 @@ void tests(DeviceType type) {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
+    graph->setParameterType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
-    std::vector<float> values;
+    std::vector<T> values;
 
     auto buildRnn = [&graph] (std::string prefix,
                               Expr input, Expr mask,
@@ -226,7 +229,7 @@ void tests(DeviceType type) {
     CHECK(contextSum1->shape() == Shape({dimTime, dimBatch, 1}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vContextSum1({
+    std::vector<T> vContextSum1({
       -0.110829, -0.510232, 0.265193, 0.194025,
       -0.242112, 0.185029, 0.0530527, 0.359336,
       0.60218, 0.46511, -0.240092, 0.100453,
@@ -237,7 +240,7 @@ void tests(DeviceType type) {
       0.360119, 0.422752, 0.55825, 0.0469481
     });
 #else
-    std::vector<float> vContextSum1({
+    std::vector<T> vContextSum1({
       -0.0674548, 0.383986, -0.613574, 0.226154,
       -0.819571, 0.47317, -1.39324, -0.401005,
       -0.24099, 0.64791, -0.120434, -0.818529,
@@ -256,7 +259,7 @@ void tests(DeviceType type) {
     CHECK(contextSum2->shape() == Shape({dimTime, dimBatch, 1}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vContextSum2({
+    std::vector<T> vContextSum2({
       -0.0282316, 0.0219561, -0.012136, 0.0206684,
       -0.0755229, 0.00091961, 0.0206883, 0.0176061,
       -0.0272491, 0.0833994, 0.0279131, 0.0170246,
@@ -267,7 +270,7 @@ void tests(DeviceType type) {
       0.123207, 0.0774718, 0.0741554, 0.0548368
     });
 #else
-    std::vector<float> vContextSum2({
+    std::vector<T> vContextSum2({
       0.0193405, -0.0580973, -0.0213983, 0.0381918,
       -0.0135365, -0.0934286, -0.0171637, 0.0198686,
       -0.0102693, -0.0865369, -0.0160779, 0.0393178,
@@ -285,7 +288,7 @@ void tests(DeviceType type) {
     //CHECK(context3->shape() == Shape({dimBatch, 2 * dimRnn, dimTime}));
     //CHECK(contextSum3->shape() == Shape({dimBatch, 1, dimTime}));
     //
-    //std::vector<float> vContextSum3({
+    //std::vector<T> vContextSum3({
     //  1.135, 2.40939, 2.37631, 2.03765,
     //  0.0583942, -4.89241, 5.31731, -1.52973,
     //  3.52754, 1.02098, -4.05162, -1.11594,
@@ -312,12 +315,16 @@ void tests(DeviceType type) {
 
 #ifdef CUDA_FOUND
 TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
-  tests(DeviceType::gpu);
+  tests<float>(DeviceType::gpu);
+}
+
+TEST_CASE("Model components, RNN etc. (gpu, fp16)", "[model]") {
+  tests<float16>(DeviceType::gpu, Type::float16);
 }
 #endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {
-  tests(DeviceType::cpu);
+  tests<float>(DeviceType::cpu);
 }
 #endif
