@@ -166,6 +166,8 @@ public:
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
 
+    std::cerr << "HH1" << std::endl;
+    
     namespace bio = boost::iostreams;
     fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_source>>(fds_);
     istream_ = std::make_unique<std::istream>(fdsBuffer_.get());
