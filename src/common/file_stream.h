@@ -156,7 +156,7 @@ public:
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      istream_ = std::make_unique<zstr::ifstream>(file_.string());
+      istream_ = std::make_unique<zstr::ifstream>(file_.string(), std::ios_base::in | std::ios_base::binary);
     else
       istream_ = std::make_unique<std::ifstream>(file_.string());
     ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
@@ -253,7 +253,7 @@ class OutputFileStream {
 public:
   OutputFileStream(const std::string& file) : file_(file) {
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      ostream_ = std::make_unique<zstr::ofstream>(file_.string());
+      ostream_ = std::make_unique<zstr::ofstream>(file_.string(), std::ios_base::out | std::ios_base::binary);
     else
       ostream_ = std::make_unique<std::ofstream>(file_.string());
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
