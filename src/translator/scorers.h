@@ -9,9 +9,7 @@ namespace marian {
 
 class ScorerState {
 public:
-  virtual Expr getLogProbs() = 0;
-
-  virtual float breakDown(size_t i) { return getLogProbs()->val()->get(i); }
+  virtual Logits getLogProbs() const = 0;
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
@@ -35,7 +33,7 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
-                                const std::vector<IndexType>&,
+                                const Words&,
                                 int dimBatch,
                                 int beamSize)
       = 0;
@@ -57,36 +55,36 @@ public:
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
-  virtual Expr getLogProbs() override { return state_->getLogProbs(); };
+  virtual Logits getLogProbs() const override { return state_->getLogProbs(); };
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);
   }
 };
 
-// class to wrap EncoderDecoderBase in a Scorer interface
+// class to wrap IEncoderDecoder in a Scorer interface
 class ScorerWrapper : public Scorer {
 private:
-  Ptr<EncoderDecoderBase> encdec_;
+  Ptr<IEncoderDecoder> encdec_;
   std::string fname_;
   const void* ptr_;
 
 public:
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const std::string& fname)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         fname_(fname),
         ptr_{0} {}
 
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const void* ptr)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         ptr_{ptr} {}
 
   virtual void init(Ptr<ExpressionGraph> graph) override {
@@ -111,12 +109,12 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<IndexType>& hypIndices,
-                                const std::vector<IndexType>& embIndices,
+                                const Words& words,
                                 int dimBatch,
                                 int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
-    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, dimBatch, beamSize);
     return New<ScorerWrapperState>(newState);
   }
 
@@ -130,7 +128,9 @@ public:
   };
 
   virtual std::vector<float> getAlignment() override {
-    return encdec_->getAlignment().front();
+    // This is called during decoding, where alignments only exist for the last time step. Hence front().
+    // This makes as copy. @TODO: It should be OK to return this as a const&.
+    return encdec_->getAlignment().front(); // [beam depth * max src length * batch size]
   }
 };
 

@@ -12,7 +12,7 @@ void tests(DeviceType type) {
 
   Config::seed = 1234;
 
-  Words vWords = {
+  std::vector<WordIndex> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,

@@ -8,7 +8,7 @@ namespace marian {
 
 class Amun : public EncoderDecoder {
 public:
-  Amun(Ptr<Options> options) : EncoderDecoder(options) {
+  Amun(Ptr<ExpressionGraph> graph, Ptr<Options> options) : EncoderDecoder(graph, options) {
     ABORT_IF(opt<int>("enc-depth") > 1,
              "--type amun does not currently support multiple encoder "
              "layers, use --type s2s");
@@ -185,16 +185,24 @@ private:
   void createAmunConfig(const std::string& name) {
     Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-    amun["source-vocab"] = vocabs[0];
-    amun["target-vocab"] = vocabs[1];
-    amun["devices"] = options_->get<std::vector<size_t>>("devices");
-    amun["normalize"] = opt<float>("normalize") > 0;
-    amun["beam-size"] = opt<size_t>("beam-size");
-    amun["relative-paths"] = false;
 
-    amun["scorers"]["F0"]["path"] = name;
+    if(options_->get<bool>("relative-paths")) {
+      amun["relative-paths"] = true;
+      auto dirPath = filesystem::Path{name}.parentPath();
+      amun["source-vocab"] = filesystem::relative(filesystem::Path{vocabs[0]}, dirPath).string();
+      amun["target-vocab"] = filesystem::relative(filesystem::Path{vocabs[1]}, dirPath).string();
+      amun["scorers"]["F0"]["path"] = filesystem::Path{name}.filename().string();
+    } else {
+      amun["relative-paths"] = false;
+      amun["source-vocab"] = vocabs[0];
+      amun["target-vocab"] = vocabs[1];
+      amun["scorers"]["F0"]["path"] = name;
+    }
+
     amun["scorers"]["F0"]["type"] = "Nematus";
     amun["weights"]["F0"] = 1.0f;
+    amun["normalize"] = opt<float>("normalize") > 0;
+    amun["beam-size"] = opt<size_t>("beam-size");
 
     io::OutputFileStream out(name + ".amun.yml");
     out << amun;

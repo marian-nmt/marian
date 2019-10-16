@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     w->add<bool>("-x,--xbool", "false boolean option", true);
     w->add<std::string>("--a-very-long-option-name-for-testing-purposes", "A very long text a very long text a very long text a very long text a very long text a very long text");
     w->switchGroup();
-    w->add<std::string>("-f,--file", "help message")->check(validators::file_exists);
+    //w->add<std::string>("-f,--file", "help message")->check(validators::file_exists);
     //w.add<color>("-e,--enum", "help message for enum");
 
     w->parse(argc, argv);

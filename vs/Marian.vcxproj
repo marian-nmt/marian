@@ -15,40 +15,42 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Marian</RootNamespace>
     <ProjectName>Marian</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.props" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(Platform)\$(Configuration)\Marian\</IntDir>
-    <IncludePath>..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;%MKL_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\Marian\</IntDir>
+    <IncludePath>%CUDA_PATH%\include;..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;%MKL_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>%CUDA_PATH%\lib\x64;%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <IntDir>$(Platform)\$(Configuration)\Marian\</IntDir>
-    <IncludePath>..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;%MKL_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\Marian\</IntDir>
+    <IncludePath>..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include;..\src\3rd_party\fbgemm\third_party\cpuinfo\src;..\src\3rd_party\fbgemm\third_party\cpuinfo\include;..\src\3rd_party\fbgemm\third_party\asmjit\src;%MKL_PATH%\include;..\src\3rd_party\fbgemm\include;%CUDA_PATH%\include;..\src;..\src\3rd_party;%BOOST_INCLUDE_PATH%;%ZLIB_PATH%\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>%CUDA_PATH%\lib\x64;%BOOST_LIB_PATH%;%ZLIB_PATH%\lib;%MKL_PATH%\lib\intel64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -57,6 +59,9 @@
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)$(Platform)\$(Configuration);$(MSMPI_LIB64)</AdditionalLibraryDirectories>
     </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -64,22 +69,33 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>FBGEMM_EXPORTS;USE_FBGEMM=1;ASMJIT_VARAPI;CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>false</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/bigobj %(AdditionalOptions) /arch:AVX2</AdditionalOptions>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebugDLL</RuntimeLibrary>
       <DisableSpecificWarnings>4996; 4702</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;cublas.lib;cusparse.lib;curand.lib;zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <StackReserveSize>100000000</StackReserveSize>
-      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
     </Link>
+    <CudaCompile>
+      <Include>$(SolutionDir)..\src\;$(SolutionDir)..\src\3rd_party</Include>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
+      <KeepDir>$(CudaIntDir)</KeepDir>
+      <CompileOut>$(IntDir)%(Filename)%(Extension).obj</CompileOut>
+      <Warning>W2</Warning>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
+      <Defines>_SCL_SECURE_NO_WARNINGS</Defines>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -89,10 +105,10 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>FBGEMM_EXPORTS;USE_FBGEMM=1;CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>false</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalOptions>/d2Zi+ /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/d2Zi+ /bigobj %(AdditionalOptions) /arch:AVX2</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreadedDLL</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release_NoOpt|x64'">MultiThreaded</RuntimeLibrary>
@@ -100,19 +116,316 @@
       <OmitFramePointers>true</OmitFramePointers>
       <DisableSpecificWarnings>4996; 4702</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;cublas.lib;cusparse.lib;curand.lib;zlib.lib;msmpi.lib;mkl_intel_ilp64.lib;mkl_sequential.lib;mkl_core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <StackReserveSize>100000000</StackReserveSize>
-      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
+      <TreatLinkerWarningAsErrors>false</TreatLinkerWarningAsErrors>
     </Link>
+    <CudaCompile>
+      <Include>$(SolutionDir)..\src\;$(SolutionDir)..\src\3rd_party</Include>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
+      <Warning>W2</Warning>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
+      <Defines>_SCL_SECURE_NO_WARNINGS</Defines>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\3rd_party\ExceptionWithCallStack.cpp" />
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\ExecuteKernel.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\ExecuteKernelU8S8.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\Fbgemm.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmConv.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmFP16.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmFP16UKernelsAvx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmI8DepthwiseAvx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmI8Spmdm.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC16.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC16Avx512.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC32.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC32Avx512.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GroupwiseConvAcc32Avx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\OptimizedKernelsAvx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAMatrix.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithIm2Col.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithQuantRowOffset.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithRowOffset.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackBMatrix.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackMatrix.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackWeightMatrixForGConv.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackWeightsForConv.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\QuantUtils.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\QuantUtilsAvx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\RefImplementations.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\Utils.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\UtilsAvx2.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\UtilsAvx512.cc">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\arch.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\assembler.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codebuilder.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codecompiler.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codeemitter.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codeholder.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\constpool.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\cpuinfo.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\func.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\globals.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\inst.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\logging.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\operand.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\osutils.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\regalloc.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\runtime.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\string.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\utils.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\vmem.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\zone.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86assembler.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86builder.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86compiler.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86inst.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instimpl.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86internal.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86logging.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86operand.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86operand_regs.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86regalloc.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src\clog.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\api.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\init.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\descriptor.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\deterministic.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\init.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\info.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\init.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\isa.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\name.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\topology.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\uarch.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\vendor.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows\init.c">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\entry_iterator.cpp" />
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\errors.cpp" />
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\path.cpp" />
@@ -323,6 +636,79 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\yaml-node.cpp" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\ConvUtils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Fbgemm.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmBuild.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmFP16.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8DepthwiseAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8Spmdm.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\OutputProcessing-inl.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\PackingTraits-inl.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtilsAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Types.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Utils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\UtilsAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernel.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernelGeneric.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernelU8S8.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\FbgemmFP16UKernelsAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\GenerateKernel.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\GroupwiseConv.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\OptimizedKernelsAvx2.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\RefImplementations.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\TransposeUtils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\arm.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\asmjit.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\asmjit_apibegin.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\asmjit_apiend.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\asmjit_build.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\arch.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\assembler.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codebuilder.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codecompiler.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codeemitter.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\codeholder.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\constpool.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\cpuinfo.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\func.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\globals.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\inst.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\logging.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\misc_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\operand.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\osutils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\regalloc_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\runtime.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\simdtypes.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\string.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\utils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\vmem.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\base\zone.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86assembler.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86builder.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86compiler.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86emitter.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86globals.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86inst.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instimpl_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86internal_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86logging_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86misc.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86operand.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86regalloc_p.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include\clog.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\include\cpuinfo-mock.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\include\cpuinfo.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\common.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\internal-api.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\log.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\utils.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\api.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cpuid.h" />
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows\api.h" />
     <ClInclude Include="..\src\3rd_party\nccl\src\collectives\collectives.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -544,6 +930,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClCompile Include="..\src\common\aliases.cpp" />
     <ClCompile Include="..\src\common\binary.cpp" />
     <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
@@ -556,6 +943,7 @@
     <ClCompile Include="..\src\common\version.cpp" />
     <ClCompile Include="..\src\data\alignment.cpp" />
     <ClCompile Include="..\src\data\default_vocab.cpp" />
+    <ClCompile Include="..\src\data\factored_vocab.cpp" />
     <ClCompile Include="..\src\data\sentencepiece_vocab.cpp" />
     <ClCompile Include="..\src\data\vocab.cpp" />
     <ClCompile Include="..\src\data\corpus_base.cpp" />
@@ -575,17 +963,23 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\layers\generic.cpp" />
     <ClCompile Include="..\src\layers\loss.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\models\transformer_stub.cpp" />
     <ClCompile Include="..\src\rescorer\score_collector.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
     <ClCompile Include="..\src\tensors\cpu\prod.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\avx_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\sharp\packed_gemm.cpp">
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</TreatWarningAsError>
+    </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp" />
     <ClCompile Include="..\src\tensors\cpu\tensor_operators.cpp" />
     <ClCompile Include="..\src\graph\expression_graph.cpp" />
@@ -699,6 +1093,8 @@
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\types.h" />
     <ClInclude Include="..\src\common\version.h" />
+    <ClInclude Include="..\src\data\factored_vocab.h" />
+    <ClInclude Include="..\src\data\vocab_base.h" />
     <ClInclude Include="..\src\examples\mnist\dataset.h" />
     <ClInclude Include="..\src\examples\mnist\model.h" />
     <ClInclude Include="..\src\examples\mnist\model_lenet.h" />
@@ -894,10 +1290,13 @@
     <ClInclude Include="..\src\layers\word2vec_reader.h" />
     <ClInclude Include="..\src\microsoft\quicksand.h" />
     <ClInclude Include="..\src\models\amun.h" />
+    <ClInclude Include="..\src\models\bert.h" />
     <ClInclude Include="..\src\models\char_s2s.h" />
+    <ClInclude Include="..\src\models\classifier.h" />
     <ClInclude Include="..\src\models\costs.h" />
     <ClInclude Include="..\src\models\decoder.h" />
     <ClInclude Include="..\src\models\encoder.h" />
+    <ClInclude Include="..\src\models\encoder_classifier.h" />
     <ClInclude Include="..\src\models\encoder_decoder.h" />
     <ClInclude Include="..\src\models\model_base.h" />
     <ClInclude Include="..\src\models\model_factory.h" />
@@ -905,7 +1304,7 @@
     <ClInclude Include="..\src\models\nematus.h" />
     <ClInclude Include="..\src\models\s2s.h" />
     <ClInclude Include="..\src\models\states.h" />
-    <ClCompile Include="..\src\models\transformer.h" />
+    <ClInclude Include="..\src\models\transformer.h" />
     <ClInclude Include="..\src\models\experimental\lex_probs.h" />
     <ClInclude Include="..\src\models\transformer_factory.h" />
     <ClInclude Include="..\src\optimizers\clippers.h" />
@@ -920,7 +1319,9 @@
     <ClInclude Include="..\src\rnn\types.h" />
     <ClInclude Include="..\src\tensors\allocator.h" />
     <ClInclude Include="..\src\tensors\backend.h" />
+    <ClInclude Include="..\src\tensors\cpu\expanded_gemm.h" />
     <ClInclude Include="..\src\tensors\cpu\sharp\int_gemm.h" />
+    <ClInclude Include="..\src\tensors\cpu\sharp\packed_gemm.h" />
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
     <ClInclude Include="..\src\tensors\gpu\add.h" />
@@ -936,7 +1337,6 @@
     <ClInclude Include="..\src\tensors\tensor.h" />
     <ClInclude Include="..\src\tensors\tensor_allocator.h" />
     <ClInclude Include="..\src\tensors\tensor_operators.h" />
-    <ClInclude Include="..\src\tensors\types.h" />
     <ClInclude Include="..\src\tensors\cpu\add.h" />
     <ClInclude Include="..\src\tensors\cpu\backend.h" />
     <ClInclude Include="..\src\tensors\cpu\element.h" />
@@ -966,6 +1366,7 @@
     <ClInclude Include="..\src\translator\printer.h" />
     <ClInclude Include="..\src\translator\scorers.h" />
     <ClInclude Include="..\src\translator\translator.h" />
+    <ClInclude Include="..\src\training\communicator_nccl.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
@@ -1055,6 +1456,50 @@
     <None Include="..\src\3rd_party\nccl\src\transport\shm.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\tensors\gpu\add.cu" />
+    <ClInclude Include="..\src\tensors\gpu\add.inc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </ClInclude>
+    <CudaCompile Include="..\src\tensors\gpu\algorithm.cu" />
+    <CudaCompile Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\device.cu" />
+    <CudaCompile Include="..\src\tensors\gpu\element.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </CudaCompile>
+    <ClInclude Include="..\src\tensors\gpu\element.inc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </ClInclude>
+    <ClCompile Include="..\src\tensors\gpu\prod.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)%(RelativeDir)</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)%(RelativeDir)</ObjectFileName>
+    </ClCompile>
+    <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\tensor_operators.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </CudaCompile>
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\dropper.cu" />
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.cu" />
+    <CudaCompile Include="..\src\translator\helpers.cu" />
+    <CudaCompile Include="..\src\translator\nth_element.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\tests\README.md" />
     <None Include="..\src\3rd_party\pathie-cpp\CHANGELOG" />
     <None Include="..\src\3rd_party\pathie-cpp\LICENSE" />
     <None Include="..\src\3rd_party\pathie-cpp\README.md" />
@@ -1070,48 +1515,11 @@
     <None Include="..\src\examples\iris\iris.data" />
     <None Include="..\src\examples\Makefile" />
     <None Include="..\src\examples\mnist\download.sh" />
-    <None Include="..\src\examples\README.md" />
-    <None Include="..\src\tensors\gpu\add.cu">
+    <None Include="..\src\examples\README.md">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\add.inc" />
-    <None Include="..\src\tensors\gpu\algorithm.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\device.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\element.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\element.inc" />
-    <None Include="..\src\tensors\gpu\prod.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\sparse.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tensors\gpu\tensor_operators.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tests\conv_char_test.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <None Include="..\src\tests\conv_test.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\tests\README.md" />
-    <None Include="..\src\tests\tensor_test.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </None>
-    <None Include="..\src\training\communicator_nccl.h" />
-    <None Include=".editorConfig" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\pathie-cpp\CMakeLists.txt" />
@@ -1124,5 +1532,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.targets" />
   </ImportGroup>
 </Project>

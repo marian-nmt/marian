@@ -17,7 +17,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   }
 
   bool skipCost = options->get<bool>("skip-cost");
-  auto encdec = models::from_options(
+  auto encdec = models::createModelFromOptions(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
@@ -39,7 +39,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   }
 
   bool skipCost = options->get<bool>("skip-cost");
-  auto encdec = models::from_options(
+  auto encdec = models::createModelFromOptions(
       options, skipCost ? models::usage::raw : models::usage::translation);
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
@@ -56,6 +56,7 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
   if(options->hasAndNotEmpty("weights"))
     weights = options->get<std::vector<float>>("weights");
 
+  bool isPrevRightLeft = false;  // if the previous model was a right-to-left model
   size_t i = 0;
   for(auto model : models) {
     std::string fname = "F" + std::to_string(i);
@@ -70,6 +71,18 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
       }
     } catch(std::runtime_error&) {
       LOG(warn, "No model settings found in model file");
+    }
+
+    // l2r and r2l cannot be used in the same ensemble
+    if(models.size() > 1 && modelOptions->has("right-left")) {
+      if(i == 0) {
+        isPrevRightLeft = modelOptions->get<bool>("right-left");
+      } else {
+        // abort as soon as there are two consecutive models with opposite directions
+        ABORT_IF(isPrevRightLeft != modelOptions->get<bool>("right-left"),
+                 "Left-to-right and right-to-left models cannot be used together in ensembles");
+        isPrevRightLeft = modelOptions->get<bool>("right-left");
+      }
     }
 
     scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));

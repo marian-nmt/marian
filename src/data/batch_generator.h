@@ -84,10 +84,7 @@ private:
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   std::deque<BatchPtr> fetchBatches() {
     typedef typename Sample::value_type Item;
-    auto itemCmp = [](const Item& sa, const Item& sb) {
-      // sort by element length, not content
-      return sa.size() < sb.size();
-    };
+    auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
     auto cmpSrc = [itemCmp](const Sample& a, const Sample& b) {
       return std::lexicographical_compare(
@@ -99,10 +96,7 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const Sample& a, const Sample& b) {
-      // sort by address, so we have something to work with
-      return &a < &b;
-    };
+    auto cmpNone = [](const Sample& a, const Sample& b) { return a.getId() > b.getId(); }; // sort in order of original ids = original data order unless shuffling
 
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
@@ -136,9 +130,9 @@ private:
     while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
       sets = current_->size();
-        // do not consume more than required for the maxi batch as this causes
-        // that line-by-line translation is delayed by one sentence
-        bool last = maxiBatch->size() == maxSize;
+      // do not consume more than required for the maxi batch as this causes
+      // that line-by-line translation is delayed by one sentence
+      bool last = maxiBatch->size() == maxSize;
       if(!last)
         ++current_; // this actually reads the next line and pre-processes it
     }
@@ -258,7 +252,7 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Options> options,
                  Ptr<BatchStats> stats = nullptr)
-    : data_(data), options_(options), stats_(stats), threadPool_(1) { }
+      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
 
   ~BatchGenerator() {
     if (futureBufferedBatches_.valid()) // bg thread holds a reference to 'this',
@@ -286,12 +280,6 @@ public:
     newlyPrepared_ = true;
 
     // @TODO: solve this better, maybe use options
-    // => for this to work best, we need to replace --no-shuffle by --shuffle
-    // which is true by default for train, false otherwise, or explicitly set
-    // --no-shuffle=true by default for translate, validate, score etc. [UG]
-    // for the time begin, let's stick with the explicit function parameter
-    // (I've disabled the default value, because it's prone to cause problems
-    // sooner or later; callers should know if they want to shuffle or not).
     shuffle_ = shuffle;
 
     // start the background pre-fetch operation

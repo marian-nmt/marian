@@ -10,11 +10,16 @@
 #include "functional/functional.h"
 #include "functional/tensor.h"
 
+#if MKL_FOUND
+#include <mkl.h>
+#endif
+
 namespace marian {
 
 namespace cpu {
 
 void IsNan(const Tensor in, Ptr<Allocator> allocator, bool& isNan, bool& isInf, bool zero) {
+  isNan; isInf; zero;
   ABORT("Not implemented");
 }
 
@@ -185,6 +190,73 @@ void Transpose0213(Tensor out, Tensor in) {
   }
 }
 
+// Given a 4D array, transpose (swap) the initial 3 dimensions while keeping the last dimension.
+// e.g. 1234 --> 2134, 1234 --> 3214 (4 is always kept).
+// This is an optimized version for swapping first 3 dimensions 
+// assuming the last dimension is large enough to get benefits from vectorized copy.
+//
+// @param out output tensor
+// @param in input tensor
+// @param vAxis target (transposed) axes of each given axes
+template <bool add>
+void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
+  ABORT_IF(vAxis.size() != 4, "This function handles only 4D arrays.");
+#if MKL_FOUND
+  int innermost = in->shape()[-1];
+
+  int l1 = in->shape()[vAxis[0]];
+  int l2 = in->shape()[vAxis[1]];
+  int l3 = in->shape()[vAxis[2]];
+
+  // find the mapping between the transposed output dimensional indices (oi, oj, ok) 
+  // and original input dimensional indices (i, j, k)
+  int oi, oj, ok;
+#pragma omp parallel for
+  for(int k = 0; k < l1; ++k) {
+    int shift = k * l2 * l3;
+    for(int j = 0; j < l2; ++j) {
+      for(int i = 0; i < l3; ++i) {
+        if(vAxis[0] == 0) {
+          if(vAxis[1] == 1) {
+            oi = i; oj = j; ok = k;
+          } else {
+            oi = j; oj = i; ok = k;
+          }
+        } else if(vAxis[0] == 1) {
+          if(vAxis[1] == 0) {
+            oi = i; oj = k; ok = j;
+          } else {
+            oi = j; oj = k; ok = i;
+          }
+        } else {
+          if(vAxis[1] == 0) {
+            oi = k; oj = i; ok = j;
+          } else {
+            oi = k; oj = j; ok = i;
+          }
+        }
+        int src = ok * in->shape()[1] * in->shape()[2] + oj * in->shape()[2] + oi;
+        int dst = l3 * j + shift + i;
+
+        const float* inRow = in->data() + src * innermost;
+        float* outRow = out->data() + dst * innermost;
+
+        if(!add) {
+          mkl_somatcopy('R', 'N', 1, innermost, 1.0f, inRow, innermost, outRow, innermost);
+        } else {
+          for(int ii = 0; ii < innermost; ++ii) {
+            outRow[ii] += inRow[ii];
+          }
+        }
+      }
+    }
+  }
+#else
+  // it shouldn't come into here. This function is called only when MKL is available.
+  ABORT("Should not get here");
+#endif  // MKL_FOUND
+}
+
 inline void transpose4x4_SSE(const float* A,
                              float* B,
                              const int lda,
@@ -261,6 +333,10 @@ void TransposeGeneric(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
   if(vAxis == std::vector<int>({0, 2, 1, 3}))
     Transpose0213<false>(out, in);
+#if MKL_FOUND
+  else if(vAxis.size() == 4 && vAxis[3] == 3)
+    TransposeFirst3In4<false>(out, in, vAxis);
+#endif  // MKL_FOUND
   else if(vAxis == std::vector<int>({1, 0}) && in->shape()[-1] % 16 == 0
           && in->shape()[-2] % 16 == 0)
     Transpose10(out, in);
@@ -391,6 +467,7 @@ void CopyRows(Tensor out_,
   size_t cols = in_->shape()[-1];
   size_t rows = indices->size();
 
+  // note: may also be applied to IndexType; works by luck. Fix with fp16
   float* out = out_->data();
   const float* in = in_->data();
 

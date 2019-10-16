@@ -19,7 +19,7 @@ namespace marian {
 #ifdef USE_SENTENCEPIECE
 
 // Wrapper around https://github.com/google/sentencepiece
-class SentencePieceVocab : public VocabBase {
+class SentencePieceVocab : public IVocab {
 private:
   // Actual SentencePiece processor object
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
@@ -126,7 +126,6 @@ public:
             alpha_,
             batchIndex_);
     }
-
   }
 
   virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
@@ -136,8 +135,8 @@ public:
 
   virtual std::string type() const override { return "SentencePieceVocab"; }
 
-  virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
-  virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
+  virtual Word getEosId() const override { return Word::fromWordIndex(spm_->eos_id()); }
+  virtual Word getUnkId() const override { return Word::fromWordIndex(spm_->unk_id()); }
 
   void create(const std::string& vocabPath,
               const std::vector<std::string>& trainPaths,
@@ -198,12 +197,12 @@ public:
   }
 
   Word operator[](const std::string& token) const override {
-    return (Word)spm_->PieceToId(token);
+    return Word::fromWordIndex(spm_->PieceToId(token));
   }
 
   const std::string& operator[](Word id) const override {
-    ABORT_IF(id >= size(), "Unknown word id: ", id);
-    return spm_->IdToPiece(id);
+    ABORT_IF(id.toWordIndex() >= size(), "Unknown word id: ", id.toWordIndex());
+    return spm_->IdToPiece(id.toWordIndex());
   }
 
   Words encode(const std::string& line, bool addEOS, bool inference) const override {
@@ -213,7 +212,9 @@ public:
     else
       spm_->SampleEncode(line, -1, alpha_, &spmIds);
 
-    Words words(spmIds.begin(), spmIds.end());
+    Words words; words.reserve(spmIds.size() + addEOS);
+    for (auto&& spmId : spmIds)
+      words.push_back(Word::fromWordIndex(spmId));
 
     if(addEOS)
       words.push_back(getEosId());
@@ -223,9 +224,16 @@ public:
   std::string decode(const Words& sentence, bool /*ignoreEOS*/) const override {
     std::string line;
     // convert vector of Word to vector of int
-    std::vector<int> spmSentence(sentence.begin(), sentence.end());
+    std::vector<int> spmSentence; spmSentence.reserve(sentence.size());
+    for (auto&& word : sentence)
+      spmSentence.push_back(word.toWordIndex());
     spm_->Decode(spmSentence, &line);
     return line;
+  }
+
+  std::string surfaceForm(const Words& sentence) const override {
+    // with SentencePiece, decoded form and surface form are identical
+    return decode(sentence, /*ignoreEOS=*/true);
   }
 
   size_t size() const override {
@@ -236,7 +244,7 @@ public:
     LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),
-             "SentencePiece vocabulary file {} does not exits",
+             "SentencePiece vocabulary file {} does not exist",
              vocabPath);
 
     spm_.reset(new sentencepiece::SentencePieceProcessor());
@@ -249,10 +257,12 @@ public:
     return spm_->GetPieceSize();
   }
 
+  std::string toUpper(const std::string& line) const override { return utils::utf8ToUpper(line); }
+  std::string toEnglishTitleCase(const std::string& line) const override { return utils::toEnglishTitleCase(line); }
 };
 #endif // USE_SENTENCEPIECE
 
-Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<IVocab> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE

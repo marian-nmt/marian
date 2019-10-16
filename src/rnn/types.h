@@ -18,7 +18,7 @@ struct State {
             select(cell,   selIdx, beamSize, isBatchMajor) };
   }
 
-private:
+  // this function is also called by Logits
   static Expr select(Expr sel, // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
                      const std::vector<IndexType>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                      int beamSize, bool isBatchMajor)

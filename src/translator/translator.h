@@ -55,9 +55,13 @@ public:
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
-        auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+        auto graph = New<ExpressionGraph>(true);
         graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+        if (device.type == DeviceType::cpu) {
+          graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+          graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+        }
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
@@ -99,14 +103,14 @@ public:
           scorers = scorers_[id % numDevices_];
         }
 
-        auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+        auto search = New<Search>(options_, scorers, trgVocab_);
         auto histories = search->search(graph, batch);
 
         for(auto history : histories) {
           std::stringstream best1;
           std::stringstream bestn;
           printer->print(history, best1, bestn);
-          collector->Write((long)history->GetLineNum(),
+          collector->Write((long)history->getLineNum(),
                            best1.str(),
                            bestn.str(),
                            options_->get<bool>("n-best"));
@@ -167,9 +171,13 @@ public:
 
     // initialize scorers
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+      auto graph = New<ExpressionGraph>(true);
       graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+      if (device.type == DeviceType::cpu) {
+        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
+      }
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
 
@@ -204,14 +212,14 @@ public:
             scorers = scorers_[id % numDevices_];
           }
 
-          auto search = New<Search>(options_, scorers, trgVocab_->getEosId(), trgVocab_->getUnkId());
+          auto search = New<Search>(options_, scorers, trgVocab_);
           auto histories = search->search(graph, batch);
 
           for(auto history : histories) {
             std::stringstream best1;
             std::stringstream bestn;
             printer->print(history, best1, bestn);
-            collector->add((long)history->GetLineNum(), best1.str(), bestn.str());
+            collector->add((long)history->getLineNum(), best1.str(), bestn.str());
           }
         };
 

@@ -5,7 +5,6 @@ if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW) # CMake 3.12
 endif ()
 
-
 project(marian CXX C)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +21,7 @@ option(USE_MPI "Use MPI library" OFF)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" ON)
+option(USE_FBGEMM "Use FBGEMM" ON)
 
 # Project versioning
 find_package(Git QUIET)
@@ -32,6 +32,11 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(NOT CMAKE_BUILD_TYPE)
+  message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 # Set compilation flags
 if(MSVC)
@@ -59,59 +64,79 @@ if(MSVC)
 
   find_library(SHLWAPI Shlwapi.lib)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
-else()
+else(MSVC)
 
-# Detect support CPU instrinsics for the current platform. This will
-# only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
-# minimally use -msse4.1. This seems to work with MKL.
-set(INTRINSICS "")
-if(BUILD_ARCH STREQUAL "native")
-  message(STATUS "Checking support for CPU intrinsics")
-  include(FindSSE)
-  if(SSE2_FOUND)
-    message(STATUS "SSE2 support found")
-    set(INTRINSICS "${INTRINSICS} -msse2")
-  endif(SSE2_FOUND)
-  if(SSE3_FOUND)
-    message(STATUS "SSE3 support found")
-    set(INTRINSICS "${INTRINSICS} -msse3")
-  endif(SSE3_FOUND)
-  if(SSE4_1_FOUND)
-    message(STATUS "SSE4.1 support found")
-    set(INTRINSICS "${INTRINSICS} -msse4.1")
-  endif(SSE4_1_FOUND)
-  if(AVX_FOUND)
-    message(STATUS "AVX support found")
-    set(INTRINSICS "${INTRINSICS} -mavx")
-  endif(AVX_FOUND)
-  if(AVX2_FOUND)
-    message(STATUS "AVX2 support found")
-    set(INTRINSICS "${INTRINSICS} -mavx2")
-  endif(AVX2_FOUND)
-else()
-  set(INTRINSICS "-msse4.1")
-endif()
+  # Detect support CPU instrinsics for the current platform. This will
+  # only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
+  # minimally use -msse4.1. This seems to work with MKL.
+  set(INTRINSICS "")
+  if(BUILD_ARCH STREQUAL "native")
+    message(STATUS "Checking support for CPU intrinsics")
+    include(FindSSE)
+    if(SSE2_FOUND)
+      message(STATUS "SSE2 support found")
+      set(INTRINSICS "${INTRINSICS} -msse2")
+    endif(SSE2_FOUND)
+    if(SSE3_FOUND)
+      message(STATUS "SSE3 support found")
+      set(INTRINSICS "${INTRINSICS} -msse3")
+    endif(SSE3_FOUND)
+    if(SSE4_1_FOUND)
+      message(STATUS "SSE4.1 support found")
+      set(INTRINSICS "${INTRINSICS} -msse4.1")
+    endif(SSE4_1_FOUND)
+    if(AVX_FOUND)
+      message(STATUS "AVX support found")
+      set(INTRINSICS "${INTRINSICS} -mavx")
+    endif(AVX_FOUND)
+    if(AVX2_FOUND)
+      message(STATUS "AVX2 support found")
+      set(INTRINSICS "${INTRINSICS} -mavx2")
+    endif(AVX2_FOUND)
+    if(AVX512_FOUND)
+      message(STATUS "AVX512 support found")
+      set(INTRINSICS "${INTRINSICS} -mavx512f")
+      list(APPEND INTRINSICS_NVCC -Xcompiler\ -mavx512f)
+    endif(AVX512_FOUND)
+  else()
+    set(INTRINSICS "-msse4.1")
+  endif()
 
-set(DISABLE_GLOBALLY "-Wno-unused-result")
+  if(USE_FBGEMM)
+    set(EXT_LIBS ${EXT_LIBS} fbgemm dl)
+    add_definitions(-DUSE_FBGEMM=1)
+  endif(USE_FBGEMM)
 
-# These are used in src/CMakeLists.txt on a per-target basis
-list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
-                         -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers;)
+  set(DISABLE_GLOBALLY "-Wno-unused-result")
+
+  # These are used in src/CMakeLists.txt on a per-target basis
+  list(APPEND ALL_WARNINGS -Wall; -Werror; -Wno-unused-result; -Wno-deprecated; -Wno-pragmas; -Wno-unused-parameter; -Wextra; -Wno-unused-function;
+                          -Wno-unused-value; -Wno-unknown-pragmas; -Wno-sign-compare; -Wno-missing-field-initializers;)
 
   # This warning does not exist prior to gcc 5.0
   if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
     list(APPEND ALL_WARNINGS -Wsuggest-override)
   endif()
 
-  set(CMAKE_CXX_FLAGS                 "-std=c++11 -O3 -Ofast -m64 -pthread -march=${BUILD_ARCH} ${INTRINSICS} -Wl,--no-as-needed -funroll-loops -ffinite-math-only -fPIC ${DISABLE_GLOBALLY}")
-  set(CMAKE_CXX_FLAGS_RELEASE         "${CMAKE_CXX_FLAGS} -g -rdynamic")
-  set(CMAKE_CXX_FLAGS_DEBUG           "-std=c++11 -g -rdynamic -O0 -pthread -Wl,--no-as-needed -fPIC -Wno-unused-result -Wno-deprecated -Wno-pragmas")
-  set(CMAKE_CXX_FLAGS_SLIM            "${CMAKE_CXX_FLAGS} -DNDEBUG")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS} -g -rdynamic")
-  set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg -g -rdynamic")
+  set(CMAKE_CXX_FLAGS                 "-std=c++11 -pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_CXX_FLAGS_RELEASE         "-Ofast -m64 -funroll-loops -ffinite-math-only -g -rdynamic")
+  set(CMAKE_CXX_FLAGS_DEBUG           "-O0 -g -rdynamic")
+  set(CMAKE_CXX_FLAGS_SLIM            "-Ofast -m64 -funroll-loops -ffinite-math-only -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELEASE}")
+  set(CMAKE_CXX_FLAGS_PROFILE         "${CMAKE_CXX_FLAGS_RELEASE} -pg")
   set(CMAKE_CXX_FLAGS_PROFGEN         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
   set(CMAKE_CXX_FLAGS_PROFUSE         "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
-  endif()
+
+  # these need to be set separately
+  set(CMAKE_C_FLAGS                 "-pthread -Wl,--no-as-needed -fPIC ${DISABLE_GLOBALLY} -march=${BUILD_ARCH} ${INTRINSICS}")
+  set(CMAKE_C_FLAGS_RELEASE         "-O3 -m64 -funroll-loops -ffinite-math-only -g -rdynamic")
+  set(CMAKE_C_FLAGS_DEBUG           "-O0 -g -rdynamic")
+  set(CMAKE_C_FLAGS_SLIM            "-O3 -m64 -funroll-loops -ffinite-math-only -DNDEBUG")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO  "${CMAKE_C_FLAGS_RELEASE}")
+  set(CMAKE_C_FLAGS_PROFILE         "${CMAKE_C_FLAGS_RELEASE} -pg")
+  set(CMAKE_C_FLAGS_PROFGEN         "${CMAKE_C_FLAGS_RELEASE} -fprofile-generate -fprofile-correction")
+  set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
+endif(MSVC)
 
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
@@ -120,7 +145,6 @@ if(USE_SENTENCEPIECE)
   LIST(APPEND CUDA_NVCC_FLAGS -DUSE_SENTENCEPIECE; )
   set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
-
 
 # Find packages
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
@@ -142,14 +166,26 @@ endif()
 
 find_package(CUDA "8.0")
 if(CUDA_FOUND)
+  # CUDA >= 10.0 requires CMake >= 3.12.2
+  if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
+      message(WARNING "On some Unix systems CUDA 10.0+ requires CMake 3.12.2+; you use CMake ${CMAKE_VERSION}")
+  endif()
+
   if(USE_STATIC_LIBS)
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
-    message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
+    set(CUDA_LIBS ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_culibos_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    # CUDA 10.1 introduces cublasLt library that is required on static build
+    if ((CUDA_VERSION VERSION_EQUAL "10.1" OR CUDA_VERSION VERSION_GREATER "10.1"))
+      find_library(CUDA_cublasLt_LIBRARY NAMES cublasLt PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+      set(EXT_LIBS ${EXT_LIBS} ${CUDA_cublasLt_LIBRARY})
+      set(CUDA_LIBS ${CUDA_LIBS} ${CUDA_cublasLt_LIBRARY})
+    endif()
+    message(STATUS "Found CUDA libraries: ${CUDA_LIBS}")
   else(USE_STATIC_LIBS)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
     message(STATUS "Found CUDA libraries: ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES}")
-endif(USE_STATIC_LIBS)
+  endif(USE_STATIC_LIBS)
 
   if(USE_CUDNN)
     find_package(CUDNN "7.0")
@@ -175,9 +211,9 @@ endif(USE_STATIC_LIBS)
     LIST(APPEND CUDA_NVCC_FLAGS -DUSE_NCCL; )
   endif(USE_NCCL)
 
-if(USE_STATIC_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-endif()
+  if(USE_STATIC_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+  endif()
 
 else(CUDA_FOUND)
   message("

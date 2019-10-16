@@ -495,6 +495,7 @@ void AVX_MatrixMult8(const __m512i *A,
         put.Write(C + (i + 4) * num_B_rows + j, Reduce16to32(sum5, sum6));
         put.Write(C + (i + 6) * num_B_rows + j, Reduce16to32(sum7));
       }
+      /* fall through */
     case 6:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;
@@ -518,6 +519,7 @@ void AVX_MatrixMult8(const __m512i *A,
         put.Write(C + i * num_B_rows + j, Reduce16to32(sum1, sum2, sum3, sum4));
         put.Write(C + (i + 4) * num_B_rows + j, Reduce16to32(sum5, sum6));
       }
+      /* fall through */
     case 5:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;
@@ -539,6 +541,7 @@ void AVX_MatrixMult8(const __m512i *A,
         put.Write(C + i * num_B_rows + j, Reduce16to32(sum1, sum2, sum3, sum4));
         put.Write(C + (i + 4) * num_B_rows + j, Reduce16to32(sum5));
       }
+      /* fall through */
     case 4:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;
@@ -557,6 +560,7 @@ void AVX_MatrixMult8(const __m512i *A,
         }
         put.Write(C + i * num_B_rows + j, Reduce16to32(sum1, sum2, sum3, sum4));
       }
+      /* fall through */
     case 3:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;
@@ -574,6 +578,7 @@ void AVX_MatrixMult8(const __m512i *A,
         put.Write(C + i * num_B_rows + j, Reduce16to32(sum1, sum2));
         put.Write(C + (i + 2) * num_B_rows + j, Reduce16to32(sum3));
       }
+      /* fall through */
     case 2:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;
@@ -588,6 +593,7 @@ void AVX_MatrixMult8(const __m512i *A,
         }
         put.Write(C + i * num_B_rows + j, Reduce16to32(sum1, sum2));
       }
+      /* fall through */
     case 1:
       for(int j = 0; j < num_B_rows; j++) {
         const __m512i *B_row = B + j * sse_width;

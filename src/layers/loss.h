@@ -1,6 +1,8 @@
 #pragma once
 
 #include "graph/expression_operators.h"
+#include "layers/generic.h" // for Logits (Frank's factor hack)
+#include "data/types.h"
 
 namespace marian {
 
@@ -15,6 +17,8 @@ namespace marian {
  *
  * Since both, loss_ and count_ are dynamic graph nodes they can be further
  * combined into larger structures. See multi-objective losses below.
+ *
+ * @TODO: This seems also used to hold a pair of (logits, mask)
  */
 class RationalLoss {
 protected:
@@ -38,6 +42,7 @@ public:
 
   Expr loss() const { return loss_; }
 
+  // @TODO: remove this function, as it does not add too much value over loss()->get(...)
   template <typename T>
   void loss(std::vector<T>& losses) const {
     ABORT_IF(!loss_, "Loss has not been defined");
@@ -52,6 +57,7 @@ public:
 
   Expr count() const { return count_; }
 
+  // @TODO: remove this function, as it does not add too much value over count()->get(...)
   template <typename T>
   void count(std::vector<T>& labels) const {
     ABORT_IF(!count_, "Labels have not been defined");
@@ -267,7 +273,7 @@ class LabelwiseLoss {
 protected:
   std::vector<int> axes_;
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) = 0;
 
   // label counts are available, reduce together with loss to obtain counts
@@ -302,9 +308,9 @@ public:
   LabelwiseLoss(const std::vector<int>& axes)
   : axes_(axes) { }
 
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
+  virtual RationalLoss apply(Logits logits, const Words& labels,
                              Expr mask = nullptr, Expr labelWeights = nullptr) {
-    Expr loss = compute(logits, labelIndices, mask, labelWeights);
+    Expr loss = compute(logits, labels, mask, labelWeights);
 
     if(mask)
       return reduce(loss, mask); // mask can be used as element-wise label count with broadcasting
@@ -318,38 +324,43 @@ public:
  */
 class CrossEntropyLoss : public LabelwiseLoss {
 public:
-  CrossEntropyLoss(float labelSmoothing)
-  : LabelwiseLoss(/*axes=*/{-2, -3}), // cross-entropy already reduces over axis -1
-    labelSmoothing_(labelSmoothing) {}
+  CrossEntropyLoss(float labelSmoothing, float factorWeight)
+  : CrossEntropyLoss(/*axes=*/{-2, -3}, labelSmoothing, factorWeight) {} // cross-entropy already reduces over axis -1
 
-  CrossEntropyLoss(const std::vector<int>& axes, float labelSmoothing)
+  CrossEntropyLoss(const std::vector<int>& axes, float labelSmoothing, float factorWeight)
   : LabelwiseLoss(axes), // cross-entropy already reduces over axis -1
-    labelSmoothing_(labelSmoothing) {}
+    labelSmoothing_(labelSmoothing), factorWeight_(factorWeight) {}
 
 protected:
   float labelSmoothing_; // interpolation factor for label smoothing, see below
+  float factorWeight_;   // give extra weight to factors
 
-  virtual Expr compute(Expr logits, Expr labelIndices,
+  virtual Expr compute(Logits logits, const Words& labels,
                        Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
-    // for bert training or classification the time dimension is lot.
-    // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
-
-    Expr ce = cross_entropy(logits, labelIndices);
-
-    if(labelSmoothing_ > 0) {
-      // @TODO: add this to CE kernels instead
-
-      // Label smoothing (see https://arxiv.org/pdf/1512.00567.pdf, section 7)
-      // We compute smoothed H(q',p) = (1 - eps) * H(q,p) + eps * H(u,p) where H(q,p) is the normal cross-entropy
-      // and H(u,p) penalizes deviation of p from u, u being uniform distribution over vocab V => u_v = 1/|V|.
-      // H(u,p) = - \sum_{v \in V} u_v * \log p_v = - 1/|V| \sum_{v \in V} \log \softmax_v => -mean(logsoftmax(logits))
-      // ceq = -H(u,p) - avoid one kernel call by negating in the interpolation below
-      Expr ceq = mean(logsoftmax(logits), /*axis=*/ -1);
-
-      // H(q',p) = (1 - eps) * H(q,p) - eps * -H(u,p)
-      ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceq;
-    }
+    // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
+    int inFactor = false;
+    auto ce = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {
+      logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
+      // for bert training or classification the time dimension is lot.
+      // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
+      Expr ce = cross_entropy(logits, indices);
+      if (inFactor) {
+        LOG_ONCE("scaling factor losses with weight {}", factorWeight_);
+        ce = ce * factorWeight_;
+      }
+      if (labelSmoothing_ > 0) {
+        // ce = -sum_i y^_i log y_i(h)
+        // with smoothing:
+        // ce' = -sum_i ((1-labelSmoothing_) y^_i + labelSmoothing_/N) log y_i(h)
+        //     = -(1-labelSmoothing_) sum_i y^_i log y_i(h) - labelSmoothing_ mean_i log y_i(h)
+        //     = (1-labelSmoothing_) ce - labelSmoothing_ mean_i log y_i(h)
+        auto ceqNeg = mean(logits, /*axis=*/ -1) - logsumexp(logits, /*axis=*/ -1);
+        ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceqNeg;
+        //ce = ce - labelSmoothing_ * (ce + ceqNeg); // writing it this way saves one op :)
+        inFactor = true;
+      }
+      return ce;
+    });
 
     if(mask)
       ce = ce * mask;
@@ -366,14 +377,9 @@ protected:
  */
 class RescorerLoss : public CrossEntropyLoss {
 public:
-  // sentence-wise CE, hence reduce only over time axis. CE reduces over last axis (-1)
-  RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3}, /*smoothing=*/0.f) {}
-
-  virtual RationalLoss apply(Expr logits, Expr labelIndices,
-                             Expr mask = nullptr, Expr labelWeights = nullptr) override {
-    auto ce = CrossEntropyLoss::apply(logits, labelIndices, mask, labelWeights);
-    return RationalLoss(ce.loss(), ce.count());
-  }
+  // sentence-wise CE, hence reduce only over time axis
+  // This class differs from CrossEntropy in the different 'axes' setting, and that label smoothing is disabled.
+  RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3} /*time axis*/, /*smoothing=*/0.f, /*factorWeight=*/1.0f) {}
 };
 
 /**
