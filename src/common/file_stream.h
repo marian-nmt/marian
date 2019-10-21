@@ -279,6 +279,14 @@ protected:
   std::string file_;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+class OutputFileStreamNew : public zstr::ofstream {
+public:
+  explicit OutputFileStreamNew(const std::string& file);
+
+protected:
+  std::string file_;
+};
 
 }  // namespace io
 }  // namespace marian

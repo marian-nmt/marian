@@ -339,5 +339,11 @@ InputFileStreamNew::InputFileStreamNew(const std::string &file)
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
+    : zstr::ofstream(file), file_(file) {
+  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+}
+
 } // namespace io
 } // namespace marian
