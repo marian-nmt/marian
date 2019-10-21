@@ -465,12 +465,12 @@ public:
 
     // Set up output file
     std::string fileName;
-    Ptr<io::TemporaryFile> tempFile;
+    Ptr<io::TemporaryFile2> tempFile;
 
     if(options_->hasAndNotEmpty("valid-translation-output")) {
       fileName = options_->get<std::string>("valid-translation-output");
     } else {
-      tempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
+      tempFile.reset(new io::TemporaryFile2(options_->get<std::string>("tempdir"), false));
       fileName = tempFile->getFileName();
     }
 

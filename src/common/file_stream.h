@@ -43,7 +43,7 @@ namespace std {
 namespace marian {
 namespace io {
 
-class TemporaryFile {
+class TemporaryFile2 {
 private:
   int fd_{-1};
   bool unlink_;
@@ -112,14 +112,14 @@ private:
   }
 
 public:
-  TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true)
+  TemporaryFile2(const std::string base = "/tmp/", bool earlyUnlink = true)
       : unlink_(earlyUnlink) {
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
   }
 
-  ~TemporaryFile() {
+  ~TemporaryFile2() {
 #ifdef _MSC_VER
     if (fd_ == -1)
       return;
@@ -217,7 +217,7 @@ public:
     ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
   }
 
-  explicit InputFileStream(TemporaryFile& tempfile) {
+  explicit InputFileStream(TemporaryFile2& tempfile) {
     RewindFile(tempfile.getFileDescriptor());
     temporary_reader_.reset(new ReadFDBuf(tempfile.getFileDescriptor()));
     istream_.reset(new std::istream(temporary_reader_.get()));
@@ -312,7 +312,7 @@ public:
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
   }
 
-  OutputFileStream(TemporaryFile& tempfile) {
+  OutputFileStream(TemporaryFile2& tempfile) {
     RewindFile(tempfile.getFileDescriptor());
     temporary_writer_.reset(new WriteFDBuf(tempfile.getFileDescriptor()));
     ostream_.reset(new std::ostream(temporary_writer_.get()));
