@@ -166,5 +166,133 @@ ssize_t WriteFDBuf::WriteSome(const char *from, const char *to) {
   return put;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+#ifndef _MSC_VER
+int TemporaryFile2::mkstemp_and_unlink(char *tmpl) {
+  int ret = mkstemp(tmpl);
+  if(unlink_ && ret != -1) {
+    ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
+  }
+  return ret;
+}
+#endif
+
+int TemporaryFile2::MakeTemp(const std::string &base) {
+#ifdef _MSC_VER
+  char *name = tempnam(base.c_str(), "marian.");
+  ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
+
+  int oflag = _O_RDWR | _O_CREAT | _O_EXCL;
+  if(unlink_)
+    oflag |= _O_TEMPORARY;
+
+  int ret = open(name, oflag, _S_IREAD | _S_IWRITE);
+  ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
+
+  name_ = name;
+  free(name);
+
+  return ret;
+#else
+  std::string name(base);
+  name += "marian.XXXXXX";
+  name.push_back(0);
+  int ret;
+  ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
+           "Error while making a temporary based on '{}'",
+           base);
+  name_ = name;
+  return ret;
+#endif
+}
+
+void TemporaryFile2::NormalizeTempPrefix(std::string &base) {
+  if(base.empty())
+    return;
+
+#ifdef _MSC_VER
+  if(base.substr(0, 4) == "/tmp")
+    base = getenv("TMP");
+#else
+  if(base[base.size() - 1] == '/')
+    return;
+  struct stat sb;
+  // It's fine for it to not exist.
+  if(stat(base.c_str(), &sb) == -1)
+    return;
+  if(S_ISDIR(sb.st_mode))
+    base += '/';
+#endif
+}
+
+TemporaryFile2::TemporaryFile2(const std::string base, bool earlyUnlink) : unlink_(earlyUnlink) {
+  std::string baseTemp(base);
+  NormalizeTempPrefix(baseTemp);
+  fd_ = MakeTemp(baseTemp);
+}
+
+TemporaryFile2::~TemporaryFile2() {
+#ifdef _MSC_VER
+  if(fd_ == -1)
+    return;
+
+  if(close(fd_)) {
+    std::cerr << "Could not close file " << fd_ << std::endl;
+    std::abort();
+  }
+
+  if(!unlink_) {
+    ABORT_IF(remove(name_.c_str()), "Error while deleting '{}'", name_);
+  }
+#else
+  if(fd_ != -1 && !unlink_) {
+    ABORT_IF(unlink(name_.c_str()), "Error while deleting '{}'", name_);
+  }
+  if(fd_ != -1 && close(fd_)) {
+    std::cerr << "Could not close file " << fd_ << std::endl;
+    std::abort();
+  }
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+InputFileStream::InputFileStream(const std::string &file) : file_(file) {
+  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+
+  if(file_.extension() == marian::filesystem::Path(".gz"))
+    istream_ = std::make_unique<zstr::ifstream>(file_.string());
+  else
+    istream_ = std::make_unique<std::ifstream>(file_.string());
+  ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
+}
+
+InputFileStream::InputFileStream(TemporaryFile2 &tempfile) {
+  RewindFile(tempfile.getFileDescriptor());
+  temporary_reader_.reset(new ReadFDBuf(tempfile.getFileDescriptor()));
+  istream_.reset(new std::istream(temporary_reader_.get()));
+  std::cerr << "HH1" << std::endl;
+}
+
+void InputFileStream::setbufsize(size_t size) const {
+  istream_->rdbuf()->pubsetbuf(0, 0);
+  readBuf_.resize(size);
+  istream_->rdbuf()->pubsetbuf(readBuf_.data(), readBuf_.size());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+OutputFileStream::OutputFileStream(const std::string &file) : file_(file) {
+  if(file_.extension() == marian::filesystem::Path(".gz"))
+    ostream_ = std::make_unique<zstr::ofstream>(file_.string());
+  else
+    ostream_ = std::make_unique<std::ofstream>(file_.string());
+  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
+}
+
+OutputFileStream::OutputFileStream(TemporaryFile2 &tempfile) {
+  RewindFile(tempfile.getFileDescriptor());
+  temporary_writer_.reset(new WriteFDBuf(tempfile.getFileDescriptor()));
+  ostream_.reset(new std::ostream(temporary_writer_.get()));
+}
+
 } // namespace io
 } // namespace marian
