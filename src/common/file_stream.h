@@ -46,7 +46,7 @@ namespace io {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 class TemporaryFile : public std::fstream {
 public:
-  TemporaryFile();
+  TemporaryFile(const std::string &base = "/tmp/");
 
 protected:
   std::string name_;

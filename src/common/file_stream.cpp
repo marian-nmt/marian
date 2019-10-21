@@ -167,7 +167,8 @@ ssize_t WriteFDBuf::WriteSome(const char *from, const char *to) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFile::TemporaryFile() {
+TemporaryFile::TemporaryFile(const std::string &base) {
+  MakeTemp(base);
 }
 
 int TemporaryFile::MakeTemp(const std::string &base) {
@@ -176,13 +177,11 @@ int TemporaryFile::MakeTemp(const std::string &base) {
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
 
   int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
-  int ret = std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
-  ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
+  std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
+  //ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
 
   name_ = name;
   free(name);
-
-  return ret;
 #else
   std::string name(base);
   name += "marian.XXXXXX";
