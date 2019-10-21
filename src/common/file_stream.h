@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include "common/definitions.h"
 #include "common/filesystem.h"
 #include "common/logging.h"
@@ -42,15 +43,31 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 namespace marian {
 namespace io {
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+class TemporaryFile : public std::fstream {
+public:
+  TemporaryFile();
+
+protected:
+  std::string name_;
+
+  int MakeTemp(const std::string& base);
+
+#ifndef _MSC_VER
+  int mkstemp_and_unlink(char* tmpl);
+#endif
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////
 class TemporaryFile2 {
 private:
   int fd_{-1};
   bool unlink_;
   std::string name_;
 
-  #ifndef _MSC_VER
+#ifndef _MSC_VER
   int mkstemp_and_unlink(char* tmpl);
-  #endif
+#endif
 
   int MakeTemp(const std::string& base);
 
@@ -66,6 +83,7 @@ public:
   std::string getFileName() { return name_; }
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 // A streambuf to read from a file descriptor.
 class ReadFDBuf : public std::streambuf {
 public:
@@ -93,6 +111,7 @@ private:
   ReadFDBuf& operator=(const ReadFDBuf&) = delete;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 // A streambuf to Write to a file descriptor.
 class WriteFDBuf : public std::streambuf {
 public:
@@ -119,6 +138,7 @@ private:
   WriteFDBuf& operator=(const WriteFDBuf&) = delete;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 // lseek(fd, 0, SEEK_SET) but with error checking.
 void RewindFile(int fd);
 
@@ -176,8 +196,7 @@ private:
 
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
-static inline InputFileStream& getline(InputFileStream& in, std::string& line)
-{
+static inline InputFileStream& getline(InputFileStream& in, std::string& line) {
   std::getline((std::istream&)in, line);
   // bad() seems to be correct here. Should not abort on EOF.
   ABORT_IF(in.bad(), "Error reading from file '{}'", in.path());
@@ -200,6 +219,7 @@ static inline InputFileStream& getline(InputFileStream& in, std::string& line, c
   return in;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
 class OutputFileStream {
 public:
   OutputFileStream(const std::string& file);
