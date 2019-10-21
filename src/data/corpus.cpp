@@ -189,6 +189,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     LOG(info, "[data] Done shuffling {} sentences (cached in RAM)", numSentences);
   }
   else {
+    std::cerr << "Corpus::shuffleData" << std::endl;
     // create temp files that contain the data in randomized order
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {

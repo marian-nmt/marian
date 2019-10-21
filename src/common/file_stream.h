@@ -44,21 +44,6 @@ namespace marian {
 namespace io {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-class TemporaryFile : public std::fstream {
-public:
-  TemporaryFile(const std::string &base = "/tmp/");
-
-protected:
-  std::string name_;
-
-  int MakeTemp(const std::string& base);
-
-#ifndef _MSC_VER
-  int mkstemp_and_unlink(char* tmpl);
-#endif
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 class TemporaryFile2 {
 private:
   int fd_{-1};
@@ -269,6 +254,31 @@ private:
 
   std::unique_ptr<WriteFDBuf> temporary_writer_;
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+class TemporaryFileNew : public std::fstream {
+public:
+  TemporaryFileNew(const std::string& base = "/tmp/");
+
+protected:
+  std::string name_;
+
+  int MakeTemp(const std::string& base);
+
+#ifndef _MSC_VER
+  int mkstemp_and_unlink(char* tmpl);
+#endif
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+class InputFileStreamNew : public zstr::ifstream {
+public:
+  explicit InputFileStreamNew(const std::string& file);
+
+protected:
+  std::string file_;
+};
+
 
 }  // namespace io
 }  // namespace marian

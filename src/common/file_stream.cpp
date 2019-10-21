@@ -167,45 +167,6 @@ ssize_t WriteFDBuf::WriteSome(const char *from, const char *to) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFile::TemporaryFile(const std::string &base) {
-  MakeTemp(base);
-}
-
-int TemporaryFile::MakeTemp(const std::string &base) {
-#ifdef _MSC_VER
-  char *name = tempnam(base.c_str(), "marian.");
-  ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
-
-  int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
-  std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
-  //ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
-
-  name_ = name;
-  free(name);
-#else
-  std::string name(base);
-  name += "marian.XXXXXX";
-  name.push_back(0);
-  int ret;
-  ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
-           "Error while making a temporary based on '{}'",
-           base);
-  name_ = name;
-  return ret;
-#endif
-}
-
-#ifndef _MSC_VER
-int TemporaryFile::mkstemp_and_unlink(char *tmpl) {
-  int ret = mkstemp(tmpl);
-  if(ret != -1) {
-    ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
-  }
-  return ret;
-}
-#endif
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _MSC_VER
 int TemporaryFile2::mkstemp_and_unlink(char *tmpl) {
   int ret = mkstemp(tmpl);
@@ -331,6 +292,51 @@ OutputFileStream::OutputFileStream(TemporaryFile2 &tempfile) {
   RewindFile(tempfile.getFileDescriptor());
   temporary_writer_.reset(new WriteFDBuf(tempfile.getFileDescriptor()));
   ostream_.reset(new std::ostream(temporary_writer_.get()));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+TemporaryFileNew::TemporaryFileNew(const std::string &base) {
+  MakeTemp(base);
+}
+
+int TemporaryFileNew::MakeTemp(const std::string &base) {
+#ifdef _MSC_VER
+  char *name = tempnam(base.c_str(), "marian.");
+  ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
+
+  int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
+  std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
+  // ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
+
+  name_ = name;
+  free(name);
+#else
+  std::string name(base);
+  name += "marian.XXXXXX";
+  name.push_back(0);
+  int ret;
+  ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
+           "Error while making a temporary based on '{}'",
+           base);
+  name_ = name;
+  return ret;
+#endif
+}
+
+#ifndef _MSC_VER
+int TemporaryFileNew::mkstemp_and_unlink(char *tmpl) {
+  int ret = mkstemp(tmpl);
+  if(ret != -1) {
+    ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
+  }
+  return ret;
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+InputFileStreamNew::InputFileStreamNew(const std::string &file)
+    : zstr::ifstream(file), file_(file) {
+  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 }
 
 } // namespace io
