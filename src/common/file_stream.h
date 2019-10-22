@@ -134,7 +134,7 @@ public:
 
   OutputFileStream(TemporaryFile2& tempfile);
 
-  OutputFileStream(std::ostream& strm) { ostream_ = std::make_unique<std::ostream>(strm.rdbuf()); }
+  OutputFileStream(std::ostream& strm);
 
   operator std::ostream&() { return *ostream_; }
 
@@ -208,12 +208,13 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class OutputFileStreamNew : public zstr::ofstream {
+class OutputFileStreamNew : public std::ostream {
 public:
   explicit OutputFileStreamNew(const std::string& file);
 
 protected:
-  std::string file_;
+  marian::filesystem::Path file_;
+  std::streambuf* streamBuf_;
 };
 
 }  // namespace io

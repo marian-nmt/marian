@@ -264,12 +264,21 @@ OutputFileStream::OutputFileStream(const std::string &file) : file_(file) {
   else
     ostream_ = std::make_unique<std::ofstream>(file_.string());
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
+
+std::cerr << "OutputFileStreamOld1 created" << std::endl;
 }
 
 OutputFileStream::OutputFileStream(TemporaryFile2 &tempfile) {
   RewindFile(tempfile.getFileDescriptor());
   temporary_writer_.reset(new WriteFDBuf(tempfile.getFileDescriptor()));
   ostream_.reset(new std::ostream(temporary_writer_.get()));
+
+  std::cerr << "OutputFileStreamOld2 created" << std::endl;
+}
+
+OutputFileStream::OutputFileStream(std::ostream &strm) {
+  ostream_ = std::make_unique<std::ostream>(strm.rdbuf());
+  std::cerr << "OutputFileStreamOld3 created" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -345,8 +354,22 @@ void InputFileStreamNew::setbufsize(size_t size) const {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
-    : zstr::ofstream(file), file_(file) {
+    : std::ostream(NULL), file_(file), streamBuf_(NULL) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+
+  std::filebuf *fileBuf = new std::filebuf();
+  streamBuf_ = fileBuf->open(file.c_str(), std::ios::out);
+  if(!streamBuf_) {
+    ABORT("File can't be read", file);
+  }
+
+  if(file_.extension() == marian::filesystem::Path(".gz")) {
+    streamBuf_ = new zstr::istreambuf(streamBuf_);
+  }
+
+  this->init(streamBuf_);
+
+  std::cerr << "OutputFileStreamNew created" << std::endl;
 }
 
 } // namespace io
