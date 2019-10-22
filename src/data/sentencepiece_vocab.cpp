@@ -44,8 +44,8 @@ private:
     ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
 
     std::unique_ptr<std::istream> trainStrm(
-      trainPath == "stdin" ? &std::cin
-                           : new io::InputFileStream(trainPath)
+      trainPath == "stdin" ? new std::istream(&std::cin)
+                           : new io::InputFileStreamNew(trainPath)
     );
 
     std::string line;
