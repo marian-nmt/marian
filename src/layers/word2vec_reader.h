@@ -17,7 +17,7 @@ public:
   std::vector<float> read(const std::string& fileName, int dimVoc, int dimEmb) {
     LOG(info, "[data] Loading embedding vectors from {}", fileName);
 
-    io::InputFileStream embFile(fileName);
+    io::InputFileStreamNew embFile(fileName);
 
     std::string line;
     std::vector<std::string> values;
@@ -25,7 +25,7 @@ public:
 
     // The first line contains two values: the number of words in the
     // vocabulary and the length of embedding vectors
-    io::getline(embFile, line);
+    std::getline(embFile, line);
     utils::split(line, values);
     ABORT_IF(values.size() != 2,
              "Unexpected format of the first line of the embedding file");
@@ -34,7 +34,7 @@ public:
 
     // Read embedding vectors into a map
     std::unordered_map<WordIndex, std::vector<float>> word2vec;
-    while(io::getline(embFile, line)) {
+    while(std::getline(embFile, line)) {
       values.clear();
       utils::split(line, values);
 

@@ -42,11 +42,11 @@ namespace marian {
     //     - _lemma is special
     // The current version of the code just converts it internally to the legacy form.
     // @TODO: Once the legacy form is no longer needed, simplify this.
-    io::InputFileStream in(modelPath);
+    io::InputFileStreamNew in(modelPath);
     WordIndex v = 0;
     std::map<std::string,std::set<std::string>> factorTypeMap; // [type name] -> {factor-type names}
     std::vector<std::string> deferredFactorVocab; // factor surface forms are presently expected to be at the end of factorVocab_, so collect them here first
-    while(io::getline(in, line)) {
+    while(std::getline(in, line)) {
 #if 1 // workaround for a bug fix in FactoredSegmenter that made old .fsv files incompatible
       if (line      == "\xef\xb8\x8f : _lemma _has_wb")         // old vocabs have a wrong factor in here
         line         = "\xef\xb8\x8f : _lemma _has_gl _has_gr"; // patch it to the correct one
@@ -129,8 +129,8 @@ namespace marian {
     groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
     // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
 
-    io::InputFileStream in(modelPath);
-    for (WordIndex v = 0; io::getline(in, line); v++) {
+    io::InputFileStreamNew in(modelPath);
+    for (WordIndex v = 0; std::getline(in, line); v++) {
       utils::splitAny(line, tokBuf, " \t");
       factorMapTokenized.push_back(tokBuf);
     }
@@ -714,8 +714,8 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
 }
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
-  io::InputFileStream in(path);
-  for (WordIndex v = 0; io::getline(in, line); v++)
+  io::InputFileStreamNew in(path);
+  for (WordIndex v = 0; std::getline(in, line); v++)
     add(line, v);
   return size();
 }

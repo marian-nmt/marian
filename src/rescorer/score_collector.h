@@ -56,7 +56,7 @@ private:
   std::string nBestList_;
   std::string fname_;
   long lastRead_{-1};
-  UPtr<io::InputFileStream> file_;
+  UPtr<io::InputFileStreamNew> file_;
   std::map<long, std::string> buffer_;
 
   std::string addToNBest(const std::string nbest,

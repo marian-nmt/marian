@@ -81,7 +81,7 @@ ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Options>& options)
     : ScoreCollector(options),
       nBestList_(options->get<std::vector<std::string>>("train-sets").back()),
       fname_(options->get<std::string>("n-best-feature")) {
-  file_.reset(new io::InputFileStream(nBestList_));
+  file_.reset(new io::InputFileStreamNew(nBestList_));
 }
 
 void ScoreCollectorNBest::Write(long id,
@@ -96,7 +96,7 @@ void ScoreCollectorNBest::Write(long id,
                "Entry {} < {} already read but not in buffer",
                id,
                lastRead_);
-      while(lastRead_ < id && io::getline(*file_, line)) {
+      while(lastRead_ < id && std::getline(*file_, line)) {
         lastRead_++;
         iter = buffer_.emplace(lastRead_, line).first;
       }

@@ -43,8 +43,8 @@ private:
 
     ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
 
-    std::unique_ptr<io::InputFileStream> trainStrm(
-      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+    std::unique_ptr<std::istream> trainStrm(
+      trainPath == "stdin" ? &std::cin
                            : new io::InputFileStream(trainPath)
     );
 
@@ -96,7 +96,7 @@ private:
     std::string line;
     io::OutputFileStream out(temp);
     for(const auto& trainPath : trainPaths) {
-      io::InputFileStream in(trainPath);
+      io::InputFileStreamNew in(trainPath);
       while(getline(in, line)) {
         if(line.size() > 0 && line.size() < maxBytes) {
           out << line << std::endl;

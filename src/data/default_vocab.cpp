@@ -106,9 +106,9 @@ public:
     }
     // read from flat text file
     else {
-      io::InputFileStream in(vocabPath);
+      io::InputFileStreamNew in(vocabPath);
       std::string line;
-      while(io::getline(in, line)) {
+      while(std::getline(in, line)) {
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
@@ -208,9 +208,9 @@ private:
 
   void addCounts(std::unordered_map<std::string, size_t>& counter,
                  const std::string& trainPath) {
-    std::unique_ptr<io::InputFileStream> trainStrm(
-      trainPath == "stdin" ? new io::InputFileStream(std::cin)
-                           : new io::InputFileStream(trainPath)
+    std::unique_ptr<std::istream> trainStrm(
+      trainPath == "stdin" ? new std::istream(std::cin.rdbuf())
+                           : new io::InputFileStreamNew(trainPath)
     );
 
     std::string line;
