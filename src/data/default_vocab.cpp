@@ -99,7 +99,8 @@ public:
     std::map<std::string, Word> vocab;
     // read from JSON (or Yaml) file
     if(isJson) {
-      YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
+      io::InputFileStreamNew strm(vocabPath);
+      YAML::Node vocabNode = YAML::Load(strm);
       for(auto&& pair : vocabNode)
         vocab.insert({pair.first.as<std::string>(), Word::fromWordIndex(pair.second.as<IndexType>())});
     }

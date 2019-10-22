@@ -271,12 +271,13 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class InputFileStreamNew : public zstr::ifstream {
+class InputFileStreamNew : public std::istream {
 public:
   explicit InputFileStreamNew(const std::string& file);
 
 protected:
-  std::string file_;
+  marian::filesystem::Path file_;
+  std::streambuf* streamBuf_;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

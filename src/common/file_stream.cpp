@@ -337,8 +337,21 @@ int TemporaryFileNew::mkstemp_and_unlink(char *tmpl) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStreamNew::InputFileStreamNew(const std::string &file)
-    : zstr::ifstream(file), file_(file) {
+    : std::istream(NULL), file_(file), streamBuf_(NULL) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+
+  std::filebuf *fileBuf = new std::filebuf();
+  streamBuf_ = fileBuf->open(file.c_str(), std::ios::in);
+  if(!streamBuf_) {
+    ABORT("File can't be read", file);
+  }
+
+  if(file_.extension() == marian::filesystem::Path(".gz")) {
+    streamBuf_ = new zstr::istreambuf(streamBuf_);
+  }
+
+  this->init(streamBuf_);
+
   std::cerr << "InputFileStreamNew created" << std::endl;
 }
 
