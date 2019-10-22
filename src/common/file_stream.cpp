@@ -355,7 +355,6 @@ void InputFileStreamNew::setbufsize(size_t size) const {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
     : std::ostream(NULL), file_(file), streamBuf_(NULL) {
-  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
   std::filebuf *fileBuf = new std::filebuf();
   streamBuf_ = fileBuf->open(file.c_str(), std::ios::out);
@@ -372,5 +371,10 @@ OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
   std::cerr << "OutputFileStreamNew created" << std::endl;
 }
 
+OutputFileStreamNew::~OutputFileStreamNew() {
+  this->flush();
+  delete streamBuf_;
+}
+  
 } // namespace io
 } // namespace marian

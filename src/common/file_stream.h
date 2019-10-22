@@ -211,7 +211,8 @@ protected:
 class OutputFileStreamNew : public std::ostream {
 public:
   explicit OutputFileStreamNew(const std::string& file);
-
+  virtual ~OutputFileStreamNew();
+  
 protected:
   marian::filesystem::Path file_;
   std::streambuf* streamBuf_;
