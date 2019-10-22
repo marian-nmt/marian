@@ -256,34 +256,6 @@ TemporaryFile2::~TemporaryFile2() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-InputFileStream::InputFileStream(const std::string &file) : file_(file) {
-  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
-  if(file_.extension() == marian::filesystem::Path(".gz"))
-    istream_ = std::make_unique<zstr::ifstream>(file_.string());
-  else
-    istream_ = std::make_unique<std::ifstream>(file_.string());
-  ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
-
-  std::cerr << "InputFileStreamOld1 created" << std::endl;
-}
-
-InputFileStream::InputFileStream(TemporaryFile2 &tempfile) {
-  RewindFile(tempfile.getFileDescriptor());
-  temporary_reader_.reset(new ReadFDBuf(tempfile.getFileDescriptor()));
-  istream_.reset(new std::istream(temporary_reader_.get()));
-  std::cerr << "InputFileStreamOld2 created" << std::endl;
-}
-
-InputFileStream::InputFileStream(std::istream &strm) : istream_(new std::istream(strm.rdbuf())) {
-  std::cerr << "InputFileStreamOld3 created" << std::endl;
-}
-
-void InputFileStream::setbufsize(size_t size) const {
-  istream_->rdbuf()->pubsetbuf(0, 0);
-  readBuf_.resize(size);
-  istream_->rdbuf()->pubsetbuf(readBuf_.data(), readBuf_.size());
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStream::OutputFileStream(const std::string &file) : file_(file) {
