@@ -360,11 +360,11 @@ OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
   std::filebuf *fileBuf = new std::filebuf();
   streamBuf_ = fileBuf->open(file.c_str(), std::ios::out);
   if(!streamBuf_) {
-    ABORT("File can't be read", file);
+    ABORT("File can't be opened", file);
   }
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf_ = new zstr::istreambuf(streamBuf_);
+    streamBuf_ = new zstr::ostreambuf(streamBuf_);
   }
 
   this->init(streamBuf_);

@@ -12,10 +12,10 @@ OutputCollector::OutputCollector()
 
 OutputCollector::OutputCollector(std::string outFile)
   : nextId_(0),
-    outStrm_(new io::OutputFileStream(std::cout)),
+    outStrm_(new std::ostream(std::cout.rdbuf())),
     printing_(new DefaultPrinting()) {
   if (outFile != "stdout")
-    outStrm_.reset(new io::OutputFileStream(outFile));
+    outStrm_.reset(new io::OutputFileStreamNew(outFile));
 }
 
 void OutputCollector::Write(long sourceId,

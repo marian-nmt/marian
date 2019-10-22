@@ -49,7 +49,7 @@ public:
   OutputCollector(std::string outFile);
 
   template <class T>
-  OutputCollector(T&& arg) : nextId_(0), outStrm_(new io::OutputFileStream(arg)) {}
+  OutputCollector(T&& arg) : nextId_(0), outStrm_(new io::OutputFileStreamNew(arg)) {}
 
   OutputCollector(const OutputCollector&) = delete;
 
@@ -66,7 +66,7 @@ protected:
   typedef std::map<long, std::pair<std::string, std::string>> Outputs;
   Outputs outputs_;
   long nextId_;
-  UPtr<io::OutputFileStream> outStrm_;
+  UPtr<std::ostream> outStrm_;
   Ptr<PrintingStrategy> printing_;
   std::mutex mutex_;
 };
