@@ -264,13 +264,15 @@ InputFileStream::InputFileStream(const std::string &file) : file_(file) {
   else
     istream_ = std::make_unique<std::ifstream>(file_.string());
   ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
+
+  std::cerr << "InputFileStreamOld1 created" << std::endl;
 }
 
 InputFileStream::InputFileStream(TemporaryFile2 &tempfile) {
   RewindFile(tempfile.getFileDescriptor());
   temporary_reader_.reset(new ReadFDBuf(tempfile.getFileDescriptor()));
   istream_.reset(new std::istream(temporary_reader_.get()));
-  std::cerr << "HH1" << std::endl;
+  std::cerr << "InputFileStreamOld2 created" << std::endl;
 }
 
 void InputFileStream::setbufsize(size_t size) const {
@@ -337,6 +339,7 @@ int TemporaryFileNew::mkstemp_and_unlink(char *tmpl) {
 InputFileStreamNew::InputFileStreamNew(const std::string &file)
     : zstr::ifstream(file), file_(file) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
+  std::cerr << "InputFileStreamNew created" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
