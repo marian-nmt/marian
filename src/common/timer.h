@@ -4,14 +4,18 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#ifndef NO_BOOST
 #include <boost/timer/timer.hpp>
+#endif
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
 #ifdef _MSC_VER
 // (needed on Windows only to resolve a link error, but causes a warning on Linux)
+#ifndef NO_BOOST
 #include <boost/chrono.hpp>
+#endif
 #endif
 
 #include <chrono>
@@ -94,7 +98,9 @@ public:
 // Check get_clocktime on Linux: https://linux.die.net/man/3/clock_gettime
 // Check GetThreadTimes on Windows:
 // https://docs.microsoft.com/en-gb/windows/desktop/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
+#ifndef NO_BOOST
 using CPUTimer = boost::timer::cpu_timer;
+#endif
 
 }  // namespace timer
 }  // namespace marian

@@ -82,7 +82,7 @@ public:
 
 protected:
   // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
-  void createBatchGenerator(bool isTranslating) {
+  void createBatchGenerator(bool /*isTranslating*/) {
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);

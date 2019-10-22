@@ -453,7 +453,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       util::hash_combine(hash, transA);
       util::hash_combine(hash, transB);
 
-      #if USE_FBGEMM
+#if USE_FBGEMM
       // Use Packed GEMM only if the node b in the graph is memoized.
       // More specifically, packed GEMM is used only if the B matrix (weight) is constant.
       // In general, 'memoized' means that the node is a constant variable or
@@ -548,7 +548,6 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
       // execute algorithm with autotuning
       return tuner->run();
-
     } else {
       if(gemmType == GemmType::IntrinInt16) {
         // cpu int16 version

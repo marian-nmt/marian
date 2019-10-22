@@ -13,13 +13,15 @@
 #pragma warning(disable : 4101)
 #endif
 #include "3rd_party/zstr/zstr.hpp"
+#ifndef NO_BOOST
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
 #endif
 #ifdef _MSC_VER
 #pragma warning(pop)
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 
@@ -162,14 +164,16 @@ public:
     ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
   }
 
+#ifndef NO_BOOST
   InputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-
+  
     namespace bio = boost::iostreams;
     fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_source>>(fds_);
     istream_ = std::make_unique<std::istream>(fdsBuffer_.get());
   }
+#endif
 
   InputFileStream(std::istream& strm)
   : istream_(new std::istream(strm.rdbuf())) {}
@@ -220,9 +224,13 @@ private:
   marian::filesystem::Path file_;
   std::unique_ptr<std::istream> istream_;
 
+#ifndef NO_BOOST
   boost::iostreams::file_descriptor_source fds_;
+#endif
   mutable std::vector<char> readBuf_; // for setbuf()
+#ifndef NO_BOOST
   std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>> fdsBuffer_;
+#endif
 };
 
 // wrapper around std::getline() that handles Windows input files with extra CR
@@ -259,6 +267,7 @@ public:
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
   }
 
+#ifndef NO_BOOST
   OutputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
@@ -267,6 +276,12 @@ public:
     fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_sink>>(fds_);
     ostream_ = std::make_unique<std::ostream>(fdsBuffer_.get());
   }
+#else
+  OutputFileStream(TemporaryFile& tempfile) {
+    tempfile;
+    ABORT("OutputFileStream(tempFile) not supported when compiling with NO_BOOST");
+  }
+#endif
 
   OutputFileStream(std::ostream& strm) {
     ostream_ = std::make_unique<std::ostream>(strm.rdbuf());
@@ -311,8 +326,10 @@ private:
   std::unique_ptr<std::ostream> ostream_;
 
 
+#ifndef NO_BOOST
   boost::iostreams::file_descriptor_sink fds_;
   std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_sink>> fdsBuffer_;
+#endif
 };
 
 }
