@@ -76,7 +76,7 @@ void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   ABORT_IF(rc != buf.size(), "Error {} ('{}') reading file '{}'", errno, strerror(errno), fileName);
   fclose(f);
 #else
-  io::InputFileStream in(fileName);
+  io::InputFileStreamNew in(fileName);
   in.read(buf.data(), buf.size());
 #endif
 

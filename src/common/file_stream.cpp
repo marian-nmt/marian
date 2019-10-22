@@ -275,6 +275,10 @@ InputFileStream::InputFileStream(TemporaryFile2 &tempfile) {
   std::cerr << "InputFileStreamOld2 created" << std::endl;
 }
 
+InputFileStream::InputFileStream(std::istream &strm) : istream_(new std::istream(strm.rdbuf())) {
+  std::cerr << "InputFileStreamOld3 created" << std::endl;
+}
+
 void InputFileStream::setbufsize(size_t size) const {
   istream_->rdbuf()->pubsetbuf(0, 0);
   readBuf_.resize(size);
@@ -353,6 +357,10 @@ InputFileStreamNew::InputFileStreamNew(const std::string &file)
   this->init(streamBuf_);
 
   std::cerr << "InputFileStreamNew created" << std::endl;
+}
+
+InputFileStreamNew::~InputFileStreamNew() {
+  delete streamBuf_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

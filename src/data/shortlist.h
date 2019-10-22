@@ -136,7 +136,7 @@ private:
   std::vector<std::unordered_map<WordIndex, float>> data_; // [WordIndex src] -> [WordIndex tgt] -> P_trans(tgt|src) --@TODO: rename data_ accordingly
 
   void load(const std::string& fname) {
-    io::InputFileStream in(fname);
+    io::InputFileStreamNew in(fname);
 
     std::string src, trg;
     float prob;

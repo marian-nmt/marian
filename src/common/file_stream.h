@@ -133,7 +133,7 @@ public:
 
   explicit InputFileStream(TemporaryFile2& tempfile);
 
-  explicit InputFileStream(std::istream& strm) : istream_(new std::istream(strm.rdbuf())) {}
+  explicit InputFileStream(std::istream& strm);
 
   operator std::istream&() { return *istream_; }
 
@@ -274,6 +274,7 @@ protected:
 class InputFileStreamNew : public std::istream {
 public:
   explicit InputFileStreamNew(const std::string& file);
+  virtual ~InputFileStreamNew();
 
 protected:
   marian::filesystem::Path file_;
