@@ -49,13 +49,13 @@ SentenceTuple CorpusNBest::next() {
     lastLines_.resize(files_.size() - 1);
     size_t last = files_.size() - 1;
 
-    if(io::getline(*files_[last], line)) {
+    if(std::getline(*files_[last], line)) {
       int curr_num = numFromNbest(line);
       std::string curr_text = lineFromNbest(line);
 
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
-          ABORT_IF(!io::getline(*files_[i], lastLines_[i]),
+          ABORT_IF(!std::getline(*files_[i], lastLines_[i]),
                    "Too few lines in input {}",
                    i);
         }
@@ -86,9 +86,9 @@ void CorpusNBest::reset() {
   lastNum_ = -1;
   for(auto& path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
+      files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else
-      files_.emplace_back(new io::InputFileStream(path));
+      files_.emplace_back(new io::InputFileStreamNew(path));
   }
 }
 }  // namespace data

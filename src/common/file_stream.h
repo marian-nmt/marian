@@ -276,6 +276,9 @@ public:
   explicit InputFileStreamNew(const std::string& file);
   virtual ~InputFileStreamNew();
 
+  bool empty();
+  void setbufsize(size_t size) const;
+
 protected:
   marian::filesystem::Path file_;
   std::streambuf* streamBuf_;

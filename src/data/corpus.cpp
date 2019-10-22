@@ -71,7 +71,7 @@ SentenceTuple Corpus::next() {
         }
       }
       else {
-        bool gotLine = io::getline(*files_[i], line);
+        std::istream &gotLine = std::getline(*files_[i], line);
         if(!gotLine) {
           eofsHit++;
           continue;
@@ -121,7 +121,7 @@ void Corpus::reset() {
   pos_ = 0;
   for (size_t i = 0; i < paths_.size(); ++i) {
       if(paths_[i] == "stdin") {
-        files_[i].reset(new io::InputFileStream(std::cin));
+        files_[i].reset(new std::istream(std::cin.rdbuf()));
         // Probably not necessary, unless there are some buffers
         // that we want flushed.
       }
@@ -131,7 +131,7 @@ void Corpus::reset() {
         // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
         // (lost pipe) at the writing end, which may do whatever it wants
         // in this situation.
-        files_[i].reset(new io::InputFileStream(paths_[i]));
+        files_[i].reset(new io::InputFileStreamNew(paths_[i]));
       }
     }
 }
@@ -154,8 +154,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   else {
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      files_[i].reset(new io::InputFileStream(paths[i]));
-      files_[i]->setbufsize(10000000); // huge read-ahead buffer to avoid network round-trips
+      io::InputFileStreamNew *strm = new io::InputFileStreamNew(paths[i]);
+      files_[i].reset(strm);
+      strm->setbufsize(10000000); // huge read-ahead buffer to avoid network round-trips
     }
 
     // read entire corpus into RAM
@@ -163,7 +164,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     for (;;) {
       size_t eofsHit = 0;
       for(size_t i = 0; i < numStreams; ++i) {
-        bool gotLine = io::getline(*files_[i], lineBuf);
+        std::istream &gotLine = std::getline(*files_[i], lineBuf);
         if (gotLine)
           corpus[i].push_back(lineBuf);
         else
@@ -204,8 +205,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // replace files_[] by the tempfiles we just created
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      files_[i].reset(new io::InputFileStream(*tempFiles_[i]));
-      files_[i]->setbufsize(10000000);
+      io::InputFileStreamNew* strm = new io::InputFileStreamNew(tempFiles_[i]->getFileName());
+      files_[i].reset(strm);
+      strm->setbufsize(10000000);
     }
     LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);
   }

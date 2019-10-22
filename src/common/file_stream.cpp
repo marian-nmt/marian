@@ -363,6 +363,14 @@ InputFileStreamNew::~InputFileStreamNew() {
   delete streamBuf_;
 }
 
+bool InputFileStreamNew::empty() {
+  return this->peek() == std::ifstream::traits_type::eof();
+}
+
+void InputFileStreamNew::setbufsize(size_t size) const {
+  // do nothing. Is this needed?
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
     : zstr::ofstream(file), file_(file) {
