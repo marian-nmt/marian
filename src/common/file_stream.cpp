@@ -142,43 +142,59 @@ TemporaryFile2::~TemporaryFile2() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink) {
-  MakeTemp(base);
+TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
+    : unlink_(earlyUnlink) {
+  std::string baseTemp(base);
+  NormalizeTempPrefix(baseTemp);
+  MakeTemp(baseTemp);
+
+  std::cerr << "TemporaryFileNew created" << std::endl;
 }
 
-int TemporaryFileNew::MakeTemp(const std::string &base) {
+TemporaryFileNew::~TemporaryFileNew() {
+  if(!unlink_) {
+    ABORT_IF(remove(name_.c_str()), "Error while deleting '{}'", name_);
+  }
+}
+
+void TemporaryFileNew::NormalizeTempPrefix(std::string &base) {
+  if(base.empty())
+    return;
+
 #ifdef _MSC_VER
+  if(base.substr(0, 4) == "/tmp")
+    base = getenv("TMP");
+#else
+  if(base[base.size() - 1] == '/')
+    return;
+  struct stat sb;
+  // It's fine for it to not exist.
+  if(stat(base.c_str(), &sb) == -1)
+    return;
+  if(S_ISDIR(sb.st_mode))
+    base += '/';
+#endif
+}
+
+void TemporaryFileNew::MakeTemp(const std::string &base) {
   char *name = tempnam(base.c_str(), "marian.");
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
 
+#ifdef _MSC_VER
   int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
   std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
-  // ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
+  ABORT_IF(errno, "Error while making a temporary based on '{}'", base);
+#else
+  std::fstream::open(name, std::fstream::in | std::fstream::out);
+  ABORT_IF(errno, "Error while making a temporary based on '{}'", base);
+
+  ABORT_IF(remove(name), "Error while deleting '{}'", name);
+#endif
 
   name_ = name;
   free(name);
-#else
-  std::string name(base);
-  name += "marian.XXXXXX";
-  name.push_back(0);
-  int ret;
-  ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
-           "Error while making a temporary based on '{}'",
-           base);
-  name_ = name;
-  return ret;
-#endif
 }
 
-#ifndef _MSC_VER
-int TemporaryFileNew::mkstemp_and_unlink(char *tmpl) {
-  int ret = mkstemp(tmpl);
-  if(ret != -1) {
-    ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
-  }
-  return ret;
-}
-#endif
 
 std::string TemporaryFileNew::getFileName() {
   return name_;

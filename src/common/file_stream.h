@@ -72,17 +72,15 @@ public:
 class TemporaryFileNew : public std::fstream {
 public:
   TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
+  std::string getFileName();
+  virtual ~TemporaryFileNew();
 
 protected:
   std::string name_;
+  bool unlink_;
 
-  std::string getFileName();
-
-  int MakeTemp(const std::string& base);
-
-#ifndef _MSC_VER
-  int mkstemp_and_unlink(char* tmpl);
-#endif
+  void NormalizeTempPrefix(std::string& base);
+  void MakeTemp(const std::string& base);
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
