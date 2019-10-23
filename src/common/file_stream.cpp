@@ -109,8 +109,8 @@ OutputFileStreamNew::~OutputFileStreamNew() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
-    : OutputFileStreamNew(CreateFileName(base)), unlink_(earlyUnlink), inSteam_(NULL) {
-  inSteam_ = new InputFileStreamNew(file_.string());
+    : OutputFileStreamNew(CreateFileName(base)), unlink_(earlyUnlink) {
+  inSteam_.reset(new InputFileStreamNew(file_.string()));
   if (unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
@@ -152,8 +152,8 @@ std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
   return ret;
 }
 
-InputFileStreamNew *TemporaryFileNew::getInputStream() {
-  return inSteam_;
+UPtr<InputFileStreamNew> TemporaryFileNew::getInputStream() {
+  return std::move(inSteam_);
 }
 
 std::string TemporaryFileNew::getFileName() const {

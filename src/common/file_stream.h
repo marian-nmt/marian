@@ -83,12 +83,12 @@ public:
   TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
   virtual ~TemporaryFileNew();
 
-  InputFileStreamNew *getInputStream();
+  UPtr<InputFileStreamNew> getInputStream();
   std::string getFileName() const;
 
 protected:
   bool unlink_;
-  InputFileStreamNew *inSteam_;
+  UPtr<InputFileStreamNew> inSteam_;
 
   std::string CreateFileName(const std::string& base) const;
 
