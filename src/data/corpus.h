@@ -18,7 +18,7 @@ namespace data {
 
 class Corpus : public CorpusBase {
 private:
-  std::vector<UPtr<io::TemporaryFile2>> tempFiles_;
+  std::vector<UPtr<io::TemporaryFileNew>> tempFiles_;
   std::vector<size_t> ids_;
 
   // for shuffle-in-ram

@@ -194,11 +194,11 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // create temp files that contain the data in randomized order
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      tempFiles_[i].reset(new io::TemporaryFile2(options_->get<std::string>("tempdir")));
-      io::OutputFileStreamNew out(tempFiles_[i]->getFileName());
+      io::TemporaryFileNew *out = new io::TemporaryFileNew(options_->get<std::string>("tempdir"));
+	  tempFiles_[i].reset(out);
       const auto& corpusStream = corpus[i];
       for(auto id : ids_) {
-        out << corpusStream[id] << std::endl;
+        (*out) << corpusStream[id] << std::endl;
       }
     }
 
