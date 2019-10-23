@@ -4,7 +4,6 @@
 
 #ifdef CUDA_FOUND
 #include "gpu/cuda_helpers.h"
-
 #include <curand.h>
 #endif
 
