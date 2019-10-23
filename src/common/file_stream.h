@@ -85,7 +85,7 @@ public:
   virtual ~TemporaryFileNew();
 
 protected:
-  std::string file_;
+  marian::filesystem::Path file_;
   bool unlink_;
 
   std::string CreateFileName(const std::string& base) const;
