@@ -215,7 +215,8 @@ public:
   
 protected:
   marian::filesystem::Path file_;
-  std::streambuf* streamBuf_;
+  std::streambuf* streamBuf1_;
+  std::streambuf* streamBuf2_;
 };
 
 }  // namespace io

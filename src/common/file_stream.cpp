@@ -354,27 +354,28 @@ void InputFileStreamNew::setbufsize(size_t size) const {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
-    : std::ostream(NULL), file_(file), streamBuf_(NULL) {
-
+    : std::ostream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {
   std::filebuf *fileBuf = new std::filebuf();
-  streamBuf_ = fileBuf->open(file.c_str(), std::ios::out);
-  if(!streamBuf_) {
-    ABORT("File can't be opened", file);
+  streamBuf1_ = fileBuf->open(file.c_str(), std::ios::out | std::ios_base::binary);
+  if(!streamBuf1_) {
+    std::cerr << "File can't be opened" << file << std::endl;
   }
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf_ = new zstr::ostreambuf(streamBuf_);
+    streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
+    this->init(streamBuf2_);
+  } else {
+    this->init(streamBuf1_);
   }
-
-  this->init(streamBuf_);
 
   std::cerr << "OutputFileStreamNew created" << std::endl;
 }
 
 OutputFileStreamNew::~OutputFileStreamNew() {
   this->flush();
-  delete streamBuf_;
+  delete streamBuf2_;
+  delete streamBuf1_;
 }
-  
+
 } // namespace io
 } // namespace marian
