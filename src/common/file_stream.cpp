@@ -57,7 +57,7 @@ TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
   NormalizeTempPrefix(baseTemp);
   MakeTemp(baseTemp);
 
-  std::cerr << "TemporaryFileNew created" << std::endl;
+  std::cerr << "TemporaryFileNew created" << name_ << std::endl;
 }
 
 TemporaryFileNew::~TemporaryFileNew() {
@@ -92,12 +92,12 @@ void TemporaryFileNew::MakeTemp(const std::string &base) {
 #ifdef _MSC_VER
   int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
   std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
-  ABORT_IF(errno, "Error while making a temporary based on '{}'", base);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", name, errno, StrError());                                                                                    
 #else
-  std::fstream::open(name, std::fstream::in | std::fstream::out);
-  ABORT_IF(errno, "Error while making a temporary based on '{}'", base);
+  std::fstream::open(name, std::fstream::in | std::fstream::out | std::fstream::trunc);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", name, errno, StrError());
 
-  ABORT_IF(remove(name), "Error while deleting '{}'", name);
+  ABORT_IF(remove(name), "Error while deleting {}", name);
 #endif
 
   name_ = name;
