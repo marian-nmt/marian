@@ -56,7 +56,6 @@ protected:
 
   std::string CreateFileName(const std::string& base) const;
 
-  void NormalizeTempPrefix(std::string& base);
   void MakeTemp(const std::string& base);
 };
 

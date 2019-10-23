@@ -53,9 +53,7 @@ std::string StrError() {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
     : unlink_(earlyUnlink) {
-  std::string baseTemp(base);
-  NormalizeTempPrefix(baseTemp);
-  MakeTemp(baseTemp);
+  MakeTemp(base);
 
   std::cerr << "TemporaryFileNew created" << name_ << std::endl;
 }
@@ -66,29 +64,30 @@ TemporaryFileNew::~TemporaryFileNew() {
   }
 }
 
-void TemporaryFileNew::NormalizeTempPrefix(std::string &base) {
-  if(base.empty())
-    return;
-
-#ifdef _MSC_VER
-  if(base.substr(0, 4) == "/tmp")
-    base = getenv("TMP");
-#else
-  if(base[base.size() - 1] == '/')
-    return;
-  struct stat sb;
-  // It's fine for it to not exist.
-  if(stat(base.c_str(), &sb) == -1)
-    return;
-  if(S_ISDIR(sb.st_mode))
-    base += '/';
-#endif
-}
-
 std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
-  char *name = tempnam(base.c_str(), "marian.");
+  //NormalizeTempPrefix
+  std::string ret = base;
+  if(!base.empty()) {
+	#ifdef _MSC_VER
+      if(ret.substr(0, 4) == "/tmp") {
+        ret = getenv("TMP");
+      }
+	#else
+	  if(ret[ret.size() - 1] != '/') {
+		  struct stat sb;
+		  // It's fine for it to not exist.
+		  if(stat(ret.c_str(), &sb) != -1) {
+            if(S_ISDIR(sb.st_mode)) {
+              ret += '/';
+            }
+		  }
+      }
+	#endif
+  }
+
+  char *name = tempnam(ret.c_str(), "marian.");
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
-  std::string ret = name;
+  ret = name;
   free(name);
   return ret;
 }
