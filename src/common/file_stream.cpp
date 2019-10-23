@@ -142,7 +142,7 @@ TemporaryFile2::~TemporaryFile2() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFileNew::TemporaryFileNew(const std::string &base) {
+TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink) {
   MakeTemp(base);
 }
 
@@ -179,6 +179,10 @@ int TemporaryFileNew::mkstemp_and_unlink(char *tmpl) {
   return ret;
 }
 #endif
+
+std::string TemporaryFileNew::getFileName() {
+  return name_;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStreamNew::InputFileStreamNew(const std::string &file)

@@ -71,10 +71,12 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////
 class TemporaryFileNew : public std::fstream {
 public:
-  TemporaryFileNew(const std::string& base = "/tmp/");
+  TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
 
 protected:
   std::string name_;
+
+  std::string getFileName();
 
   int MakeTemp(const std::string& base);
 
