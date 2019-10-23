@@ -109,13 +109,14 @@ OutputFileStreamNew::~OutputFileStreamNew() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
-    : unlink_(earlyUnlink) {
-  MakeTemp(base);
+    : OutputFileStreamNew(CreateFileName(base)), unlink_(earlyUnlink), inSteam_(NULL) {
+  inSteam_ = new InputFileStreamNew(file_.string());
 
   std::cerr << "TemporaryFileNew created" << file_.string() << std::endl;
 }
 
 TemporaryFileNew::~TemporaryFileNew() {
+  delete inSteam_;
   if(!unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
@@ -149,22 +150,11 @@ std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
   return ret;
 }
 
-void TemporaryFileNew::MakeTemp(const std::string &base) {
-  file_ = CreateFileName(base);
-
-#ifdef _MSC_VER
-  int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
-  std::fstream::open(file_.string(), oflag, _S_IREAD | _S_IWRITE);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", file_.string(), errno, StrError());
-#else
-  std::fstream::open(file_, std::fstream::in | std::fstream::out | std::fstream::trunc);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", file_.string(), errno, StrError());
-
-  ABORT_IF(remove(file_.string().c_str()), "Error while deleting {}", file_.string());
-#endif
+InputFileStreamNew &TemporaryFileNew::getInputStream() {
+  return *inSteam_;
 }
 
-std::string TemporaryFileNew::getFileName() {
+std::string TemporaryFileNew::getFileName() const {
   return file_.string();
 }
 

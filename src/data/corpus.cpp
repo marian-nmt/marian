@@ -205,8 +205,8 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // replace files_[] by the tempfiles we just created
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::TemporaryFileNew* strm = tempFiles_[i].get();
-      files_[i].reset(strm);
+      io::TemporaryFileNew* tempFile = tempFiles_[i].get();
+      files_[i].reset(&tempFile->getInputStream());
     }
     LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);
   }

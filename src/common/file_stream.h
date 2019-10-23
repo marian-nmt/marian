@@ -78,19 +78,20 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-class TemporaryFileNew : public std::fstream {
+class TemporaryFileNew : public OutputFileStreamNew {
 public:
   TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
-  std::string getFileName();
   virtual ~TemporaryFileNew();
 
+  InputFileStreamNew& getInputStream();
+  std::string getFileName() const;
+
 protected:
-  marian::filesystem::Path file_;
   bool unlink_;
+  InputFileStreamNew* inSteam_;
 
   std::string CreateFileName(const std::string& base) const;
 
-  void MakeTemp(const std::string& base);
 };
 
 }  // namespace io
