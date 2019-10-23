@@ -44,31 +44,6 @@ namespace marian {
 namespace io {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-class TemporaryFile2 {
-private:
-  int fd_{-1};
-  bool unlink_;
-  std::string name_;
-
-#ifndef _MSC_VER
-  int mkstemp_and_unlink(char* tmpl);
-#endif
-
-  int MakeTemp(const std::string& base);
-
-  void NormalizeTempPrefix(std::string& base);
-
-public:
-  TemporaryFile2(const std::string base = "/tmp/", bool earlyUnlink = true);
-
-  ~TemporaryFile2();
-
-  int getFileDescriptor() { return fd_; }
-
-  std::string getFileName() { return name_; }
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 class TemporaryFileNew : public std::fstream {
 public:
   TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
