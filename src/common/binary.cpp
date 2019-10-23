@@ -108,7 +108,7 @@ io::Item getItem(const std::string& fileName, const std::string& varName) {
 
 void saveItems(const std::string& fileName,
                const std::vector<io::Item>& items) {
-  io::OutputFileStream out(fileName);
+  io::OutputFileStreamNew out(fileName);
   size_t pos = 0;
 
   size_t binaryFileVersion = BINARY_FILE_VERSION;

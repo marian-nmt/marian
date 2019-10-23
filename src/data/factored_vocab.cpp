@@ -721,7 +721,7 @@ size_t FactoredVocab::WordLUT::load(const std::string& path) {
 }
 
 void FactoredVocab::WordLUT::dumpToFile(const std::string& path) {
-  io::OutputFileStream out(path);
+  io::OutputFileStreamNew out(path);
   for (auto kvp : index2str_)
     out << kvp.second << "\t" << utils::withCommas(kvp.first) << "\n";
 }

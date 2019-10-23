@@ -114,7 +114,7 @@ void EncoderDecoder::createDecoderConfig(const std::string& name) {
   decoder["maxi-batch"] = opt<size_t>("valid-mini-batch") > 1 ? 100 : 1;
   decoder["maxi-batch-sort"] = opt<size_t>("valid-mini-batch") > 1 ? "src" : "none";
 
-  io::OutputFileStream out(name + ".decoder.yml");
+  io::OutputFileStreamNew out(name + ".decoder.yml");
   out << decoder;
 }
 

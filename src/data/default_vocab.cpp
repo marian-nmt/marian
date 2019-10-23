@@ -249,9 +249,9 @@ private:
     for(size_t i = 0; i < vocabSize; ++i)
       vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-    std::unique_ptr<io::OutputFileStream> vocabStrm(
-      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
-                            : new io::OutputFileStream(vocabPath)
+    std::unique_ptr<std::ostream> vocabStrm(
+      vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
+                            : new io::OutputFileStreamNew(vocabPath)
     );
     *vocabStrm << vocabYaml;
   }
@@ -315,9 +315,9 @@ private:
     for(size_t i = 0; i < vocabVec.size(); ++i)
       vocabYaml.force_insert(vocabVec[i], i);
 
-    std::unique_ptr<io::OutputFileStream> vocabStrm(
-      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
-                            : new io::OutputFileStream(vocabPath)
+    std::unique_ptr<std::ostream> vocabStrm(
+      vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
+                            : new io::OutputFileStreamNew(vocabPath)
     );
     *vocabStrm << vocabYaml;
   }

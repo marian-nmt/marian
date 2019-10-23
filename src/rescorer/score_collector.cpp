@@ -13,9 +13,9 @@ ScoreCollector::ScoreCollector(const Ptr<Options>& options)
       alignmentThreshold_(getAlignmentThreshold(alignment_)) {
 
     if(options->get<std::string>("output") == "stdout")
-      outStrm_.reset(new io::OutputFileStream(std::cout));
+      outStrm_.reset(new std::ostream(std::cout.rdbuf()));
     else
-      outStrm_.reset(new io::OutputFileStream(options->get<std::string>("output")));
+      outStrm_.reset(new io::OutputFileStreamNew(options->get<std::string>("output")));
   }
 
 void ScoreCollector::Write(long id, const std::string& message) {

@@ -195,7 +195,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
       tempFiles_[i].reset(new io::TemporaryFile2(options_->get<std::string>("tempdir")));
-      io::OutputFileStream out(*tempFiles_[i]);
+      io::OutputFileStreamNew out(tempFiles_[i]->getFileName());
       const auto& corpusStream = corpus[i];
       for(auto id : ids_) {
         out << corpusStream[id] << std::endl;

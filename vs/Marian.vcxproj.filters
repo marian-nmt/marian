@@ -2032,6 +2032,12 @@
     <ClInclude Include="..\src\functional\operators.h">
       <Filter>functional</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\strict_fstream.hpp">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\zstr.hpp">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">

@@ -78,7 +78,7 @@ private:
       reservoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
     std::shuffle(sample.begin(), sample.end(), generator_);
 
-    io::OutputFileStream out(temp);
+    io::OutputFileStreamNew out(temp);
     for(const auto& line : sample)
         out << line << std::endl;
 
@@ -94,7 +94,7 @@ private:
 
     size_t seenLines = 0;
     std::string line;
-    io::OutputFileStream out(temp);
+    io::OutputFileStreamNew out(temp);
     for(const auto& trainPath : trainPaths) {
       io::InputFileStreamNew in(trainPath);
       while(getline(in, line)) {

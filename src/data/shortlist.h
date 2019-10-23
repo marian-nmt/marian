@@ -216,12 +216,12 @@ public:
   virtual void dump(const std::string& prefix) override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
-    io::OutputFileStream outTop(prefix + ".top");
+    io::OutputFileStreamNew outTop(prefix + ".top");
     for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
       outTop << (*trgVocab_)[Word::fromWordIndex(i)] << std::endl;
 
     // Dump translation pairs from dictionary
-    io::OutputFileStream outDic(prefix + ".dic");
+    io::OutputFileStreamNew outDic(prefix + ".dic");
     for(WordIndex srcId = 0; srcId < data_.size(); srcId++) {
       for(auto& it : data_[srcId]) {
         auto trgId = it.first;
