@@ -131,7 +131,7 @@ void Corpus::reset() {
         // Do NOT reset named pipes; that closes them and triggers a SIGPIPE
         // (lost pipe) at the writing end, which may do whatever it wants
         // in this situation.
-        files_[i].reset(new io::InputFileStreamNew(paths_[i]));
+        files_[i].reset(new io::InputFileStream(paths_[i]));
       }
     }
 }
@@ -154,7 +154,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   else {
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::InputFileStreamNew *strm = new io::InputFileStreamNew(paths[i]);
+      io::InputFileStream *strm = new io::InputFileStream(paths[i]);
       files_[i].reset(strm);
       strm->setbufsize(10000000); // huge read-ahead buffer to avoid network round-trips
     }
@@ -190,11 +190,10 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     LOG(info, "[data] Done shuffling {} sentences (cached in RAM)", numSentences);
   }
   else {
-    std::cerr << "Corpus::shuffleData" << std::endl;
     // create temp files that contain the data in randomized order
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::TemporaryFileNew *out = new io::TemporaryFileNew(options_->get<std::string>("tempdir"));
+      io::TemporaryFile *out = new io::TemporaryFile(options_->get<std::string>("tempdir"));
 	  tempFiles_[i].reset(out);
       const auto& corpusStream = corpus[i];
       for(auto id : ids_) {
@@ -205,7 +204,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // replace files_[] by the tempfiles we just created
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::TemporaryFileNew* tempFile = tempFiles_[i].get();
+      io::TemporaryFile* tempFile = tempFiles_[i].get();
       files_[i] = tempFile->getInputStream();
     }
     LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);

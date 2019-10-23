@@ -99,14 +99,14 @@ public:
     std::map<std::string, Word> vocab;
     // read from JSON (or Yaml) file
     if(isJson) {
-      io::InputFileStreamNew strm(vocabPath);
+      io::InputFileStream strm(vocabPath);
       YAML::Node vocabNode = YAML::Load(strm);
       for(auto&& pair : vocabNode)
         vocab.insert({pair.first.as<std::string>(), Word::fromWordIndex(pair.second.as<IndexType>())});
     }
     // read from flat text file
     else {
-      io::InputFileStreamNew in(vocabPath);
+      io::InputFileStream in(vocabPath);
       std::string line;
       while(std::getline(in, line)) {
         ABORT_IF(line.empty(),
@@ -210,7 +210,7 @@ private:
                  const std::string& trainPath) {
     std::unique_ptr<std::istream> trainStrm(
       trainPath == "stdin" ? new std::istream(std::cin.rdbuf())
-                           : new io::InputFileStreamNew(trainPath)
+                           : new io::InputFileStream(trainPath)
     );
 
     std::string line;
@@ -251,7 +251,7 @@ private:
 
     std::unique_ptr<std::ostream> vocabStrm(
       vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
-                            : new io::OutputFileStreamNew(vocabPath)
+                            : new io::OutputFileStream(vocabPath)
     );
     *vocabStrm << vocabYaml;
   }
@@ -317,7 +317,7 @@ private:
 
     std::unique_ptr<std::ostream> vocabStrm(
       vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
-                            : new io::OutputFileStreamNew(vocabPath)
+                            : new io::OutputFileStream(vocabPath)
     );
     *vocabStrm << vocabYaml;
   }

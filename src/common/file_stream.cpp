@@ -51,7 +51,7 @@ std::string StrError() {
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-InputFileStreamNew::InputFileStreamNew(const std::string &file)
+InputFileStream::InputFileStream(const std::string &file)
     : std::istream(NULL), file_(file), streamBuf_(NULL) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
@@ -66,30 +66,26 @@ InputFileStreamNew::InputFileStreamNew(const std::string &file)
   }
 
   this->init(streamBuf_);
-
-  std::cerr << "InputFileStreamNew created" << std::endl;
 }
 
-InputFileStreamNew::~InputFileStreamNew() {
+InputFileStream::~InputFileStream() {
   delete streamBuf_;
 }
 
-bool InputFileStreamNew::empty() {
+bool InputFileStream::empty() {
   return this->peek() == std::ifstream::traits_type::eof();
 }
 
-void InputFileStreamNew::setbufsize(size_t size) const {
+void InputFileStream::setbufsize(size_t size) const {
   // do nothing. Is this needed?
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
+OutputFileStream::OutputFileStream(const std::string &file)
     : std::ostream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {
   std::filebuf *fileBuf = new std::filebuf();
   streamBuf1_ = fileBuf->open(file.c_str(), std::ios::out | std::ios_base::binary);
-  if(!streamBuf1_) {
-    std::cerr << "File can't be opened" << file << std::endl;
-  }
+  ABORT_IF(!streamBuf1_, "File can't be opened", file);
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
     streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
@@ -97,34 +93,30 @@ OutputFileStreamNew::OutputFileStreamNew(const std::string &file)
   } else {
     this->init(streamBuf1_);
   }
-
-  std::cerr << "OutputFileStreamNew created" << std::endl;
 }
 
-OutputFileStreamNew::~OutputFileStreamNew() {
+OutputFileStream::~OutputFileStream() {
   this->flush();
   delete streamBuf2_;
   delete streamBuf1_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
-    : OutputFileStreamNew(CreateFileName(base)), unlink_(earlyUnlink) {
-  inSteam_.reset(new InputFileStreamNew(file_.string()));
+TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
+    : OutputFileStream(CreateFileName(base)), unlink_(earlyUnlink) {
+  inSteam_.reset(new InputFileStream(file_.string()));
   if (unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
-  
-  std::cerr << "TemporaryFileNew created" << file_.string() << std::endl;
 }
 
-TemporaryFileNew::~TemporaryFileNew() {
+TemporaryFile::~TemporaryFile() {
   if(!unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
 }
 
-std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
+std::string TemporaryFile::CreateFileName(const std::string &base) const {
   // NormalizeTempPrefix
   std::string ret = base;
   if(!base.empty()) {
@@ -152,11 +144,11 @@ std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
   return ret;
 }
 
-UPtr<InputFileStreamNew> TemporaryFileNew::getInputStream() {
+UPtr<InputFileStream> TemporaryFile::getInputStream() {
   return std::move(inSteam_);
 }
 
-std::string TemporaryFileNew::getFileName() const {
+std::string TemporaryFile::getFileName() const {
   return file_.string();
 }
 

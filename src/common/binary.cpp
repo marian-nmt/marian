@@ -76,7 +76,7 @@ void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   ABORT_IF(rc != buf.size(), "Error {} ('{}') reading file '{}'", errno, strerror(errno), fileName);
   fclose(f);
 #else
-  io::InputFileStreamNew in(fileName);
+  io::InputFileStream in(fileName);
   in.read(buf.data(), buf.size());
 #endif
 
@@ -108,7 +108,7 @@ io::Item getItem(const std::string& fileName, const std::string& varName) {
 
 void saveItems(const std::string& fileName,
                const std::vector<io::Item>& items) {
-  io::OutputFileStreamNew out(fileName);
+  io::OutputFileStream out(fileName);
   size_t pos = 0;
 
   size_t binaryFileVersion = BINARY_FILE_VERSION;

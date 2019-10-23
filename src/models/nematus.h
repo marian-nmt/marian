@@ -186,7 +186,7 @@ private:
     amun["scorers"]["F0"]["type"] = "nematus2";
     amun["weights"]["F0"] = 1.0f;
 
-    io::OutputFileStreamNew out(name + ".amun.yml");
+    io::OutputFileStream out(name + ".amun.yml");
     out << amun;
   }
 };

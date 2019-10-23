@@ -127,7 +127,7 @@ YAML::Node& Config::get() {
 }
 
 void Config::save(const std::string& name) {
-  io::OutputFileStreamNew out(name);
+  io::OutputFileStream out(name);
   out << *this;
 }
 

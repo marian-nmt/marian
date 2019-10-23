@@ -15,7 +15,7 @@ ScoreCollector::ScoreCollector(const Ptr<Options>& options)
     if(options->get<std::string>("output") == "stdout")
       outStrm_.reset(new std::ostream(std::cout.rdbuf()));
     else
-      outStrm_.reset(new io::OutputFileStreamNew(options->get<std::string>("output")));
+      outStrm_.reset(new io::OutputFileStream(options->get<std::string>("output")));
   }
 
 void ScoreCollector::Write(long id, const std::string& message) {
@@ -81,7 +81,7 @@ ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Options>& options)
     : ScoreCollector(options),
       nBestList_(options->get<std::vector<std::string>>("train-sets").back()),
       fname_(options->get<std::string>("n-best-feature")) {
-  file_.reset(new io::InputFileStreamNew(nBestList_));
+  file_.reset(new io::InputFileStream(nBestList_));
 }
 
 void ScoreCollectorNBest::Write(long id,

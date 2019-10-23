@@ -17,7 +17,7 @@ public:
   std::vector<float> read(const std::string& fileName, int dimVoc, int dimEmb) {
     LOG(info, "[data] Loading embedding vectors from {}", fileName);
 
-    io::InputFileStreamNew embFile(fileName);
+    io::InputFileStream embFile(fileName);
 
     std::string line;
     std::vector<std::string> values;

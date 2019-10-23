@@ -42,7 +42,7 @@ namespace marian {
     //     - _lemma is special
     // The current version of the code just converts it internally to the legacy form.
     // @TODO: Once the legacy form is no longer needed, simplify this.
-    io::InputFileStreamNew in(modelPath);
+    io::InputFileStream in(modelPath);
     WordIndex v = 0;
     std::map<std::string,std::set<std::string>> factorTypeMap; // [type name] -> {factor-type names}
     std::vector<std::string> deferredFactorVocab; // factor surface forms are presently expected to be at the end of factorVocab_, so collect them here first
@@ -129,7 +129,7 @@ namespace marian {
     groupPrefixes_ = { "(lemma)", "@C", "@GL", "@GR", "@WB"/*, "@WE"*/, "@CB"/*, "@CE"*/ }; // @TODO: hard-coded for these initial experiments
     // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
 
-    io::InputFileStreamNew in(modelPath);
+    io::InputFileStream in(modelPath);
     for (WordIndex v = 0; std::getline(in, line); v++) {
       utils::splitAny(line, tokBuf, " \t");
       factorMapTokenized.push_back(tokBuf);
@@ -714,14 +714,14 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
 }
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
-  io::InputFileStreamNew in(path);
+  io::InputFileStream in(path);
   for (WordIndex v = 0; std::getline(in, line); v++)
     add(line, v);
   return size();
 }
 
 void FactoredVocab::WordLUT::dumpToFile(const std::string& path) {
-  io::OutputFileStreamNew out(path);
+  io::OutputFileStream out(path);
   for (auto kvp : index2str_)
     out << kvp.second << "\t" << utils::withCommas(kvp.first) << "\n";
 }

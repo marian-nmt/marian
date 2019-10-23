@@ -49,7 +49,7 @@ public:
   OutputCollector(std::string outFile);
 
   template <class T>
-  OutputCollector(T&& arg) : nextId_(0), outStrm_(new io::OutputFileStreamNew(arg)) {}
+  OutputCollector(T&& arg) : nextId_(0), outStrm_(new io::OutputFileStream(arg)) {}
 
   OutputCollector(const OutputCollector&) = delete;
 

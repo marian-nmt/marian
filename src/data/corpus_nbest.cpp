@@ -88,7 +88,7 @@ void CorpusNBest::reset() {
     if(path == "stdin")
       files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else
-      files_.emplace_back(new io::InputFileStreamNew(path));
+      files_.emplace_back(new io::InputFileStream(path));
   }
 }
 }  // namespace data

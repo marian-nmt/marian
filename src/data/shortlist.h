@@ -136,7 +136,7 @@ private:
   std::vector<std::unordered_map<WordIndex, float>> data_; // [WordIndex src] -> [WordIndex tgt] -> P_trans(tgt|src) --@TODO: rename data_ accordingly
 
   void load(const std::string& fname) {
-    io::InputFileStreamNew in(fname);
+    io::InputFileStream in(fname);
 
     std::string src, trg;
     float prob;
@@ -216,12 +216,12 @@ public:
   virtual void dump(const std::string& prefix) override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
-    io::OutputFileStreamNew outTop(prefix + ".top");
+    io::OutputFileStream outTop(prefix + ".top");
     for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
       outTop << (*trgVocab_)[Word::fromWordIndex(i)] << std::endl;
 
     // Dump translation pairs from dictionary
-    io::OutputFileStreamNew outDic(prefix + ".dic");
+    io::OutputFileStream outDic(prefix + ".dic");
     for(WordIndex srcId = 0; srcId < data_.size(); srcId++) {
       for(auto& it : data_[srcId]) {
         auto trgId = it.first;

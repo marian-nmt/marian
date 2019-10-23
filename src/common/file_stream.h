@@ -44,10 +44,10 @@ namespace marian {
 namespace io {
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class InputFileStreamNew : public std::istream {
+class InputFileStream : public std::istream {
 public:
-  explicit InputFileStreamNew(const std::string& file);
-  virtual ~InputFileStreamNew();
+  explicit InputFileStream(const std::string& file);
+  virtual ~InputFileStream();
 
   bool empty();
   void setbufsize(size_t size) const;
@@ -58,10 +58,10 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class OutputFileStreamNew : public std::ostream {
+class OutputFileStream : public std::ostream {
 public:
-  explicit OutputFileStreamNew(const std::string& file);
-  virtual ~OutputFileStreamNew();
+  explicit OutputFileStream(const std::string& file);
+  virtual ~OutputFileStream();
   
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
@@ -78,17 +78,17 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-class TemporaryFileNew : public OutputFileStreamNew {
+class TemporaryFile : public OutputFileStream {
 public:
-  TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
-  virtual ~TemporaryFileNew();
+  TemporaryFile(const std::string& base = "/tmp/", bool earlyUnlink = true);
+  virtual ~TemporaryFile();
 
-  UPtr<InputFileStreamNew> getInputStream();
+  UPtr<InputFileStream> getInputStream();
   std::string getFileName() const;
 
 protected:
   bool unlink_;
-  UPtr<InputFileStreamNew> inSteam_;
+  UPtr<InputFileStream> inSteam_;
 
   std::string CreateFileName(const std::string& base) const;
 

@@ -209,7 +209,7 @@ private:
     amun["normalize"] = opt<float>("normalize") > 0;
     amun["beam-size"] = opt<size_t>("beam-size");
 
-    io::OutputFileStreamNew out(name + ".amun.yml");
+    io::OutputFileStream out(name + ".amun.yml");
     out << amun;
   }
 };

@@ -849,7 +849,7 @@ YAML::Node ConfigParser::loadConfigFiles(const std::vector<std::string>& paths) 
 
   for(auto& path : paths) {
     // load single config file
-    io::InputFileStreamNew strm(path);
+    io::InputFileStream strm(path);
     YAML::Node config = YAML::Load(strm);
 
     // expand relative paths if requested

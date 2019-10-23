@@ -45,7 +45,7 @@ private:
 
     std::unique_ptr<std::istream> trainStrm(
       trainPath == "stdin" ? new std::istream(&std::cin)
-                           : new io::InputFileStreamNew(trainPath)
+                           : new io::InputFileStream(trainPath)
     );
 
     std::string line;
@@ -78,7 +78,7 @@ private:
       reservoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
     std::shuffle(sample.begin(), sample.end(), generator_);
 
-    io::OutputFileStreamNew out(temp);
+    io::OutputFileStream out(temp);
     for(const auto& line : sample)
         out << line << std::endl;
 
@@ -94,9 +94,9 @@ private:
 
     size_t seenLines = 0;
     std::string line;
-    io::OutputFileStreamNew out(temp);
+    io::OutputFileStream out(temp);
     for(const auto& trainPath : trainPaths) {
-      io::InputFileStreamNew in(trainPath);
+      io::InputFileStream in(trainPath);
       while(getline(in, line)) {
         if(line.size() > 0 && line.size() < maxBytes) {
           out << line << std::endl;
