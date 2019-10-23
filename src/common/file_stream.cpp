@@ -113,6 +113,8 @@ TemporaryFile2::TemporaryFile2(const std::string base, bool earlyUnlink) : unlin
   std::string baseTemp(base);
   NormalizeTempPrefix(baseTemp);
   fd_ = MakeTemp(baseTemp);
+
+  std::cerr << "TemporaryFile2 created" << std::endl;
 }
 
 TemporaryFile2::~TemporaryFile2() {
