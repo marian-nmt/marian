@@ -43,22 +43,6 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 namespace marian {
 namespace io {
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-class TemporaryFileNew : public std::fstream {
-public:
-  TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
-  std::string getFileName();
-  virtual ~TemporaryFileNew();
-
-protected:
-  std::string name_;
-  bool unlink_;
-
-  std::string CreateFileName(const std::string& base) const;
-
-  void MakeTemp(const std::string& base);
-};
-
 //////////////////////////////////////////////////////////////////////////////////////////////
 class InputFileStreamNew : public std::istream {
 public:
@@ -91,6 +75,22 @@ protected:
   marian::filesystem::Path file_;
   std::streambuf* streamBuf1_;
   std::streambuf* streamBuf2_;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+class TemporaryFileNew : public std::fstream {
+public:
+  TemporaryFileNew(const std::string& base = "/tmp/", bool earlyUnlink = true);
+  std::string getFileName();
+  virtual ~TemporaryFileNew();
+
+protected:
+  std::string file_;
+  bool unlink_;
+
+  std::string CreateFileName(const std::string& base) const;
+
+  void MakeTemp(const std::string& base);
 };
 
 }  // namespace io

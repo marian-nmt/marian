@@ -51,68 +51,6 @@ std::string StrError() {
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
-    : unlink_(earlyUnlink) {
-  MakeTemp(base);
-
-  std::cerr << "TemporaryFileNew created" << name_ << std::endl;
-}
-
-TemporaryFileNew::~TemporaryFileNew() {
-  if(!unlink_) {
-    ABORT_IF(remove(name_.c_str()), "Error while deleting '{}'", name_);
-  }
-}
-
-std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
-  //NormalizeTempPrefix
-  std::string ret = base;
-  if(!base.empty()) {
-	#ifdef _MSC_VER
-      if(ret.substr(0, 4) == "/tmp") {
-        ret = getenv("TMP");
-      }
-	#else
-	  if(ret[ret.size() - 1] != '/') {
-		  struct stat sb;
-		  // It's fine for it to not exist.
-		  if(stat(ret.c_str(), &sb) != -1) {
-            if(S_ISDIR(sb.st_mode)) {
-              ret += '/';
-            }
-		  }
-      }
-	#endif
-  }
-
-  char *name = tempnam(ret.c_str(), "marian.");
-  ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
-  ret = name;
-  free(name);
-  return ret;
-}
-
-void TemporaryFileNew::MakeTemp(const std::string &base) {
-  name_ = CreateFileName(base);
-
-#ifdef _MSC_VER
-  int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
-  std::fstream::open(name_, oflag, _S_IREAD | _S_IWRITE);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", name_, errno, StrError());
-#else
-  std::fstream::open(name_, std::fstream::in | std::fstream::out | std::fstream::trunc);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", name_, errno, StrError());
-
-  ABORT_IF(remove(name_.c_str()), "Error while deleting {}", name_);
-#endif
-}
-
-
-std::string TemporaryFileNew::getFileName() {
-  return name_;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStreamNew::InputFileStreamNew(const std::string &file)
     : std::istream(NULL), file_(file), streamBuf_(NULL) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
@@ -167,6 +105,67 @@ OutputFileStreamNew::~OutputFileStreamNew() {
   this->flush();
   delete streamBuf2_;
   delete streamBuf1_;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+TemporaryFileNew::TemporaryFileNew(const std::string &base, bool earlyUnlink)
+    : unlink_(earlyUnlink) {
+  MakeTemp(base);
+
+  std::cerr << "TemporaryFileNew created" << file_ << std::endl;
+}
+
+TemporaryFileNew::~TemporaryFileNew() {
+  if(!unlink_) {
+    ABORT_IF(remove(file_.c_str()), "Error while deleting '{}'", file_);
+  }
+}
+
+std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
+  // NormalizeTempPrefix
+  std::string ret = base;
+  if(!base.empty()) {
+#ifdef _MSC_VER
+    if(ret.substr(0, 4) == "/tmp") {
+      ret = getenv("TMP");
+    }
+#else
+    if(ret[ret.size() - 1] != '/') {
+      struct stat sb;
+      // It's fine for it to not exist.
+      if(stat(ret.c_str(), &sb) != -1) {
+        if(S_ISDIR(sb.st_mode)) {
+          ret += '/';
+        }
+      }
+    }
+#endif
+  }
+
+  char *name = tempnam(ret.c_str(), "marian.");
+  ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
+  ret = name;
+  free(name);
+  return ret;
+}
+
+void TemporaryFileNew::MakeTemp(const std::string &base) {
+  file_ = CreateFileName(base);
+
+#ifdef _MSC_VER
+  int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
+  std::fstream::open(file_, oflag, _S_IREAD | _S_IWRITE);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", file_, errno, StrError());
+#else
+  std::fstream::open(file_, std::fstream::in | std::fstream::out | std::fstream::trunc);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", file_, errno, StrError());
+
+  ABORT_IF(remove(file_.c_str()), "Error while deleting {}", file_);
+#endif
+}
+
+std::string TemporaryFileNew::getFileName() {
+  return file_;
 }
 
 } // namespace io
