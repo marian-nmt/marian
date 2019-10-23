@@ -85,23 +85,27 @@ void TemporaryFileNew::NormalizeTempPrefix(std::string &base) {
 #endif
 }
 
-void TemporaryFileNew::MakeTemp(const std::string &base) {
+std::string TemporaryFileNew::CreateFileName(const std::string &base) const {
   char *name = tempnam(base.c_str(), "marian.");
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
+  std::string ret = name;
+  free(name);
+  return ret;
+}
+
+void TemporaryFileNew::MakeTemp(const std::string &base) {
+  name_ = CreateFileName(base);
 
 #ifdef _MSC_VER
   int oflag = _O_RDWR | _O_CREAT | _O_EXCL | _O_TEMPORARY;
-  std::fstream::open(name, oflag, _S_IREAD | _S_IWRITE);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", name, errno, StrError());                                                                                    
+  std::fstream::open(name_, oflag, _S_IREAD | _S_IWRITE);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", name_, errno, StrError());
 #else
-  std::fstream::open(name, std::fstream::in | std::fstream::out | std::fstream::trunc);
-  ABORT_IF(errno, "Error creating file {}, errno {} {}", name, errno, StrError());
+  std::fstream::open(name_, std::fstream::in | std::fstream::out | std::fstream::trunc);
+  ABORT_IF(errno, "Error creating file {}, errno {} {}", name_, errno, StrError());
 
-  ABORT_IF(remove(name), "Error while deleting {}", name);
+  ABORT_IF(remove(name_.c_str()), "Error while deleting {}", name_);
 #endif
-
-  name_ = name;
-  free(name);
 }
 
 
