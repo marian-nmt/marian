@@ -268,11 +268,7 @@ public:
   }
 
   // @TODO: get rid of this function, begin() or constructor should figure this out
-  void prepare(bool shuffle) {
-    if(restored_) { // state was just restored, restore() calls prepare()
-      restored_ = false;
-      return;
-    }
+  void prepare(bool shuffle = true) {
     if(shuffle)
       data_->shuffle();
     else
@@ -291,8 +287,6 @@ public:
   bool restore(Ptr<TrainingState> state, bool shuffle) {
     if(state->epochs == 1 && state->batchesEpoch == 0)
       return false;
-    if (options_->get<bool>("no-restore-corpus"))
-      return false;
 
     LOG(info,
         "[data] Restoring the corpus state to epoch {}, batch {}",
@@ -308,7 +302,6 @@ public:
     for(size_t i = 0; i < state->batchesEpoch; ++i)
       next();
 
-    restored_ = true;
     return true;
   }
 

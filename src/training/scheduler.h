@@ -4,7 +4,6 @@
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
-#include "data/vocab.h"
 #include "layers/loss.h"
 
 namespace marian {
@@ -20,10 +19,7 @@ private:
   timer::Timer timer_;
   timer::Timer heartBeatTimer_;
 
-  std::string validFreq_;
-  std::string saveFreq_;
-
-  static bool sigterm_, sigusr1_, sigusr2_;
+  static bool sigterm_;
   void installSignalHandlers_();
   static void signalHandler_(int sig);
 
@@ -113,10 +109,6 @@ private:
   }
 
 public:
-  bool gotSigTerm() const { return sigterm_; }
-  // bool gotSigUsr1() const { return sigusr1_; } // currently has no effect
-  // bool gotSigUsr2() const { return sigusr2_; } // currently has no effect
-
   // test if any parameters specify dynamic MB scaling
   bool isDynamicMBSizeScaling() const {
     auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
@@ -156,8 +148,6 @@ public:
 
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
       : options_(options), state_(state) {
-    validFreq_ = options_->get<std::string>("valid-freq");
-    saveFreq_ = options_->get<std::string>("save-freq");
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
     installSignalHandlers_();
@@ -201,18 +191,6 @@ public:
       LOG(info, "Training finished");
   }
 
-  void setupValidators(std::vector<Ptr<Vocab>>& vocabs) {
-    // setup validators if specified
-    if (!SchedulingParameter::parse(options_->get<std::string>("valid-freq")))
-      return; // no validation interval given
-
-    if(!options_->hasAndNotEmpty("valid-sets") &&
-       !options_->hasAndNotEmpty("valid-script-path"))
-      return; // no validators specified
-
-    for(auto validator : Validators(vocabs, options_))
-      addValidator(validator);
-  }
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
@@ -229,22 +207,21 @@ public:
 
   bool validating() {
     return (!validators_.empty()
-            && state_->enteredNewPeriodOf(validFreq_)
+            && state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq"))
             && keepGoing());
   }
 
   bool saving() {
-    return state_->enteredNewPeriodOf(saveFreq_);
+    return state_->enteredNewPeriodOf(options_->get<std::string>("save-freq"));
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool final = false) {
-    // SKIP VALIDATION IF
-    // - it's not time to validate anyway
-    // - we received SIGTERM
-    // - the current state has been validated (e.g., model was just loaded)
-    if((!state_->enteredNewPeriodOf(validFreq_) && !final)
-       || state_->validated || sigterm_)
+    // Do not validate if already validated (for instance, after the model is
+    // loaded) or if validation is scheduled for another update
+    if(sigterm_ 
+       || state_->validated
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
       return;
 
     bool firstValidator = true;
@@ -275,7 +252,7 @@ public:
       }
 
       state_->validators[validator->type()]["last-best"]
-        = validator->lastBest();
+          = validator->lastBest();
       state_->validators[validator->type()]["stalled"] = validator->stalled();
 
       // notify training observers if the first validator did not improve

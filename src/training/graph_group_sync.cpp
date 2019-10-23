@@ -538,10 +538,6 @@ void SyncGraphGroup::save(bool final) /*override*/ {
 
 void SyncGraphGroup::finalize() /*override*/ {
   validate();
-  // Note to the uninitiated: validate() has nothing to do with
-  // validation on the validation set. It's just a sanity check. [UG]
-  // @TODO: rename validate() to avoid confusion with model
-  //        validation on withheld data. [UG]
   Base::finalize();
 }
 

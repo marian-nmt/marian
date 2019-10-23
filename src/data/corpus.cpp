@@ -7,7 +7,6 @@
 #include "common/filesystem.h"
 
 #include "data/corpus.h"
-#include "data/corpus_sqlite.h"
 
 namespace marian {
 namespace data {
@@ -211,23 +210,5 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   }
   pos_ = 0;
 }
-
-Ptr<CorpusBase> prepareTrainingData(Ptr<Options> options) {
-  // factory function to set up the training corpus for training
-  // code moved here from Train::run() in training.h
-  Ptr<CorpusBase> dataset;
-  if(!options->get<std::string>("sqlite").empty())
-#ifdef _MSC_VER // @TODO: include SqLite in Visual Studio project
-    ABORT("SqLite presently not supported on Windows");
-#else
-    dataset = New<CorpusSQLite>(options);
-#endif
-  else
-    dataset = New<Corpus>(options);
-  dataset->prepare();
-  return dataset;
-}
-
-
 }  // namespace data
 }  // namespace marian
