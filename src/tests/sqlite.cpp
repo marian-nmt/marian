@@ -26,12 +26,12 @@ int main(int argc, char** argv) {
 
     std::cerr << "Reading from " << argv[1] << " and " << argv[2] << std::endl;
 
-    marian::io::InputFileStreamNew file0(argv[1]);
-    marian::io::InputFileStreamNew file1(argv[2]);
+    marian::io::InputFileStream file0(argv[1]);
+    marian::io::InputFileStream file1(argv[2]);
 
     db.exec("begin;");
-    while(std::getline(file0, line0)
-          && std::getline(file1, line1)) {
+    while(marian::io::getline(file0, line0)
+          && marian::io::getline(file1, line1)) {
       ps.bind(1, (int)lines);
       ps.bind(2, line0);
       ps.bind(3, line1);

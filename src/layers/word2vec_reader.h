@@ -25,7 +25,7 @@ public:
 
     // The first line contains two values: the number of words in the
     // vocabulary and the length of embedding vectors
-    std::getline(embFile, line);
+    io::getline(embFile, line);
     utils::split(line, values);
     ABORT_IF(values.size() != 2,
              "Unexpected format of the first line of the embedding file");
@@ -34,7 +34,7 @@ public:
 
     // Read embedding vectors into a map
     std::unordered_map<WordIndex, std::vector<float>> word2vec;
-    while(std::getline(embFile, line)) {
+    while(io::getline(embFile, line)) {
       values.clear();
       utils::split(line, values);
 

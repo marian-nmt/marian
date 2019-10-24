@@ -96,7 +96,7 @@ void ScoreCollectorNBest::Write(long id,
                "Entry {} < {} already read but not in buffer",
                id,
                lastRead_);
-      while(lastRead_ < id && std::getline(*file_, line)) {
+      while(lastRead_ < id && io::getline(*file_, line)) {
         lastRead_++;
         iter = buffer_.emplace(lastRead_, line).first;
       }

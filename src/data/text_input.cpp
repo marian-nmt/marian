@@ -41,7 +41,7 @@ SentenceTuple TextInput::next() {
   for(size_t i = 0; i < files_.size(); ++i) {
     std::istream &dummyStream = *files_[i];
     std::string line;
-    if(std::getline(dummyStream, line)) {
+    if(io::getline(dummyStream, line)) {
       Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
       if(words.empty())
         words.push_back(Word::ZERO); // @TODO: What is this for? @BUGBUG: addEOS=true, so this can never happen, right?
