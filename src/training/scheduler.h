@@ -219,7 +219,7 @@ public:
                 bool final = false) {
     // Do not validate if already validated (for instance, after the model is
     // loaded) or if validation is scheduled for another update
-    if(sigterm_ 
+    if(sigterm_
        || state_->validated
        || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
       return;
