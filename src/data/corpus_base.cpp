@@ -40,9 +40,9 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
            "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
-    io::InputFileStream *strm = new io::InputFileStream(path);
+    UPtr<io::InputFileStream> strm = std::make_unique<io::InputFileStream>(path);
     ABORT_IF(strm->empty(), "File '{}' is empty", path);
-    files_.emplace_back(strm);
+    files_.emplace_back(std::move(strm));
   }
 
   initEOS(/*training=*/true);

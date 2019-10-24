@@ -39,7 +39,7 @@ SentenceTuple TextInput::next() {
   // fill up the sentence tuple with source and/or target sentences
   SentenceTuple tup(curId);
   for(size_t i = 0; i < files_.size(); ++i) {
-    std::istream &dummyStream = *files_[i];
+    std::istringstream& dummyStream = *files_[i];
     std::string line;
     if(io::getline(dummyStream, line)) {
       Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);

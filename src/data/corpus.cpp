@@ -154,9 +154,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   else {
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::InputFileStream *strm = new io::InputFileStream(paths[i]);
-      files_[i].reset(strm);
-      strm->setbufsize(10000000); // huge read-ahead buffer to avoid network round-trips
+      UPtr<io::InputFileStream> strm = std::make_unique<io::InputFileStream>(paths[i]);
+      strm->setbufsize(10000000);  // huge read-ahead buffer to avoid network round-trips
+      files_[i] = std::move(strm);
     }
 
     // read entire corpus into RAM
@@ -194,11 +194,11 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // create temp files that contain the data in randomized order
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      io::TemporaryFile *out = new io::TemporaryFile(options_->get<std::string>("tempdir"));
-	  tempFiles_[i].reset(out);
+      tempFiles_[i].reset(new io::TemporaryFile(options_->get<std::string>("tempdir")));
+      io::TemporaryFile &out = *tempFiles_[i];
       const auto& corpusStream = corpus[i];
       for(auto id : ids_) {
-        (*out) << corpusStream[id] << std::endl;
+        out << corpusStream[id] << std::endl;
       }
     }
 
