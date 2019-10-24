@@ -189,6 +189,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     LOG(info, "[data] Done shuffling {} sentences (cached in RAM)", numSentences);
   }
   else {
+#ifndef NO_BOOST
     // create temp files that contain the data in randomized order
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
@@ -207,6 +208,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
       files_[i]->setbufsize(10000000);
     }
     LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);
+#else
+    ABORT("Shuffling to temp file is not available when compiling with NO_BOOST option. Use --shuffle-in-ram.");
+#endif
   }
   pos_ = 0;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/definitions.h"
 #include "common/filesystem.h"
 #include "common/logging.h"
+#include "common/definitions.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -24,16 +24,17 @@
 #pragma GCC diagnostic pop
 #endif
 
+
 #include <iostream>
 #include <memory>
 
-#ifdef __GNUC__  // not supported; maybe we just need to increment a standard flag in gcc/cmake?
+#ifdef __GNUC__ // not supported; maybe we just need to increment a standard flag in gcc/cmake?
 namespace std {
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+  template<typename T, typename... Args>
+  std::unique_ptr<T> make_unique(Args&&... args) {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+  }
 }
-}  // namespace std
 #endif
 
 #ifdef _MSC_VER
@@ -61,17 +62,21 @@ private:
   }
 #endif
 
+
   int MakeTemp(const std::string& base) {
 #ifdef _MSC_VER
     char* name = tempnam(base.c_str(), "marian.");
-    ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
+    ABORT_IF(name == NULL,
+      "Error while making a temporary based on '{}'",
+      base);
 
     int oflag = _O_RDWR | _O_CREAT | _O_EXCL;
-    if(unlink_)
-      oflag |= _O_TEMPORARY;
+    if (unlink_) oflag |= _O_TEMPORARY;
 
     int ret = open(name, oflag, _S_IREAD | _S_IWRITE);
-    ABORT_IF(ret == -1, "Error while making a temporary based on '{}'", base);
+    ABORT_IF(ret == -1,
+      "Error while making a temporary based on '{}'",
+      base);
 
     name_ = name;
     free(name);
@@ -83,8 +88,8 @@ private:
     name.push_back(0);
     int ret;
     ABORT_IF(-1 == (ret = mkstemp_and_unlink(&name[0])),
-             "Error while making a temporary based on '{}'",
-             base);
+      "Error while making a temporary based on '{}'",
+      base);
     name_ = name;
     return ret;
 #endif
@@ -95,14 +100,14 @@ private:
       return;
 
 #ifdef _MSC_VER
-    if(base.substr(0, 4) == "/tmp")
+    if(base.substr(0,4) == "/tmp")
       base = getenv("TMP");
 #else
     if(base[base.size() - 1] == '/')
       return;
     struct stat sb;
     // It's fine for it to not exist.
-    if(stat(base.c_str(), &sb) == -1)
+    if(stat(base.c_str(), &sb) == - 1)
       return;
     if(S_ISDIR(sb.st_mode))
       base += '/';
@@ -110,7 +115,8 @@ private:
   }
 
 public:
-  TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true) : unlink_(earlyUnlink) {
+  TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true)
+      : unlink_(earlyUnlink) {
     std::string baseTemp(base);
     NormalizeTempPrefix(baseTemp);
     fd_ = MakeTemp(baseTemp);
@@ -118,7 +124,7 @@ public:
 
   ~TemporaryFile() {
 #ifdef _MSC_VER
-    if(fd_ == -1)
+    if (fd_ == -1)
       return;
 
     if(close(fd_)) {
@@ -147,12 +153,12 @@ public:
 
 class InputFileStream {
 public:
-  InputFileStream(const std::string& file) : file_(file) {
+  InputFileStream(const std::string& file)
+  : file_(file) {
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      istream_ = std::make_unique<zstr::ifstream>(file_.string(),
-                                                  std::ios_base::in | std::ios_base::binary);
+      istream_ = std::make_unique<zstr::ifstream>(file_.string(), std::ios_base::in | std::ios_base::binary);
     else
       istream_ = std::make_unique<std::ifstream>(file_.string());
     ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
@@ -162,24 +168,31 @@ public:
   InputFileStream(TemporaryFile& tempfile)
       : fds_(tempfile.getFileDescriptor(), boost::iostreams::never_close_handle) {
     lseek(tempfile.getFileDescriptor(), 0, SEEK_SET);
-
+  
     namespace bio = boost::iostreams;
     fdsBuffer_ = std::make_unique<bio::stream_buffer<bio::file_descriptor_source>>(fds_);
     istream_ = std::make_unique<std::istream>(fdsBuffer_.get());
   }
 #endif
 
-  InputFileStream(std::istream& strm) : istream_(new std::istream(strm.rdbuf())) {}
+  InputFileStream(std::istream& strm)
+  : istream_(new std::istream(strm.rdbuf())) {}
 
   operator std::istream&() { return *istream_; }
 
   operator bool() { return (bool)*istream_; }
 
-  bool bad() const { return istream_->bad(); }
+  bool bad() const {
+    return istream_->bad();
+  }
 
-  bool fail() const { return istream_->fail(); }
+  bool fail() const {
+    return istream_->fail();
+  }
 
-  char widen(char c) { return istream_->widen(c); }
+  char widen(char c) {
+    return istream_->widen(c);
+  }
 
   std::string path() { return file_.string(); }
 
@@ -195,11 +208,7 @@ public:
   friend InputFileStream& operator>>(InputFileStream& stream, T& t) {
     *stream.istream_ >> t;
     // bad() seems to be correct here. Should not abort on EOF.
-    ABORT_IF(stream.bad(),
-             "Error {} ({}) reading from file '{}'",
-             errno,
-             strerror(errno),
-             stream.path());
+    ABORT_IF(stream.bad(), "Error {} ({}) reading from file '{}'", errno, strerror(errno), stream.path());
     return stream;
   }
 
@@ -218,10 +227,9 @@ private:
 #ifndef NO_BOOST
   boost::iostreams::file_descriptor_source fds_;
 #endif
-  mutable std::vector<char> readBuf_;  // for setbuf()
+  mutable std::vector<char> readBuf_; // for setbuf()
 #ifndef NO_BOOST
-  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>>
-      fdsBuffer_;
+  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>> fdsBuffer_;
 #endif
 };
 
@@ -253,8 +261,7 @@ class OutputFileStream {
 public:
   OutputFileStream(const std::string& file) : file_(file) {
     if(file_.extension() == marian::filesystem::Path(".gz"))
-      ostream_ = std::make_unique<zstr::ofstream>(file_.string(),
-                                                  std::ios_base::out | std::ios_base::binary);
+      ostream_ = std::make_unique<zstr::ofstream>(file_.string(), std::ios_base::out | std::ios_base::binary);
     else
       ostream_ = std::make_unique<std::ofstream>(file_.string());
     ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
@@ -276,7 +283,9 @@ public:
   }
 #endif
 
-  OutputFileStream(std::ostream& strm) { ostream_ = std::make_unique<std::ostream>(strm.rdbuf()); }
+  OutputFileStream(std::ostream& strm) {
+    ostream_ = std::make_unique<std::ostream>(strm.rdbuf());
+  }
 
   operator std::ostream&() { return *ostream_; }
 
@@ -295,8 +304,7 @@ public:
   }
 
   // handle things like std::endl which is actually a function not a value
-  friend OutputFileStream& operator<<(OutputFileStream& stream,
-                                      std::ostream& (*var)(std::ostream&)) {
+  friend OutputFileStream& operator<<(OutputFileStream& stream, std::ostream& (*var)(std::ostream&)) {
     *stream.ostream_ << var;
     // fail() seems to be correct here. Failure to write should abort.
     ABORT_IF(stream.fail(), "Error writing to file '{}'", stream.path());
@@ -317,12 +325,12 @@ private:
   marian::filesystem::Path file_;
   std::unique_ptr<std::ostream> ostream_;
 
+
 #ifndef NO_BOOST
   boost::iostreams::file_descriptor_sink fds_;
-  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_sink>>
-      fdsBuffer_;
+  std::unique_ptr<boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_sink>> fdsBuffer_;
 #endif
 };
 
-}  // namespace io
-}  // namespace marian
+}
+}
