@@ -130,7 +130,7 @@ namespace marian {
     // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
 
     io::InputFileStream in(modelPath);
-    for (WordIndex v = 0; std::getline(in, line); v++) {
+    for (WordIndex v = 0; io::getline(in, line); v++) {
       utils::splitAny(line, tokBuf, " \t");
       factorMapTokenized.push_back(tokBuf);
     }
@@ -715,7 +715,7 @@ bool FactoredVocab::WordLUT::tryFind(const std::string& word, WordIndex& index) 
 size_t FactoredVocab::WordLUT::load(const std::string& path) {
   std::string line;
   io::InputFileStream in(path);
-  for (WordIndex v = 0; std::getline(in, line); v++)
+  for (WordIndex v = 0; io::getline(in, line); v++)
     add(line, v);
   return size();
 }
