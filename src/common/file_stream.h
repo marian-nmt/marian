@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <memory>
 #include <fstream>
 #include "common/definitions.h"
 #include "common/filesystem.h"
@@ -14,21 +16,11 @@
 #pragma warning(disable : 4101)
 #endif
 #include "3rd_party/zstr/zstr.hpp"
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-#include <iostream>
-#include <memory>
-#include <vector>
-
-#ifdef _MSC_VER
-#include <fcntl.h>
-#include <io.h>
-#include <stdlib.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 namespace marian {
