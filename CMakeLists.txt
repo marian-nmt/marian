@@ -216,7 +216,14 @@ if(CUDA_FOUND)
   endif()
 
 else(CUDA_FOUND)
-  message(FATAL_ERROR "CUDA has not been found, set -DCOMPILE_CUDA=off to avoid this check and to compile the CPU version only")
+  message("
+Cannot find suitable CUDA libraries. Specify the path explicitly with
+  -DCUDA_TOOLKIT_ROOT_DIR=/path/to/appropriate/cuda/installation
+   (hint: try /usr/local/$(readlink /usr/local/cuda))
+OR compile the CPU-only version of Marian with
+  -DCOMPILE_CUDA=off
+")
+  message(FATAL_ERROR "FATAL ERROR: No suitable CUDA library found.")
 endif(CUDA_FOUND)
 
 else(COMPILE_CUDA)
