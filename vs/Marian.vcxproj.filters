@@ -721,9 +721,6 @@
     <ClCompile Include="..\src\common\filesystem.cpp">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\common\file_stream.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
