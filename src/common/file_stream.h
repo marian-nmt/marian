@@ -42,7 +42,7 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 namespace marian {
 namespace io {
 
-class TemporaryFile2 {
+class TemporaryFile {
 private:
   int fd_{-1};
   bool unlink_;
@@ -57,9 +57,9 @@ private:
   void NormalizeTempPrefix(std::string& base);
 
 public:
-  TemporaryFile2(const std::string base = "/tmp/", bool earlyUnlink = true);
+  TemporaryFile(const std::string base = "/tmp/", bool earlyUnlink = true);
 
-  ~TemporaryFile2();
+  ~TemporaryFile();
 
   int getFileDescriptor() { return fd_; }
 
@@ -126,7 +126,7 @@ class InputFileStream {
 public:
   explicit InputFileStream(const std::string& file);
 
-  explicit InputFileStream(TemporaryFile2& tempfile);
+  explicit InputFileStream(TemporaryFile& tempfile);
 
   explicit InputFileStream(std::istream& strm) : istream_(new std::istream(strm.rdbuf())) {}
 
@@ -204,7 +204,7 @@ class OutputFileStream {
 public:
   OutputFileStream(const std::string& file);
 
-  OutputFileStream(TemporaryFile2& tempfile);
+  OutputFileStream(TemporaryFile& tempfile);
 
   OutputFileStream(std::ostream& strm) { ostream_ = std::make_unique<std::ostream>(strm.rdbuf()); }
 

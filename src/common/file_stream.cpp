@@ -168,7 +168,7 @@ ssize_t WriteFDBuf::WriteSome(const char *from, const char *to) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef _MSC_VER
-int TemporaryFile2::mkstemp_and_unlink(char *tmpl) {
+int TemporaryFile::mkstemp_and_unlink(char *tmpl) {
   int ret = mkstemp(tmpl);
   if(unlink_ && ret != -1) {
     ABORT_IF(unlink(tmpl), "Error while deleting '{}'", tmpl);
@@ -177,7 +177,7 @@ int TemporaryFile2::mkstemp_and_unlink(char *tmpl) {
 }
 #endif
 
-int TemporaryFile2::MakeTemp(const std::string &base) {
+int TemporaryFile::MakeTemp(const std::string &base) {
 #ifdef _MSC_VER
   char *name = tempnam(base.c_str(), "marian.");
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
@@ -206,7 +206,7 @@ int TemporaryFile2::MakeTemp(const std::string &base) {
 #endif
 }
 
-void TemporaryFile2::NormalizeTempPrefix(std::string &base) {
+void TemporaryFile::NormalizeTempPrefix(std::string &base) {
   if(base.empty())
     return;
 
@@ -225,13 +225,13 @@ void TemporaryFile2::NormalizeTempPrefix(std::string &base) {
 #endif
 }
 
-TemporaryFile2::TemporaryFile2(const std::string base, bool earlyUnlink) : unlink_(earlyUnlink) {
+TemporaryFile::TemporaryFile(const std::string base, bool earlyUnlink) : unlink_(earlyUnlink) {
   std::string baseTemp(base);
   NormalizeTempPrefix(baseTemp);
   fd_ = MakeTemp(baseTemp);
 }
 
-TemporaryFile2::~TemporaryFile2() {
+TemporaryFile::~TemporaryFile() {
 #ifdef _MSC_VER
   if(fd_ == -1)
     return;
@@ -266,7 +266,7 @@ InputFileStream::InputFileStream(const std::string &file) : file_(file) {
   ABORT_IF(fail(), "Error {} ({}) opening file '{}'", errno, strerror(errno), path());
 }
 
-InputFileStream::InputFileStream(TemporaryFile2 &tempfile) {
+InputFileStream::InputFileStream(TemporaryFile &tempfile) {
   RewindFile(tempfile.getFileDescriptor());
   temporary_reader_.reset(new ReadFDBuf(tempfile.getFileDescriptor()));
   istream_.reset(new std::istream(temporary_reader_.get()));
@@ -288,7 +288,7 @@ OutputFileStream::OutputFileStream(const std::string &file) : file_(file) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' could not be opened", file);
 }
 
-OutputFileStream::OutputFileStream(TemporaryFile2 &tempfile) {
+OutputFileStream::OutputFileStream(TemporaryFile &tempfile) {
   RewindFile(tempfile.getFileDescriptor());
   temporary_writer_.reset(new WriteFDBuf(tempfile.getFileDescriptor()));
   ostream_.reset(new std::ostream(temporary_writer_.get()));
