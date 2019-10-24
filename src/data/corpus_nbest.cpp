@@ -49,7 +49,7 @@ SentenceTuple CorpusNBest::next() {
     lastLines_.resize(files_.size() - 1);
     size_t last = files_.size() - 1;
 
-    if(std::getline(*files_[last], line)) {
+    if(io::getline(*files_[last], line)) {
       int curr_num = numFromNbest(line);
       std::string curr_text = lineFromNbest(line);
 

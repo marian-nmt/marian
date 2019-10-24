@@ -80,6 +80,21 @@ void InputFileStream::setbufsize(size_t size) const {
   // do nothing. Is this needed?
 }
 
+std::string InputFileStream::getFileName() const {
+  return file_.string();
+}
+
+// wrapper around std::getline() that handles Windows input files with extra CR
+// chars at the line end
+std::istream &getline(std::istream &in, std::string &line) {
+  std::getline(in, line);
+  // bad() seems to be correct here. Should not abort on EOF.
+  ABORT_IF(in.bad(), "Error reading from stream");
+  // strip terminal CR if present
+  if(in && !line.empty() && line.back() == in.widen('\r'))
+    line.pop_back();
+  return in;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStream::OutputFileStream(const std::string &file)
     : std::ostream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {

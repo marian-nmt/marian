@@ -51,13 +51,16 @@ public:
 
   bool empty();
   void setbufsize(size_t size) const;
+  std::string getFileName() const;
 
 protected:
   marian::filesystem::Path file_;
   std::streambuf* streamBuf_;
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////
+std::istream& getline(std::istream& in, std::string& line);
+
+  //////////////////////////////////////////////////////////////////////////////////////////////
 class OutputFileStream : public std::ostream {
 public:
   explicit OutputFileStream(const std::string& file);

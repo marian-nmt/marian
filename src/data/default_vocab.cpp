@@ -108,7 +108,7 @@ public:
     else {
       io::InputFileStream in(vocabPath);
       std::string line;
-      while(std::getline(in, line)) {
+      while(io::getline(in, line)) {
         ABORT_IF(line.empty(),
                 "DefaultVocabulary file {} must not contain empty lines",
                 vocabPath);
