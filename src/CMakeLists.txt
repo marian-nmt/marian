@@ -20,7 +20,8 @@ add_library(marian STATIC
   common/binary.cpp
   common/io.cpp
   common/filesystem.cpp
-
+  common/file_stream.cpp
+  
   data/alignment.cpp
   data/vocab.cpp
   data/default_vocab.cpp
