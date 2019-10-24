@@ -71,7 +71,7 @@ SentenceTuple Corpus::next() {
         }
       }
       else {
-        std::istream &gotLine = std::getline(*files_[i], line);
+        std::istream &gotLine = io::getline(*files_[i], line);
         if(!gotLine) {
           eofsHit++;
           continue;
@@ -164,7 +164,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     for (;;) {
       size_t eofsHit = 0;
       for(size_t i = 0; i < numStreams; ++i) {
-        std::istream &gotLine = std::getline(*files_[i], lineBuf);
+        std::istream &gotLine = io::getline(*files_[i], lineBuf);
         if (gotLine)
           corpus[i].push_back(lineBuf);
         else
