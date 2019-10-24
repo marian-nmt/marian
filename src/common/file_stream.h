@@ -25,15 +25,6 @@
 #include <memory>
 #include <vector>
 
-#ifdef __GNUC__  // not supported; maybe we just need to increment a standard flag in gcc/cmake?
-namespace std {
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-}  // namespace std
-#endif
-
 #ifdef _MSC_VER
 #include <fcntl.h>
 #include <io.h>

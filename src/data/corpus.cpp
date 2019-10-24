@@ -154,7 +154,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   else {
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      UPtr<io::InputFileStream> strm = std::make_unique<io::InputFileStream>(paths[i]);
+      UPtr<io::InputFileStream> strm(new io::InputFileStream(paths[i]));
       strm->setbufsize(10000000);  // huge read-ahead buffer to avoid network round-trips
       files_[i] = std::move(strm);
     }

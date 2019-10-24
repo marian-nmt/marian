@@ -119,7 +119,7 @@ OutputFileStream::~OutputFileStream() {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
     : OutputFileStream(CreateFileName(base)), unlink_(earlyUnlink) {
-  inSteam_ = std::make_unique<io::InputFileStream>(file_.string());
+  inSteam_ = UPtr<io::InputFileStream>(new io::InputFileStream(file_.string()));
   if (unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
