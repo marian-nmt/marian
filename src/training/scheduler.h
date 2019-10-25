@@ -29,7 +29,8 @@ private:
   //     point in time prior to the hard "time's up".
   static bool sigterm_; // flag signalling that SIGTERM has been received false by default, set to true by signalHandler(SIGTERM)
   void installSignalHandlers(); // installs signalHandler() for select signals (currently only SIGTERM) 
-  static void signalHandler(int sig); // handler for select signals (currently SIGTERM only)`` 
+  static void signalHandler(int sig); // handler for select signals (currently SIGTERM only)
+  // END OF SIGNAL HANDLING CODE
 
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -193,7 +194,7 @@ public:
 
   void started() { LOG(info, "Training started"); }
   void finished() {
-    if (keepGoing(false)) // false means: ignore sigterm flag
+    if (keepGoing(/*checkForSigTERM=*/false)) // i.e., ignore sigterm flag
       LOG(info, "Training interrupted (SIGTERM).");
     else
       LOG(info, "Training finished");
