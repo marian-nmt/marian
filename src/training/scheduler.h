@@ -19,9 +19,17 @@ private:
   timer::Timer timer_;
   timer::Timer heartBeatTimer_;
 
-  static bool sigterm_;
-  void installSignalHandlers_();
-  static void signalHandler_(int sig);
+  // SIGNAL HANDLING
+  // Currently, only the following is handled by a custom signal handler: 
+  // SIGTERM: When SIGTERM is received, the global (static member) flag sigterm_ (false by default) is set to true 
+  //     by signalHandler(). When sigterm_ is true, keepGoing() returns false, and the current state of training models 
+  //     is saved prior to exiting.
+  //        This functionality is helpful when training on clusters with time limits on compute slots, e.g., on s
+  //     clusters managed by slurm. Slurm can be asked to sending a (custom) warning signal to a process at a given 
+  //     point in time prior to the hard "time's up".
+  static bool sigterm_; // flag signalling that SIGTERM has been received false by default, set to true by signalHandler(SIGTERM)
+  void installSignalHandlers(); // installs signalHandler() for select signals (currently only SIGTERM) 
+  static void signalHandler(int sig); // handler for select signals (currently SIGTERM only)`` 
 
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -218,10 +226,10 @@ public:
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool final = false) {
     // Do not validate if already validated (for instance, after the model is
-    // loaded) or if validation is scheduled for another update
-    if(sigterm_
-       || state_->validated
-       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
+    // loaded) or if validation is scheduled for another update, or when signal SIGTERM was received
+    if(sigterm_ // SIGTERM was received
+       || state_->validated // already valudated (in resumed training, for example)
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final)) // not now
       return;
 
     bool firstValidator = true;
