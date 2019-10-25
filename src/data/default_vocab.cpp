@@ -99,7 +99,8 @@ public:
     std::map<std::string, Word> vocab;
     // read from JSON (or Yaml) file
     if(isJson) {
-      YAML::Node vocabNode = YAML::Load(io::InputFileStream(vocabPath));
+      io::InputFileStream strm(vocabPath);
+      YAML::Node vocabNode = YAML::Load(strm);
       for(auto&& pair : vocabNode)
         vocab.insert({pair.first.as<std::string>(), Word::fromWordIndex(pair.second.as<IndexType>())});
     }
@@ -207,8 +208,8 @@ private:
 
   void addCounts(std::unordered_map<std::string, size_t>& counter,
                  const std::string& trainPath) {
-    std::unique_ptr<io::InputFileStream> trainStrm(
-      trainPath == "stdin" ? new io::InputFileStream(std::cin)
+    std::unique_ptr<std::istream> trainStrm(
+      trainPath == "stdin" ? new std::istream(std::cin.rdbuf())
                            : new io::InputFileStream(trainPath)
     );
 
@@ -248,8 +249,8 @@ private:
     for(size_t i = 0; i < vocabSize; ++i)
       vocabYaml.force_insert(vocabVec[i], i + maxSpec + 1);
 
-    std::unique_ptr<io::OutputFileStream> vocabStrm(
-      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+    std::unique_ptr<std::ostream> vocabStrm(
+      vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
                             : new io::OutputFileStream(vocabPath)
     );
     *vocabStrm << vocabYaml;
@@ -314,8 +315,8 @@ private:
     for(size_t i = 0; i < vocabVec.size(); ++i)
       vocabYaml.force_insert(vocabVec[i], i);
 
-    std::unique_ptr<io::OutputFileStream> vocabStrm(
-      vocabPath == "stdout" ? new io::OutputFileStream(std::cout)
+    std::unique_ptr<std::ostream> vocabStrm(
+      vocabPath == "stdout" ? new std::ostream(std::cout.rdbuf())
                             : new io::OutputFileStream(vocabPath)
     );
     *vocabStrm << vocabYaml;

@@ -972,6 +972,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\sse_mathfun.h" />
+    <ClInclude Include="..\src\3rd_party\zstr\strict_fstream.hpp" />
+    <ClInclude Include="..\src\3rd_party\zstr\zstr.hpp" />
     <ClInclude Include="..\src\command\marian_decoder.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1002,6 +1004,7 @@
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
     <ClCompile Include="..\src\common\config_validator.cpp" />
     <ClCompile Include="..\src\common\filesystem.cpp" />
+    <ClCompile Include="..\src\common\file_stream.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
     <ClCompile Include="..\src\common\utils.cpp" />
     <ClCompile Include="..\src\common\logging.cpp" />

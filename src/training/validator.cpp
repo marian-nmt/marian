@@ -371,7 +371,7 @@ float TranslationValidator::validate(const std::vector<Ptr<ExpressionGraph>>& gr
     // contains the name of temporary file that should be used?
     auto collector = options_->hasAndNotEmpty("valid-translation-output")
                          ? New<OutputCollector>(fileName)
-                         : New<OutputCollector>(*tempFile);
+                         : New<OutputCollector>(tempFile->getFileName());
 
     if(quiet_)
       collector->setPrintingStrategy(New<QuietPrinting>());

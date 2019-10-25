@@ -55,7 +55,7 @@ SentenceTuple CorpusNBest::next() {
 
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
-          ABORT_IF(!io::getline(*files_[i], lastLines_[i]),
+          ABORT_IF(!std::getline(*files_[i], lastLines_[i]),
                    "Too few lines in input {}",
                    i);
         }
@@ -86,7 +86,7 @@ void CorpusNBest::reset() {
   lastNum_ = -1;
   for(auto& path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
+      files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else
       files_.emplace_back(new io::InputFileStream(path));
   }

@@ -71,7 +71,7 @@ SentenceTuple Corpus::next() {
         }
       }
       else {
-        bool gotLine = io::getline(*files_[i], line);
+        bool gotLine = io::getline(*files_[i], line).good();
         if(!gotLine) {
           eofsHit++;
           continue;
@@ -121,7 +121,7 @@ void Corpus::reset() {
   pos_ = 0;
   for (size_t i = 0; i < paths_.size(); ++i) {
       if(paths_[i] == "stdin") {
-        files_[i].reset(new io::InputFileStream(std::cin));
+        files_[i].reset(new std::istream(std::cin.rdbuf()));
         // Probably not necessary, unless there are some buffers
         // that we want flushed.
       }
@@ -154,8 +154,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   else {
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      files_[i].reset(new io::InputFileStream(paths[i]));
-      files_[i]->setbufsize(10000000); // huge read-ahead buffer to avoid network round-trips
+      UPtr<io::InputFileStream> strm(new io::InputFileStream(paths[i]));
+      strm->setbufsize(10000000);  // huge read-ahead buffer to avoid network round-trips
+      files_[i] = std::move(strm);
     }
 
     // read entire corpus into RAM
@@ -163,7 +164,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     for (;;) {
       size_t eofsHit = 0;
       for(size_t i = 0; i < numStreams; ++i) {
-        bool gotLine = io::getline(*files_[i], lineBuf);
+        bool gotLine = io::getline(*files_[i], lineBuf).good();
         if (gotLine)
           corpus[i].push_back(lineBuf);
         else
@@ -194,7 +195,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     tempFiles_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
       tempFiles_[i].reset(new io::TemporaryFile(options_->get<std::string>("tempdir")));
-      io::OutputFileStream out(*tempFiles_[i]);
+      io::TemporaryFile &out = *tempFiles_[i];
       const auto& corpusStream = corpus[i];
       for(auto id : ids_) {
         out << corpusStream[id] << std::endl;
@@ -204,8 +205,9 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     // replace files_[] by the tempfiles we just created
     files_.resize(numStreams);
     for(size_t i = 0; i < numStreams; ++i) {
-      files_[i].reset(new io::InputFileStream(*tempFiles_[i]));
-      files_[i]->setbufsize(10000000);
+      auto inputStream = tempFiles_[i]->getInputStream();
+      inputStream->setbufsize(10000000);
+      files_[i] = std::move(inputStream);
     }
     LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);
 #else

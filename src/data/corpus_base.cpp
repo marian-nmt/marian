@@ -40,8 +40,9 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
            "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
+    UPtr<io::InputFileStream> strm(new io::InputFileStream(path));
+    ABORT_IF(strm->empty(), "File '{}' is empty", path);
+    files_.emplace_back(std::move(strm));
   }
 
   initEOS(/*training=*/true);
@@ -153,10 +154,11 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
   for(auto path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
+      files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else {
-      files_.emplace_back(new io::InputFileStream(path));
-      ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
+      io::InputFileStream *strm = new io::InputFileStream(path);
+      ABORT_IF(strm->empty(), "File '{}' is empty", path);
+      files_.emplace_back(strm);
     }
   }
 
@@ -174,8 +176,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
     alignFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
+    io::InputFileStream* strm = new io::InputFileStream(path);
+    ABORT_IF(strm->empty(), "File with alignments '{}' is empty", path);
+    files_.emplace_back(strm);
   }
 
   if(training && options_->hasAndNotEmpty("data-weighting")) {
@@ -186,8 +189,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
     weightFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File with weights '{}' is empty", path);
+    io::InputFileStream* strm = new io::InputFileStream(path);
+    ABORT_IF(strm->empty(), "File with weights '{}' is empty", path);
+    files_.emplace_back(strm);
   }
 }
 

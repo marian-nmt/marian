@@ -721,6 +721,9 @@
     <ClCompile Include="..\src\common\filesystem.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\file_stream.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2028,6 +2031,12 @@
     </ClInclude>
     <ClInclude Include="..\src\functional\operators.h">
       <Filter>functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\strict_fstream.hpp">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\zstr.hpp">
+      <Filter>3rd_party</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
