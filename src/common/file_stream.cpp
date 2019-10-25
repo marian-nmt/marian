@@ -14,43 +14,6 @@
 namespace marian {
 namespace io {
 
-// Get error strings out of errno.
-namespace {
-#ifdef __GNUC__
-const char *HandleStrerror(int ret, const char *buf) __attribute__((unused));
-const char *HandleStrerror(const char *ret, const char * /*buf*/) __attribute__((unused));
-#endif
-// At least one of these functions will not be called.
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
-// The XOPEN version.
-const char *HandleStrerror(int ret, const char *buf) {
-  if(!ret)
-    return buf;
-  return NULL;
-}
-
-// The GNU version.
-const char *HandleStrerror(const char *ret, const char * /*buf*/) {
-  return ret;
-}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-std::string StrError() {
-  char buf[200];
-  buf[0] = 0;
-#if defined(sun) || defined(_WIN32) || defined(_WIN64)
-  return strerror(errno);
-#else
-  return HandleStrerror(strerror_r(errno, buf, 200), buf);
-#endif
-}
-}  // namespace
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStream::InputFileStream(const std::string &file)
     : std::istream(NULL), file_(file), streamBuf_(NULL) {
