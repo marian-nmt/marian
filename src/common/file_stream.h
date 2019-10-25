@@ -38,7 +38,8 @@ public:
 
 protected:
   marian::filesystem::Path file_;
-  std::streambuf* streamBuf_;
+  std::streambuf* streamBuf1_;
+  std::streambuf* streamBuf2_;
 };
 
 std::istream& getline(std::istream& in, std::string& line);
@@ -78,7 +79,7 @@ protected:
   bool unlink_;
   UPtr<InputFileStream> inSteam_;
 
-  void NormalizeTempPrefix(std::string& base);
+  void NormalizeTempPrefix(std::string& base) const;
   void MakeTemp(const std::string& base);
  
 };

@@ -1004,6 +1004,7 @@
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
     <ClCompile Include="..\src\common\config_validator.cpp" />
     <ClCompile Include="..\src\common\filesystem.cpp" />
+    <ClCompile Include="..\src\common\file_stream.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
     <ClCompile Include="..\src\common\utils.cpp" />
     <ClCompile Include="..\src\common\logging.cpp" />

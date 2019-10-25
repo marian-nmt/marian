@@ -16,24 +16,25 @@ namespace io {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStream::InputFileStream(const std::string &file)
-    : std::istream(NULL), file_(file), streamBuf_(NULL) {
+    : std::istream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
   std::filebuf *fileBuf = new std::filebuf();
-  streamBuf_ = fileBuf->open(file.c_str(), std::ios::in);
-  if(!streamBuf_) {
-    ABORT("File can't be read", file);
-  }
+  streamBuf1_ = fileBuf->open(file.c_str(), std::ios::in);
+  ABORT_IF(!streamBuf1_, "File can't be opened", file);
+  assert(fileBuf == streamBuf1_);
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf_ = new zstr::istreambuf(streamBuf_);
+    streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
+    this->init(streamBuf2_);
+  } else {
+    this->init(streamBuf1_);
   }
-
-  this->init(streamBuf_);
 }
 
 InputFileStream::~InputFileStream() {
-  delete streamBuf_;
+  delete streamBuf2_;
+  delete streamBuf1_;
 }
 
 bool InputFileStream::empty() {
@@ -65,6 +66,7 @@ OutputFileStream::OutputFileStream(const std::string &file)
   std::filebuf *fileBuf = new std::filebuf();
   streamBuf1_ = fileBuf->open(file.c_str(), std::ios::out | std::ios_base::binary);
   ABORT_IF(!streamBuf1_, "File can't be opened", file);
+  assert(fileBuf == streamBuf1_);
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
     streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
@@ -102,7 +104,7 @@ TemporaryFile::~TemporaryFile() {
   }
 }
 
-void TemporaryFile::NormalizeTempPrefix(std::string &base) {
+void TemporaryFile::NormalizeTempPrefix(std::string &base) const {
   if(base.empty())
     return;
 
