@@ -149,6 +149,7 @@ void TemporaryFile::MakeTemp(const std::string &base) {
   std::filebuf *fileBuf = new std::filebuf();
   streamBuf1_ = fileBuf->open(name, std::ios::out | std::ios_base::binary);
   ABORT_IF(!streamBuf1_, "File can't be temp opened", name);
+  assert(fileBuf == streamBuf1_);
 
   this->init(streamBuf1_);
 
