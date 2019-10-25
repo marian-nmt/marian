@@ -1,8 +1,8 @@
 #pragma once
 
+#include <fstream>
 #include <iostream>
 #include <memory>
-#include <fstream>
 #include "common/definitions.h"
 #include "common/filesystem.h"
 #include "common/logging.h"
@@ -43,12 +43,12 @@ protected:
 
 std::istream& getline(std::istream& in, std::string& line);
 
-  //////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 class OutputFileStream : public std::ostream {
 public:
   explicit OutputFileStream(const std::string& file);
   virtual ~OutputFileStream();
-  
+
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
     this->write((char*)ptr, num * sizeof(T));
@@ -58,6 +58,8 @@ public:
   }
 
 protected:
+  explicit OutputFileStream();  // for temp file
+
   marian::filesystem::Path file_;
   std::streambuf* streamBuf1_;
   std::streambuf* streamBuf2_;
@@ -76,8 +78,9 @@ protected:
   bool unlink_;
   UPtr<InputFileStream> inSteam_;
 
-  std::string CreateFileName(const std::string& base) const;
-
+  void NormalizeTempPrefix(std::string& base);
+  void MakeTemp(const std::string& base);
+ 
 };
 
 }  // namespace io

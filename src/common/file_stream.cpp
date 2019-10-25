@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 #ifdef _MSC_VER
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 #else
 #include <sys/types.h>
 #include <unistd.h>
@@ -17,8 +17,8 @@ namespace io {
 // Get error strings out of errno.
 namespace {
 #ifdef __GNUC__
-const char *HandleStrerror(int ret, const char *buf) __attribute__ ((unused));
-const char *HandleStrerror(const char *ret, const char * /*buf*/) __attribute__ ((unused));
+const char *HandleStrerror(int ret, const char *buf) __attribute__((unused));
+const char *HandleStrerror(const char *ret, const char * /*buf*/) __attribute__((unused));
 #endif
 // At least one of these functions will not be called.
 #ifdef __clang__
@@ -27,7 +27,8 @@ const char *HandleStrerror(const char *ret, const char * /*buf*/) __attribute__ 
 #endif
 // The XOPEN version.
 const char *HandleStrerror(int ret, const char *buf) {
-  if (!ret) return buf;
+  if(!ret)
+    return buf;
   return NULL;
 }
 
@@ -48,7 +49,7 @@ std::string StrError() {
   return HandleStrerror(strerror_r(errno, buf, 200), buf);
 #endif
 }
-} // namespace
+}  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStream::InputFileStream(const std::string &file)
@@ -110,6 +111,9 @@ OutputFileStream::OutputFileStream(const std::string &file)
   }
 }
 
+OutputFileStream::OutputFileStream()
+    : std::ostream(NULL), streamBuf1_(NULL), streamBuf2_(NULL) {}
+
 OutputFileStream::~OutputFileStream() {
   this->flush();
   delete streamBuf2_;
@@ -118,9 +122,13 @@ OutputFileStream::~OutputFileStream() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
-    : OutputFileStream(CreateFileName(base)), unlink_(earlyUnlink) {
+    : OutputFileStream(), unlink_(earlyUnlink) {
+  std::string baseTemp(base);
+  NormalizeTempPrefix(baseTemp);
+  MakeTemp(baseTemp);
+
   inSteam_ = UPtr<io::InputFileStream>(new io::InputFileStream(file_.string()));
-  if (unlink_) {
+  if(unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
 }
@@ -131,32 +139,60 @@ TemporaryFile::~TemporaryFile() {
   }
 }
 
-std::string TemporaryFile::CreateFileName(const std::string &base) const {
-  // NormalizeTempPrefix
-  std::string ret = base;
-  if(!base.empty()) {
-#ifdef _MSC_VER
-    if(ret.substr(0, 4) == "/tmp") {
-      ret = getenv("TMP");
-    }
-#else
-    if(ret[ret.size() - 1] != '/') {
-      struct stat sb;
-      // It's fine for it to not exist.
-      if(stat(ret.c_str(), &sb) != -1) {
-        if(S_ISDIR(sb.st_mode)) {
-          ret += '/';
-        }
-      }
-    }
-#endif
-  }
+void TemporaryFile::NormalizeTempPrefix(std::string &base) {
+  if(base.empty())
+    return;
 
-  char *name = tempnam(ret.c_str(), "marian.");
+#ifdef _MSC_VER
+  if(base.substr(0, 4) == "/tmp")
+    base = getenv("TMP");
+#else
+  if(base[base.size() - 1] == '/')
+    return;
+  struct stat sb;
+  // It's fine for it to not exist.
+  if(stat(base.c_str(), &sb) == -1)
+    return;
+  if(S_ISDIR(sb.st_mode))
+    base += '/';
+#endif
+}
+void TemporaryFile::MakeTemp(const std::string &base) {
+#ifdef _MSC_VER
+  char *name = tempnam(base.c_str(), "marian.");
   ABORT_IF(name == NULL, "Error while making a temporary based on '{}'", base);
-  ret = name;
+
+  int oflag = _O_RDWR | _O_CREAT | _O_EXCL;
+  if(unlink_)
+    oflag |= _O_TEMPORARY;
+
+  int fd = open(name, oflag, _S_IREAD | _S_IWRITE);
+  ABORT_IF(fd == -1, "Error while making a temporary based on '{}'", base);
+
+#else
+  // create temp file
+  std::string name(base);
+  name += "marian.XXXXXX";
+  name.push_back(0);
+  int fd = mkstemp(&name[0]);
+  ABORT_IF(fd == -1, "Error creating temp file {}", name);
+
+  file_ = name;
+#endif
+
+  // open again with c++
+  std::filebuf *fileBuf = new std::filebuf();
+  streamBuf1_ = fileBuf->open(name, std::ios::out | std::ios_base::binary);
+  ABORT_IF(!streamBuf1_, "File can't be temp opened", name);
+
+  this->init(streamBuf1_);
+
+  // close original file descriptor
+  ABORT_IF(close(fd), "Can't close file descriptor", name);
+
+#ifdef _MSC_VER
   free(name);
-  return ret;
+#endif
 }
 
 UPtr<InputFileStream> TemporaryFile::getInputStream() {
@@ -167,5 +203,5 @@ std::string TemporaryFile::getFileName() const {
   return file_.string();
 }
 
-} // namespace io
-} // namespace marian
+}  // namespace io
+}  // namespace marian
