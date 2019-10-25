@@ -33,13 +33,14 @@ public:
   virtual ~InputFileStream();
 
   bool empty();
-  void setbufsize(size_t size) const;
+  void setbufsize(size_t size);
   std::string getFileName() const;
 
 protected:
   marian::filesystem::Path file_;
   std::streambuf* streamBuf1_;
   std::streambuf* streamBuf2_;
+  std::vector<char> readBuf_;
 };
 
 std::istream& getline(std::istream& in, std::string& line);

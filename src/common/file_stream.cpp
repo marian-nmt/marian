@@ -41,8 +41,10 @@ bool InputFileStream::empty() {
   return this->peek() == std::ifstream::traits_type::eof();
 }
 
-void InputFileStream::setbufsize(size_t size) const {
-  // do nothing. Is this needed?
+void InputFileStream::setbufsize(size_t size) {
+  rdbuf()->pubsetbuf(0, 0);
+  readBuf_.resize(size);
+  rdbuf()->pubsetbuf(readBuf_.data(), readBuf_.size());
 }
 
 std::string InputFileStream::getFileName() const {
