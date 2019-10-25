@@ -25,7 +25,7 @@ InputFileStream::InputFileStream(const std::string &file)
   assert(fileBuf == streamBuf1_);
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
+    streamBuf2_ = new zstr::istreambuf(streamBuf1_);
     this->init(streamBuf2_);
   } else {
     this->init(streamBuf1_);
