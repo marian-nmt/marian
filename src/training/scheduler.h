@@ -229,7 +229,7 @@ public:
     // Do not validate if already validated (for instance, after the model is
     // loaded) or if validation is scheduled for another update, or when signal SIGTERM was received
     if(sigterm_ // SIGTERM was received
-       || state_->validated // already valudated (in resumed training, for example)
+       || state_->validated // already validated (in resumed training, for example)
        || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final)) // not now
       return;
 
