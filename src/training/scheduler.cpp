@@ -22,7 +22,7 @@ void Scheduler::signalHandler(int sig) {
 
 void Scheduler::installSignalHandlers() {
   // TODO: use sigaction instead of signal
-  signal(SIGTERM, Scheduler::signalHandler_);
+  signal(SIGTERM, Scheduler::signalHandler);
 }
 
 }
