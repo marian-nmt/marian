@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Boost depdendency is now optional and only required for marian_server 
+  or for boost::regex when compiling with g++-4.9
 - Simplified file stream and temporary file handling
 - Unified node intializers, same function API.
 
