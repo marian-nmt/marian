@@ -20,15 +20,15 @@ private:
   timer::Timer heartBeatTimer_;
 
   // SIGNAL HANDLING
-  // Currently, only the following is handled by a custom signal handler: 
-  // SIGTERM: When SIGTERM is received, the global (static member) flag sigterm_ (false by default) is set to true 
-  //     by signalHandler(). When sigterm_ is true, keepGoing() returns false, and the current state of training models 
+  // Currently, only the following is handled by a custom signal handler:
+  // SIGTERM: When SIGTERM is received, the global (static member) flag sigterm_ (false by default) is set to true
+  //     by signalHandler(). When sigterm_ is true, keepGoing() returns false, and the current state of training models
   //     is saved prior to exiting.
   //        This functionality is helpful when training on clusters with time limits on compute slots, e.g., on s
-  //     clusters managed by slurm. Slurm can be asked to sending a (custom) warning signal to a process at a given 
+  //     clusters managed by slurm. Slurm can be asked to sending a (custom) warning signal to a process at a given
   //     point in time prior to the hard "time's up".
   static bool sigterm_; // flag signalling that SIGTERM has been received false by default, set to true by signalHandler(SIGTERM)
-  void installSignalHandlers(); // installs signalHandler() for select signals (currently only SIGTERM) 
+  void installSignalHandlers(); // installs signalHandler() for select signals (currently only SIGTERM)
   static void signalHandler(int sig); // handler for select signals (currently SIGTERM only)
   // END OF SIGNAL HANDLING CODE
 
@@ -159,7 +159,7 @@ public:
       : options_(options), state_(state) {
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
-    installSignalHandlers_();
+    installSignalHandlers();
   }
 
   bool keepGoing(bool checkForSigTerm=true) {
