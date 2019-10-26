@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Boost is now optional, still required for marian_server and GCC-4.9 due to lack
+  of support for built-in std::regex.
 - Automatic vectorization of elementwise operations on CPU for tensors dims that 
   are divible by 4 (AVX) and 8 (AVX2)
 - Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
   Tensors, Hypotheses and Expressions.
-- First steps towards integrating FP16 support, currently no-ops.
+- Fp16 inference working for translation
 - Gradient-checkpointing
 
 ### Fixed
