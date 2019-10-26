@@ -60,7 +60,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
       config["cost-type"] = "ce-mean-words";
       config["lr-decay-inv-sqrt"] = 16000;
       config["label-smoothing"] = 0.1;
-      config["clip-norm"] = 5;
+      config["clip-norm"] = 0;
       config["sync-sgd"] = true;
       config["exponential-smoothing"] = 1e-4;
       config["mini-batch-fit"] = true;
@@ -91,7 +91,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
       config["lr-warmup"] = 16000;
       config["lr-decay-inv-sqrt"] = 16000;
       config["label-smoothing"] = 0.1;
-      config["clip-norm"] = 5;
+      config["clip-norm"] = 0;
       config["sync-sgd"] = true;
       config["exponential-smoothing"] = 1e-4;
       config["max-length"] = 100;
@@ -129,7 +129,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
       config["lr-warmup"] = 8000;
       config["lr-decay-inv-sqrt"] = 8000;
       config["label-smoothing"] = 0.1;
-      config["clip-norm"] = 5;
+      config["clip-norm"] = 0;
       config["sync-sgd"] = true;
       config["exponential-smoothing"] = 1e-4;
       config["max-length"] = 100;

@@ -446,7 +446,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Weight for loss function for factors (factored vocab only) (1 to disable)", 1.0f);
   cli.add<float>("--clip-norm",
      "Clip gradient norm to  arg  (0 to disable)",
-     1.f);
+     0.f);
   cli.add<float>("--exponential-smoothing",
      "Maintain smoothed version of parameters for validation and saving with smoothing factor. 0 to disable. "
       "Auto-adjusted to --mini-batch-words-ref if given.",
@@ -487,7 +487,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--cost-scaling",
       "Dynamic cost scaling for mixed precision training: "
       "power of 2, scaling window, scaling factor, tolerance, range, minimum factor")->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
-  cli.add<bool>("--normalize-gradient", "Normalize gradient by multiplying with worldsize / total labels");
+  cli.add<bool>("--normalize-gradient", "Normalize gradient by multiplying with no. devices / total labels");
 
   // multi-node training
   cli.add<bool>("--multi-node",
