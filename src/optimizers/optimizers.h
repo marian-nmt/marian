@@ -40,7 +40,7 @@ public:
 
   void update(Tensor params, Tensor grads, size_t mbSize = mbSizeNotProvided) {
     if(clipper_)
-      clipper_->clip(grads);
+      clipper_->clip(grads); //@BUGBUG: take into account actual mini-batch size since gradients are not normalized
 
     size_t refMBWords = refMBWordsParam_;
     if (refMBWords == 0) { // optimizer not configured to use hyper-parameter auto-adjustment

@@ -313,7 +313,7 @@ Ptr<OptimizerBase> Optimizer(Ptr<Options> options) {
   Ptr<ClipperBase> clipper = nullptr;
   float clipNorm = options->get<float>("clip-norm");
   if(clipNorm > 0)
-    clipper = Clipper<Norm>(clipNorm);
+    clipper = Clipper<Norm>(clipNorm); // @BUGBUG: this is not scaling by number of labels?
 
   auto opt = options->get<std::string>("optimizer");
 
