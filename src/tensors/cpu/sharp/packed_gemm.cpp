@@ -19,9 +19,20 @@
 //#pragma comment(linker, "/ignore:4049") // locally defined symbol ...asmjit... imported
 //#pragma comment(linker, "/ignore:4217") // locally defined symbol ...asmjit... imported
 #endif
+
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 #include "3rd_party/fbgemm/include/fbgemm/QuantUtils.h"
 #include "3rd_party/fbgemm/include/fbgemm/Fbgemm.h"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>

@@ -4,7 +4,18 @@
 #include "tensors/cpu/sharp/packed_gemm.h"
 
 #if USE_FBGEMM
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 using namespace fbgemm;
 #endif  // USE_FBGEMM
 
