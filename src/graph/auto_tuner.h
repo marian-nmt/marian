@@ -25,9 +25,7 @@ private:
   // collects the statistics.
   const size_t collectStatMax = 50;
 
-#ifndef NO_BOOST
   UPtr<timer::CPUTimer> timer_;
-#endif
 
   // This structure holds a hash key an algorithm function (e.g. int16, packed gemm, mkl gemm)
   // for a specific operation size
@@ -93,38 +91,28 @@ public:
   Return run(Args... args) { return algorithms_[choose()].algorithm(args...); }
 
   void start(size_t hash) override {
-#ifndef NO_BOOST
     if(!timer_ && done_.count(hash) == 0)
       timer_.reset(new timer::CPUTimer());
-#else
-    hash;
-    LOG_ONCE(warn, "Auto-tuner not available when compiling with NO_BOOST option. Will use the first option.");
-#endif
   }
 
   void stop(size_t hash, bool stop) override {
-#ifndef NO_BOOST
     if(stop && done_.count(hash) == 0) {
       timer_->stop();
 
-      typedef std::chrono::duration<double> sec;
-      sec seconds = std::chrono::nanoseconds(timer_->elapsed().user);
+      auto seconds = timer_->elapsed();
 
       auto it = stats_.find(hash);
       if(it != stats_.end()) {
         if(it->second.runs < collectStatMax) {
-          it->second.time += seconds.count();
+          it->second.time += seconds;
           it->second.runs += 1;
         }
       } else {
-        stats_.emplace(hash, Stat({seconds.count(), 1}));
+        stats_.emplace(hash, Stat({seconds, 1}));
       }
 
       timer_.reset(nullptr);
     }
-#else
-    hash; stop;
-#endif
   }
 };
 
