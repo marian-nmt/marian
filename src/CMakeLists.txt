@@ -17,6 +17,7 @@ add_library(marian STATIC
   common/config_parser.cpp
   common/aliases.cpp
   common/config_validator.cpp
+  common/options.cpp
   common/binary.cpp
   common/io.cpp
   common/filesystem.cpp

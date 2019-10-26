@@ -175,7 +175,17 @@ public:
       }
     };
 
+    // reset gradients outside current shard
+    auto reset = [this, shardSize](size_t idx, size_t begin, size_t end) {
+      auto grad = graphs_[idx]->params()->grads();
+      if (begin > 0)
+        grad->subtensor(0, begin)->set(0);
+      if (end < grad->size())
+        grad->subtensor(end, grad->size()-end)->set(0);
+    };
+
     foreach(scatter);
+    foreach(reset);
   }
 
   void allGatherParams() const override {
