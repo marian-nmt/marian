@@ -162,9 +162,9 @@ public:
     installSignalHandlers();
   }
 
-  bool keepGoing(bool checkForSigTerm=true) {
+  bool keepGoing() {
 
-    if (checkForSigTerm && sigterm_) // received signam SIGERM => exit gracefully
+    if (sigterm_) // received signal SIGERM => exit gracefully
       return false;
 
     // stop if it reached the maximum number of epochs
@@ -194,7 +194,7 @@ public:
 
   void started() { LOG(info, "Training started"); }
   void finished() {
-    if (keepGoing(/*checkForSigTERM=*/false)) // i.e., ignore sigterm flag
+    if (sigterm_)
       LOG(info, "Training interrupted (SIGTERM).");
     else
       LOG(info, "Training finished");
