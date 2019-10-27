@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Safe handling of sigterm signal
 - Automatic vectorization of elementwise operations on CPU for tensors dims that 
   are divible by 4 (AVX) and 8 (AVX2)
 - Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
