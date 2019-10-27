@@ -53,7 +53,7 @@ public:
 
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
-    this->write((char*)ptr, num * sizeof(T));
+    std::ostream::write((char*)ptr, num * sizeof(T));
     // fail() seems to be correct here. Failure to write should abort.
     ABORT_IF(fail(), "Error writing to file '{}'", file_.string());
     return num * sizeof(T);

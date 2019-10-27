@@ -6,6 +6,8 @@
 #ifdef _MSC_VER
 #include <io.h>
 #include <windows.h>
+#include <fcntl.h>
+#include <stdlib.h>
 #else
 #include <sys/types.h>
 #include <unistd.h>
