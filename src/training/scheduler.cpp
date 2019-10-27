@@ -21,7 +21,8 @@ void Scheduler::signalHandler(int sig) {
 
 
 void Scheduler::installSignalHandlers() {
-  // TODO: use sigaction instead of signal
+  // TODO: use sigaction instead of signal, 
+  // cf. https://stackoverflow.com/questions/231912/what-is-the-difference-between-sigaction-and-signal
   signal(SIGTERM, Scheduler::signalHandler);
 }
 
