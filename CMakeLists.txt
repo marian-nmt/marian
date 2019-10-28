@@ -67,6 +67,11 @@ if(MSVC)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
 else(MSVC)
 
+  # Check we are using at least g++ 5.0
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+    message(FATAL_ERROR "FATAL ERROR: Compiling Marian requires at least g++ 5.0, your version is ${CMAKE_CXX_COMPILER_VERSION}")
+  endif()
+
   # Detect support CPU instrinsics for the current platform. This will
   # only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
   # minimally use -msse4.1. This seems to work with MKL.
@@ -307,14 +312,6 @@ if(COMPILE_CPU)
 endif(COMPILE_CPU)
 
 set(BOOST_COMPONENTS "")
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-  add_definitions(-DUSE_BOOST_REGEX=1)
-  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
-  message(STATUS "Using boost::regex")
-else()
-  message(STATUS "Using std::regex")
-endif()
-
 if(COMPILE_SERVER)
   find_package(OpenSSL)
   if(OpenSSL_FOUND)
