@@ -81,7 +81,7 @@ void element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
 // AVX2 specific intrinsics. Similar for 4 and AVX. TODO: Add AVX512 support.
 template <class Functor, class... Tensors>
 void elementFloat(const Functor& functor, marian::Tensor out, Tensors... tensors) {
-#ifndef __CUDA_ARCH__
+#ifndef __CUDACC__
   std::vector<marian::Tensor> ts({tensors...});
   bool div8 = true;
   bool div4 = true;

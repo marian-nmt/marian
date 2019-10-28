@@ -15,17 +15,18 @@
 #include <functional>
 #include <type_traits>
 
-#ifndef __CUDA_ARCH__
+#ifndef __CUDACC__
 #include <immintrin.h>
 #endif
 
 #ifdef __CUDACC__ // nvcc is compiling this code
-  #if (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__))
+  #include <cuda.h> // required to see CUDA_VERSION
+  #if (CUDA_VERSION > 8000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
     #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
   #else
     #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
   #endif
-#else // other compiler, likely host code. Sould be fine with seeing the correct includes with host code
+#else // other compiler, likely host code. Should be fine with seeing the correct includes with host code
   #define COMPILE_FP16 1
 #endif
 
@@ -125,7 +126,7 @@ do { \
 
 namespace marian {
 
-#ifndef __CUDA_ARCH__
+#ifndef __CUDACC__
 
 // @TODO: check what intrinsics are actually available.
 struct float32x4 {

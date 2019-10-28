@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 
 #include <cuda.h>
 #define HOST __host__

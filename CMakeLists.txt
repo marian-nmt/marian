@@ -159,6 +159,8 @@ set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
 
+LIST(APPEND COMPUTE -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61;)
+
 if(USE_STATIC_LIBS)
   # link statically to stdlib libraries
   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
@@ -177,6 +179,10 @@ if(CUDA_FOUND)
   # CUDA >= 10.0 requires CMake >= 3.12.2
   if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
       message(WARNING "On some Unix systems CUDA 10.0+ requires CMake 3.12.2+; you use CMake ${CMAKE_VERSION}")
+  endif()
+
+  if(CUDA_VERSION VERSION_GREATER "8.0")
+    LIST(APPEND COMPUTE -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70)
   endif()
 
   if(USE_STATIC_LIBS)
@@ -240,9 +246,9 @@ endif(COMPILE_CUDA)
 
 # TODO: make compatible with older CUDA versions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; ${COMPUTE})
 else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; ${COMPUTE})
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 if(NOT MSVC)
   # @TODO: add warnings here too

@@ -14,7 +14,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   auto graph = New<ExpressionGraph>();
   graph->setParameterType(floatType);
   graph->setDevice({0, device});
-  graph->reserveWorkspaceMB(16);
+  graph->reserveWorkspaceMB(32);
 
   std::vector<T> values, values2;
 
@@ -71,8 +71,8 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(compare(rplus,  [](float a, float b) {return a + b;}, true));
     CHECK(compare(rminus, [](float a, float b) {return a - b;}, true));
     CHECK(compare(rmult,  [](float a, float b) {return a * b;}, true));
-    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, /*exactMatch=*/false));
-    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, /*exactMatch=*/false));
+    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, false));
+    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, false));
     CHECK(compare(rmax,   [](float a, float b) {return std::max(a, b);}, true));
     CHECK(compare(rmin,   [](float a, float b) {return std::min(a, b);}, true));
     CHECK(compare(rlt,    [](float a, float b) {return a <  b;}, true));
