@@ -38,6 +38,7 @@ public:
 
   typedef YAML::Node YamlNode;
 
+  Config(ConfigParser const& cp);
   // TODO: remove mode from this class
   Config(int argc,
          char** argv,
@@ -47,7 +48,7 @@ public:
   Config(const Config& other);
   Config(const Options& options);
 
-  void initialize(int argc, char** argv, cli::mode mode, bool validate);
+  void initialize(ConfigParser const& cp);
 
   bool has(const std::string& key) const;
 
@@ -83,12 +84,7 @@ public:
 
   void save(const std::string& name);
 
-  friend std::ostream& operator<<(std::ostream& out, const Config& config) {
-    YAML::Emitter outYaml;
-    cli::OutputYaml(config.get(), outYaml);
-    out << outYaml.c_str();
-    return out;
-  }
+  friend std::ostream& operator<<(std::ostream& out, const Config& config);
 
   static std::vector<DeviceId> getDevices(Ptr<Options> options,
                                           size_t myMPIRank = 0,

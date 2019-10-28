@@ -8,6 +8,9 @@
 
 namespace marian {
 
+bool getSigtermFlag();
+void installSignalHandlers(); 
+
 class Scheduler : public TrainingObserver {
 private:
   Ptr<Options> options_;
@@ -146,9 +149,14 @@ public:
       : options_(options), state_(state) {
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
+    installSignalHandlers();
   }
 
   bool keepGoing() {
+
+    if(getSigtermFlag()) // received signal SIGERM => exit gracefully
+      return false;
+
     // stop if it reached the maximum number of epochs
     size_t stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
@@ -175,7 +183,13 @@ public:
   }
 
   void started() { LOG(info, "Training started"); }
-  void finished() { LOG(info, "Training finished"); }
+  void finished() {
+    if (getSigtermFlag())
+      LOG(info, "Training interrupted (SIGTERM).");
+    else
+      LOG(info, "Training finished");
+  }
+
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
@@ -203,9 +217,10 @@ public:
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool final = false) {
     // Do not validate if already validated (for instance, after the model is
-    // loaded) or if validation is scheduled for another update
-    if(state_->validated
-       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final))
+    // loaded) or if validation is scheduled for another update, or when signal SIGTERM was received
+    if(getSigtermFlag() // SIGTERM was received
+       || state_->validated // already validated (in resumed training, for example)
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final)) // not now
       return;
 
     bool firstValidator = true;

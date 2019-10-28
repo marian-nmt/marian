@@ -212,8 +212,9 @@ public:
    * Switch to different option group or to the default group if argument is empty.
    *
    * @param name Header of the option group
+   * @return Previous group.
    */
-  void switchGroup(const std::string &name = "");
+  std::string switchGroup(std::string name = "");
 
   // Parse command-line arguments. Handles --help and --version options
   void parse(int argc, char **argv);

@@ -17,6 +17,7 @@ add_library(marian STATIC
   common/config_parser.cpp
   common/aliases.cpp
   common/config_validator.cpp
+  common/options.cpp
   common/binary.cpp
   common/io.cpp
   common/filesystem.cpp
@@ -86,6 +87,7 @@ add_library(marian STATIC
   training/graph_group_multinode_sync.cpp
   training/validator.cpp
   training/communicator.cpp
+  training/scheduler.cpp
 
   # this is only compiled to catch build errors, but not linked
   microsoft/quicksand.cpp
