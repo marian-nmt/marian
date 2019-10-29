@@ -93,7 +93,7 @@ static cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                       const half* B, int ldb,
                                       const half* beta,
                                       half* C, int ldc) {
-  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", compute);
+  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
   return cublasGemmEx(handle, transa, transb, 
                       m, n, k, alpha, 
                       A, CUDA_R_16F, lda, 
@@ -216,7 +216,7 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const half *beta,
                                       half *Carray[], int ldc, 
                                       int batchCount) {
-  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", compute);
+  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
   return cublasGemmBatchedEx(handle, transa, transb, 
                              m, n, k, alpha, 
                              (void* const*)Aarray, CUDA_R_16F, lda, 
