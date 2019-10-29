@@ -11,17 +11,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
 # Custom CMake options
-option(COMPILE_CPU "Compile CPU version" ON)
-option(COMPILE_CUDA "Compile GPU version" ON)
 option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
-option(USE_STATIC_LIBS "Link statically against non-system libs" OFF)
-option(USE_CUDNN "Use CUDNN library" OFF)
+option(USE_FBGEMM "Use FBGEMM" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_MPI "Use MPI library" OFF)
+option(USE_CUDNN "Use CUDNN library" OFF)
+
+option(COMPILE_CPU "Compile CPU version" ON)
+option(COMPILE_CUDA "Compile GPU version" ON)
+option(USE_STATIC_LIBS "Link statically against non-system libs" OFF)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" OFF)
-option(USE_FBGEMM "Use FBGEMM" ON)
+
 option(USE_DOXYGEN "Build documentation with Doxygen" ON)
 
 # Project versioning
@@ -66,6 +68,11 @@ if(MSVC)
   find_library(SHLWAPI Shlwapi.lib)
   set(EXT_LIBS ${EXT_LIBS} SHLWAPI)
 else(MSVC)
+
+  # Check we are using at least g++ 5.0
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+    message(FATAL_ERROR "FATAL ERROR: Compiling Marian requires at least g++ 5.0, your version is ${CMAKE_CXX_COMPILER_VERSION}")
+  endif()
 
   # Detect support CPU instrinsics for the current platform. This will
   # only by used with BUILD_ARCH=native. For overridden BUILD_ARCH we
@@ -159,6 +166,8 @@ set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
 
+LIST(APPEND COMPUTE -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61;)
+
 if(USE_STATIC_LIBS)
   # link statically to stdlib libraries
   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
@@ -177,6 +186,10 @@ if(CUDA_FOUND)
   # CUDA >= 10.0 requires CMake >= 3.12.2
   if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
       message(WARNING "On some Unix systems CUDA 10.0+ requires CMake 3.12.2+; you use CMake ${CMAKE_VERSION}")
+  endif()
+
+  if(CUDA_VERSION VERSION_GREATER "8.0")
+    LIST(APPEND COMPUTE -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70)
   endif()
 
   if(USE_STATIC_LIBS)
@@ -240,9 +253,9 @@ endif(COMPILE_CUDA)
 
 # TODO: make compatible with older CUDA versions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O0; -g; --use_fast_math; ${COMPUTE})
 else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70 ;)
+  list(APPEND CUDA_NVCC_FLAGS --default-stream per-thread; -O3; -g; --use_fast_math; ${COMPUTE})
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 if(NOT MSVC)
   # @TODO: add warnings here too
@@ -301,14 +314,6 @@ if(COMPILE_CPU)
 endif(COMPILE_CPU)
 
 set(BOOST_COMPONENTS "")
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-  add_definitions(-DUSE_BOOST_REGEX=1)
-  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} regex)
-  message(STATUS "Using boost::regex")
-else()
-  message(STATUS "Using std::regex")
-endif()
-
 if(COMPILE_SERVER)
   find_package(OpenSSL)
   if(OpenSSL_FOUND)

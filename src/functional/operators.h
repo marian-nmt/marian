@@ -191,7 +191,9 @@ struct Ops<double> {
 
 // stay invisible to NVCC as it seems to have problems with intrinsics;
 // will still be compiled into the binary by cpu-side gcc/g++
-#ifndef __CUDA_ARCH__
+// __CUDACC__ is defined when compiling with NVCC regardless of device type
+// __CUDA_ARCH__ is defined when compiling device (GPU) code
+#ifndef __CUDACC__
 
 #include "3rd_party/sse_mathfun.h"
 
@@ -437,9 +439,9 @@ struct Ops<float32x8> {
 } // end namespace functional
 } // end namespace marian
 
-#endif // of "#ifndef __CUDA_ARCH__"
+#endif // of "#ifndef __CUDACC__"
 
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 #if COMPILE_FP16
 // only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
 #include <cuda_fp16.h>
