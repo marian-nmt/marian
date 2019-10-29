@@ -77,7 +77,6 @@ TEST_CASE("Expression graph can be initialized with constant values",
       auto vals1 = graph->param("vs1", {2, 3}, inits::fromVector(v), Type::float16);
       auto vals2 = graph->param("vs2", {2, 3}, inits::fromValue(5), Type::float16);
 
-      debug(vals1 + vals2);
       graph->forward();
 
       REQUIRE(values.empty());
