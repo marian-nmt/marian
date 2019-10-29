@@ -13,6 +13,7 @@
 namespace marian {
 namespace gpu {
 
+// @TODO: in the future this should pobably become a fully fledged CudaInfo class with many attributes
 struct CudaCompute {
   int major;
   int minor;

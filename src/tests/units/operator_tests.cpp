@@ -12,6 +12,17 @@ using namespace marian;
 
 template <typename T>
 void tests(DeviceType device, Type floatType = Type::float32) {
+
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  if(device == DeviceType::gpu && floatType == Type::float16) {
+    auto gpuBackend = New<gpu::Backend>(DeviceId({0, device}), /*seed=*/1234);
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6) return;
+  }
+#endif
+
+
   auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).epsilon(0.01); };
   auto floatEqual  = [](T x, T y) -> bool { return x == y; };
 
@@ -20,16 +31,6 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   graph->setParameterType(floatType);
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
-
-// Checking for FP16 support and skipping if not supported.
-#ifdef CUDA_FOUND
-  auto gpuBackend = std::dynamic_pointer_cast<gpu::Backend>(graph->getBackend());
-  if(gpuBackend) {
-    auto cudaCompute = gpuBackend->getCudaComputeCapability();
-    if(cudaCompute.major < 6 && floatType == Type::float16)
-      return;
-  }
-#endif
 
   std::vector<T> values, values2;
 

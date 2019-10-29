@@ -1,6 +1,10 @@
 #include "catch.hpp"
 #include "marian.h"
 
+#ifdef CUDA_FOUND
+#include "tensors/gpu/backend.h"
+#endif
+
 #include "rnn/rnn.h"
 #include "rnn/constructors.h"
 #include "rnn/attention.h"
@@ -9,6 +13,16 @@ using namespace marian;
 
 template <typename T>
 void tests(DeviceType type, Type floatType = Type::float32) {
+
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  if(type == DeviceType::gpu && floatType == Type::float16) {
+    auto gpuBackend = New<gpu::Backend>(DeviceId({0, type}), /*seed=*/1234);
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6) return;
+  }
+#endif
+
   auto floatApprox = [](T x, T y) { return x == Approx(y).epsilon(0.01); };
 
   Config::seed = 1234;
