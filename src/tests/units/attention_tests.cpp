@@ -120,12 +120,12 @@ void tests(DeviceType type, Type floatType = Type::float32) {
 TEST_CASE("Model components, Attention (gpu)", "[attention]") {
   tests<float>(DeviceType::gpu);
 }
-#endif
 
-#ifdef CUDA_FOUND
+#if COMPILE_FP16
 TEST_CASE("Model components, Attention (gpu, fp16)", "[attention]") {
   tests<float16>(DeviceType::gpu, Type::float16);
 }
+#endif
 #endif
 
 #ifdef BLAS_FOUND

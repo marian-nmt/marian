@@ -318,9 +318,11 @@ TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
   tests<float>(DeviceType::gpu);
 }
 
+#if COMPILE_FP16
 TEST_CASE("Model components, RNN etc. (gpu, fp16)", "[model]") {
   tests<float16>(DeviceType::gpu, Type::float16);
 }
+#endif
 #endif
 
 #ifdef BLAS_FOUND

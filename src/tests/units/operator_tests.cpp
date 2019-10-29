@@ -762,9 +762,11 @@ TEST_CASE("Expression graph supports basic math operations (gpu)", "[operator]")
   tests<float>(DeviceType::gpu);
 }
 
+#if COMPILE_FP16
 TEST_CASE("Expression graph supports basic math operations (gpu fp16)", "[operator]") {
   tests<float16>(DeviceType::gpu, Type::float16);
 }
+#endif
 #endif
 
 #ifdef BLAS_FOUND

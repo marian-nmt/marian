@@ -52,7 +52,7 @@ static void unsetTensorMode(cublasHandle_t cublasHandle) {
 #endif
 }
 
-// overload for float, contains configuratio settings for float32
+// overload for float, contains configuration settings for float32
 cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                cublasOperation_t transa, 
                                cublasOperation_t transb,
@@ -62,15 +62,24 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                const float* B, int ldb,
                                const float* beta,
                                float* C, int ldc) {
+#if CUDA_VERSION > 9000
   return cublasGemmEx(handle, transa, transb, 
                       m, n, k, alpha, 
                       A, CUDA_R_32F, lda, 
                       B, CUDA_R_32F, ldb, beta, 
                       C, CUDA_R_32F, ldc,
                       CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+#else
+  return cublasSgemm(handle, transa, transb, 
+                     m, n, k, alpha, 
+                     A, lda, 
+                     B, ldb, beta, 
+                     C, ldc);
+#endif
 }
 
-// overload for half, contains configuratio settings for float16
+#if COMPILE_FP16
+// overload for half, contains configuration settings for float16
 cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                cublasOperation_t transa, 
                                cublasOperation_t transb,
@@ -80,9 +89,6 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                const half* B, int ldb,
                                const half* beta,
                                half* C, int ldc) {
-  //float alphaf = __half2float(*alpha); // has to match computeType
-  //float betaf = __half2float(*beta);   // has to match computeType
-
   return cublasGemmEx(handle, transa, transb, 
                       m, n, k, alpha, 
                       A, CUDA_R_16F, lda, 
@@ -90,6 +96,7 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                       C, CUDA_R_16F, ldc,
                       CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
 }
+#endif
 
 template <typename T>
 void ProdTyped(marian::Tensor C,
@@ -152,8 +159,10 @@ void Prod(marian::Tensor C,
           float scalar) {
   if(C->type() == Type::float32) {
     ProdTyped<float>(C, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
   } else if(C->type() == Type::float16) {
     ProdTyped<half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
   } else {
     ABORT("Prod not implemented for type {}", C->type());
   }
@@ -169,15 +178,23 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const float *beta,
                                       float *Carray[], int ldc, 
                                       int batchCount) {
-  return
-  cublasGemmBatchedEx(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      (void* const*)Aarray, CUDA_R_32F, lda, 
-                      (void* const*)Barray, CUDA_R_32F, ldb, beta,
-                      (void**)Carray, CUDA_R_32F, ldc, batchCount,
-                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+#if CUDA_VERSION > 9000
+  return cublasGemmBatchedEx(handle, transa, transb, 
+                             m, n, k, alpha, 
+                             (void* const*)Aarray, CUDA_R_32F, lda, 
+                             (void* const*)Barray, CUDA_R_32F, ldb, beta,
+                             (void**)Carray, CUDA_R_32F, ldc, batchCount,
+                             CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+#else
+  return cublasSgemmBatched(handle, transa, transb, 
+                            m, n, k, alpha, 
+                            Aarray, lda, 
+                            Barray, ldb, beta,
+                            Carray, ldc, batchCount);
+#endif
 }
 
+#if COMPILE_FP16
 cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       cublasOperation_t transa, 
                                       cublasOperation_t transb,
@@ -188,17 +205,14 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const half *beta,
                                       half *Carray[], int ldc, 
                                       int batchCount) {
-  //float alphaf = __half2float(*alpha); // has to match computeType
-  //float betaf = __half2float(*beta);   // has to match computeType
-
-  return
-  cublasGemmBatchedEx(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      (void* const*)Aarray, CUDA_R_16F, lda, 
-                      (void* const*)Barray, CUDA_R_16F, ldb, beta,
-                      (void**)Carray, CUDA_R_16F, ldc, batchCount,
-                      CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: to 16, this is testing
+  return cublasGemmBatchedEx(handle, transa, transb, 
+                             m, n, k, alpha, 
+                             (void* const*)Aarray, CUDA_R_16F, lda, 
+                             (void* const*)Barray, CUDA_R_16F, ldb, beta,
+                             (void**)Carray, CUDA_R_16F, ldc, batchCount,
+                             CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: to 16, this is testing
 }
+#endif
 
 template <typename T>
 void ProdBatchedTyped(marian::Tensor C,                 
@@ -296,8 +310,10 @@ void ProdBatched(marian::Tensor C,
                  float scalar) {
   if(C->type() == Type::float32) {
     ProdBatchedTyped<float>(C, allocator, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
   } else if(C->type() == Type::float16) { // not a *.cu file
     ProdBatchedTyped<half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
   } else {
     ABORT("ProdBatched not implemented for type {}", C->type());
   }

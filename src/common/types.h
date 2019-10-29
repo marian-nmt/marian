@@ -21,13 +21,20 @@
 
 #ifdef __CUDACC__ // nvcc is compiling this code
   #include <cuda.h> // required to see CUDA_VERSION
-  #if (CUDA_VERSION > 8000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
+  #if (CUDA_VERSION > 9000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
     #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
   #else
     #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
   #endif
-#else // other compiler, likely host code. Should be fine with seeing the correct includes with host code
-  #define COMPILE_FP16 1
+#elif CUDA_FOUND // other compiler, likely host code. Should be fine with seeing the correct includes with host code
+  #include <cuda.h> // required to see CUDA_VERSION
+  #if (CUDA_VERSION > 9000)
+    #define COMPILE_FP16 1
+  #else 
+    #define COMPILE_FP16 0
+  #endif
+#else
+  #define COMPILE_FP16 0
 #endif
 
 #ifdef _MSC_VER
