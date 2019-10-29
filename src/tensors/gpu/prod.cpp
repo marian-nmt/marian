@@ -63,19 +63,30 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                const float* B, int ldb,
                                const float* beta,
                                float* C, int ldc) {
-  if(compute >= 5 && CUDA_VERSION > 9000)
+// double #if and if unfortunately required to safeguard against compilation error 
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capabilite under 5
+#if CUDA_VERSION > 9000
+  if(compute >= 5) {
     return cublasGemmEx(handle, transa, transb, 
                         m, n, k, alpha, 
                         A, CUDA_R_32F, lda, 
                         B, CUDA_R_32F, ldb, beta, 
                         C, CUDA_R_32F, ldc,
                         CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
-  else 
+  } else {
     return cublasSgemm(handle, transa, transb, 
                         m, n, k, alpha, 
                         A, lda, 
                         B, ldb, beta, 
                         C, ldc);
+  }
+#else
+  return cublasSgemm(handle, transa, transb, 
+                      m, n, k, alpha, 
+                      A, lda, 
+                      B, ldb, beta, 
+                      C, ldc);
+#endif
 }
 
 #if COMPILE_FP16
@@ -185,22 +196,33 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const float *beta,
                                       float *Carray[], int ldc, 
                                       int batchCount) {
-  if(compute >= 5 && CUDA_VERSION > 9000)
+// double #if and if unfortunately required to safeguard against compilation error 
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capabilite under 5
+#if CUDA_VERSION > 9000
+  if(compute >= 5) {
     return cublasGemmBatchedEx(handle, transa, transb, 
                               m, n, k, alpha, 
                               (void* const*)Aarray, CUDA_R_32F, lda, 
                               (void* const*)Barray, CUDA_R_32F, ldb, beta,
                               (void**)Carray, CUDA_R_32F, ldc, batchCount,
                               CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
-  else
+  } else {
     return cublasSgemmBatched(handle, transa, transb, 
                               m, n, k, alpha, 
                               Aarray, lda, 
                               Barray, ldb, beta,
                               Carray, ldc, batchCount);
+  }
+#else
+  return cublasSgemmBatched(handle, transa, transb, 
+                            m, n, k, alpha, 
+                            Aarray, lda, 
+                            Barray, ldb, beta,
+                            Carray, ldc, batchCount);
+#endif
 }
 
-#if COMPILE_FP16
+#if COMPILE_FP16 // should not be visible for CUDA 9.0 and below
 cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       int compute,
                                       cublasOperation_t transa, 
