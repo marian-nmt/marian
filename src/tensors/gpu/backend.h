@@ -13,12 +13,24 @@
 namespace marian {
 namespace gpu {
 
+struct CudaCompute {
+  int major;
+  int minor;
+};
+
 class Backend : public marian::Backend {
+private:
+  void setCudaComputeCapability() {
+    cudaDeviceGetAttribute(&compute_.major, cudaDevAttrComputeCapabilityMajor, (int)deviceId_.no);
+    cudaDeviceGetAttribute(&compute_.minor, cudaDevAttrComputeCapabilityMinor, (int)deviceId_.no);
+  }
+
 public:
   Backend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {
     setDevice();
     cublasCreate(&cublasHandle_);
     cusparseCreate(&cusparseHandle_);
+    setCudaComputeCapability();
   }
 
   ~Backend() {
@@ -34,14 +46,18 @@ public:
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
   cusparseHandle_t getCusparseHandle() { return cusparseHandle_; }
 
+  CudaCompute getCudaComputeCapability() { return compute_; }
+
   // for CPU, sets to use optimized code for inference.
   // for GPU, this is invalid. for gpu, isOptimized() function always returns false.
   void setOptimized(bool optimize) override {
     LOG_ONCE(info, "setOptimized() not supported for GPU_{}", optimize);
   }
+  
   bool isOptimized() override {
     return false;
   }
+
   // for CPU, selects different GEMM types for the inference.
   // for GPU, there's no gemm type. so, it does nothing.
   void setGemmType(std::string gemmType) override {
@@ -55,6 +71,7 @@ public:
 private:
   cublasHandle_t cublasHandle_;
   cusparseHandle_t cusparseHandle_;
+  CudaCompute compute_;
 };
 }  // namespace gpu
 }  // namespace marian

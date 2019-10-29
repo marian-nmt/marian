@@ -1,6 +1,11 @@
 #include "catch.hpp"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
+
+#ifdef CUDA_FOUND
+#include "tensors/gpu/backend.h"
+#endif
+
 #include <cmath>
 
 using namespace marian;
@@ -14,7 +19,17 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   auto graph = New<ExpressionGraph>();
   graph->setParameterType(floatType);
   graph->setDevice({0, device});
-  graph->reserveWorkspaceMB(32);
+  graph->reserveWorkspaceMB(16);
+
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  auto gpuBackend = std::dynamic_pointer_cast<gpu::Backend>(graph->getBackend());
+  if(gpuBackend) {
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6 && floatType == Type::float16)
+      return;
+  }
+#endif
 
   std::vector<T> values, values2;
 
