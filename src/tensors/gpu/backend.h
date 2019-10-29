@@ -22,8 +22,8 @@ struct CudaCompute {
 class Backend : public marian::Backend {
 private:
   void setCudaComputeCapability() {
-    cudaDeviceGetAttribute(&compute_.major, cudaDevAttrComputeCapabilityMajor, (int)deviceId_.no);
-    cudaDeviceGetAttribute(&compute_.minor, cudaDevAttrComputeCapabilityMinor, (int)deviceId_.no);
+    CUDA_CHECK(cudaDeviceGetAttribute(&compute_.major, cudaDevAttrComputeCapabilityMajor, (int)deviceId_.no));
+    CUDA_CHECK(cudaDeviceGetAttribute(&compute_.minor, cudaDevAttrComputeCapabilityMinor, (int)deviceId_.no));
   }
 
 public:
@@ -40,9 +40,9 @@ public:
     cublasDestroy(cublasHandle_);
   }
 
-  void setDevice() override { cudaSetDevice((int)deviceId_.no); }
+  void setDevice() override { CUDA_CHECK(cudaSetDevice((int)deviceId_.no)); }
 
-  void synchronize() override { cudaStreamSynchronize(0); }
+  void synchronize() override { CUDA_CHECK(cudaStreamSynchronize(0)); }
 
   cublasHandle_t getCublasHandle() { return cublasHandle_; }
   cusparseHandle_t getCusparseHandle() { return cusparseHandle_; }
