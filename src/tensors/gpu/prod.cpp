@@ -64,7 +64,7 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                                const float* beta,
                                float* C, int ldc) {
 // double #if and if unfortunately required to safeguard against compilation error 
-// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capabilite under 5
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
 #if CUDA_VERSION > 9000
   if(compute >= 5) {
     return cublasGemmEx(handle, transa, transb, 
@@ -142,15 +142,13 @@ void ProdTyped(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
-                          ->getCublasHandle();
-
-  int compute;
-  CUDA_CHECK(cudaDeviceGetAttribute(&compute, cudaDevAttrComputeCapabilityMajor, (int)C->getDeviceId().no));
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto compute = backend->getCudaComputeCapability();
 
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmTyped(cublasHandle,
-                               compute,
+                               compute.major,
                                opB,
                                opA,
                                n,
@@ -197,7 +195,7 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       float *Carray[], int ldc, 
                                       int batchCount) {
 // double #if and if unfortunately required to safeguard against compilation error 
-// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capabilite under 5
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
 #if CUDA_VERSION > 9000
   if(compute >= 5) {
     return cublasGemmBatchedEx(handle, transa, transb, 
@@ -279,8 +277,9 @@ void ProdBatchedTyped(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
-                          ->getCublasHandle();
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto compute = backend->getCudaComputeCapability();
 
   auto strideA = batchA == 1 ? 0 : m * k;
   auto strideB = batchB == 1 ? 0 : n * k;
@@ -307,12 +306,9 @@ void ProdBatchedTyped(marian::Tensor C,
   IPtr<MemoryPiece> mp_cptr = allocator->alloc<T*>(cptr.size());
   CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<T*>());
 
-  int compute;
-  CUDA_CHECK(cudaDeviceGetAttribute(&compute, cudaDevAttrComputeCapabilityMajor, (int)C->getDeviceId().no));
-
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmBatchedTyped(cublasHandle,
-                                      compute,
+                                      compute.major,
                                       opB,
                                       opA,
                                       n,
