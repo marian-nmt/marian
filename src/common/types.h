@@ -3,7 +3,7 @@
 
 #if __GNUC__ >= 7
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#pragma GCC diagnostic ignored "-Wint-in-bool-context" // gcc-7 introduces this warning, triggered in 3rd-party code
 #endif
 #include "half_float/umHalf.h"
 #if __GNUC__ >= 7
@@ -15,26 +15,26 @@
 #include <functional>
 #include <type_traits>
 
-#ifndef __CUDACC__
+#ifndef __CUDACC__ // NVCC is very unreliable when it comes to CPU intrinsics, we hide them completely from NVCC-compiled code
 #include <immintrin.h>
 #endif
 
 #ifdef __CUDACC__ // nvcc is compiling this code
-  #include <cuda.h> // required to see CUDA_VERSION
-  #if (CUDA_VERSION > 9000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
-    #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
-  #else
-    #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
-  #endif
-#elif CUDA_FOUND // other compiler, likely host code. Should be fine with seeing the correct includes with host code
-  #include <cuda.h> // required to see CUDA_VERSION
-  #if (CUDA_VERSION > 9000)
-    #define COMPILE_FP16 1
-  #else 
-    #define COMPILE_FP16 0
-  #endif
+#include <cuda.h> // required to see CUDA_VERSION
+#if (CUDA_VERSION > 9000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
+#define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
 #else
-  #define COMPILE_FP16 0
+#define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
+#endif
+#elif CUDA_FOUND // other compiler, likely host code. Should be fine with seeing the correct includes with host code
+#include <cuda.h> // required to see CUDA_VERSION
+#if (CUDA_VERSION > 9000)
+#define COMPILE_FP16 1
+#else 
+#define COMPILE_FP16 0
+#endif
+#else
+#define COMPILE_FP16 0
 #endif
 
 #ifdef _MSC_VER
@@ -133,7 +133,7 @@ do { \
 
 namespace marian {
 
-#ifndef __CUDACC__
+#ifndef __CUDACC__ // vectorized types not available from .cu files
 
 // @TODO: check what intrinsics are actually available.
 struct float32x4 {

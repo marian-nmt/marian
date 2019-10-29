@@ -22,7 +22,6 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   }
 #endif
 
-
   auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).epsilon(0.01); };
   auto floatEqual  = [](T x, T y) -> bool { return x == y; };
 

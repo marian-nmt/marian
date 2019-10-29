@@ -192,7 +192,7 @@ struct Ops<double> {
 // stay invisible to NVCC as it seems to have problems with intrinsics;
 // will still be compiled into the binary by cpu-side gcc/g++
 // __CUDACC__ is defined when compiling with NVCC regardless of device type
-// __CUDA_ARCH__ is defined when compiling devicde (GPU) code
+// __CUDA_ARCH__ is defined when compiling device (GPU) code
 #ifndef __CUDACC__
 
 #include "3rd_party/sse_mathfun.h"
