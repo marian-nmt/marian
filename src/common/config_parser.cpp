@@ -1,3 +1,4 @@
+#include "common/authors.h"
 #include "common/cli_helper.h"
 #include "common/config.h"
 #include "common/config_parser.h"
@@ -106,6 +107,10 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.switchGroup("General options");
 
   // clang-format off
+  cli.add<bool>("--authors",
+    "Print list of authors and exit");
+  cli.add<bool>("--cite",
+    "Print citation and exit");
   cli.add<std::vector<std::string>>("--config,-c",
     "Configuration file(s). If multiple, later overrides earlier");
   cli.add<size_t>("--workspace,-w",
@@ -477,7 +482,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Fix target embeddings. Affects all decoders");
 
   // mixed precision training
-  cli.add<bool>("--fp16", 
+  cli.add<bool>("--fp16",
       "Shortcut for mixed precision training with float16 and cost-scaling, "
       "corresponds to: --precision float16 float32 float32 --cost-scaling 7 2000 2 0.05 10 1");
   cli.add<std::vector<std::string>>("--precision",
@@ -610,8 +615,8 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::string>("--gemm-type",
       "Select GEMM options: auto, mklfp32, intrinint16, fp16packed, int8packed",
       "auto");
-  
-  cli.add<bool>("--fp16", 
+
+  cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
@@ -667,12 +672,12 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
 
   cli.add<bool>("--optimize",
       "Optimize speed aggressively sacrificing memory or precision");
-  cli.add<bool>("--fp16", 
+  cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
       {"float32"});
-  
+
   cli.switchGroup(previous_group);
   // clang-format on
 }
@@ -725,7 +730,7 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
     cli.add<size_t>("--mini-batch-fit-step",
       "Step size for mini-batch-fit statistics",
       10);
-    cli.add<bool>("--gradient-checkpointing", 
+    cli.add<bool>("--gradient-checkpointing",
       "Enable gradient-checkpointing to minimize memory usage");
   }
 
@@ -810,6 +815,16 @@ Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
 
   // parse command-line options and fill wrapped YAML config
   cli_.parse(argc, argv);
+
+  if(get<bool>("authors")) {
+    std::cerr << authors() << std::endl;
+    exit(0);
+  }
+
+  if(get<bool>("cite")) {
+    std::cerr << citation() << std::endl;
+    exit(0);
+  }
 
   // get paths to extra config files
   auto configPaths = findConfigPaths();
