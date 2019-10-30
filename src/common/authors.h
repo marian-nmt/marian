@@ -7,7 +7,7 @@ namespace marian {
 std::string citation() {
   return "Marian: Fast Neural Machine Translation in C++\n"
          "\n"
-         "Please cite the following paper if you use Marian (formerly AmuNMT):\n"
+         "Please cite the following paper if you use Marian:\n"
          "\n"
          "@InProceedings{mariannmt,\n"
          "  title     = {Marian: Fast Neural Machine Translation in {C++}},\n"
@@ -26,6 +26,9 @@ std::string citation() {
          "}\n";
 }
 
+// The list of contributors has been compiled semi-automatically from the
+// GitHub contributor list in default order. That list can be printed out with
+// `git shortlog -s -n`.
 std::string authors() {
   return "Marian: Fast Neural Machine Translation in C++\n"
          "\n"
