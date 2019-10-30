@@ -1,9 +1,9 @@
 Marian
 ======
 
-[![Build Status CUDA 8.0](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-8.0.svg?label=CUDA%208.0)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-8.0/)
-[![Build Status CUDA 9.2](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev.svg?label=CUDA%209.2)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev/)
-[![Build Status CUDA 10.0](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-10.0.svg?label=CUDA%2010.0)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-10.0/)
+[![Build Status CUDA 8](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-8.0.svg?label=CUDA%208)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-8.0/)
+[![Build Status CUDA 9](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-9.2.svg?label=CUDA%209)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-9.2/)
+[![Build Status CUDA 10](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-10.1.svg?label=CUDA%2010)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-10.1/)
 [![Build Status CPU](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
 [![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-regression-tests.svg?label=tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
 [![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=release)](https://github.com/marian-nmt/marian/releases)
