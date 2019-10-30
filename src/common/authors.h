@@ -58,8 +58,8 @@ std::string authors() {
          "Barry Haddow <bhaddow@inf.ed.ac.uk>\n"
          "Dominik Stańczak <stanczakdominik@gmail.com>\n"
          "Michael Hutt <Michael.Hutt@gmail.com>\n"
-         "Richard Wei <rxwei@users.noreply.github.com>\n";
+         "Richard Wei <rxwei@users.noreply.github.com>\n"
          "Wenyong Huang <weyo.huang@gmail.com>\n"
-         "alancucki <alancucki+github@gmail.com>\n"
+         "alancucki <alancucki+github@gmail.com>\n";
 }
 }  // namespace marian
