@@ -12,8 +12,10 @@ ExpressionGraph::ExpressionGraph(bool inference)
 void ExpressionGraph::setDevice(DeviceId deviceId, Ptr<Device> device) {
   if(!backend_) {
     backend_ = BackendByDeviceId(deviceId, Config::seed);
-    params_ = New<Parameters>();
-    params_->init(backend_);
+    auto params = New<Parameters>(defaultElementType_);
+    params->init(backend_);
+    paramsByElementType_[defaultElementType_] = params;
+    
     if(device)
       tensors_ = New<Tensors>(backend_, device);
     else
@@ -170,9 +172,11 @@ void ExpressionGraph::backward(bool reset, float clipValue) {
     ABORT("Aborting");
   }
 
-  params_->allocateBackward();
-  if(reset)
-    params_->set_zero_adjoint();
+  for(auto kvParams : paramsByElementType_) {
+    kvParams.second->allocateBackward();
+    if(reset)
+      kvParams.second->set_zero_adjoint();
+  }
 
   for(auto&& v : topNodes_)
     v->init_dependent();
@@ -233,28 +237,31 @@ Expr ExpressionGraph::dropoutMask(float prob, const Shape& shape, Type valueType
 }
 
 Expr ExpressionGraph::dropoutMask(float prob, const Shape& shape) {
-  return constant(shape, inits::dropout(prob), parameterType_);
+  return constant(shape, inits::dropout(prob), defaultElementType_);
 }
 
 void ExpressionGraph::checkNaN(Tensor t, bool& isNaN, bool& isInf) {
   IsNaN(t, allocator(), isNaN, isInf);
 }
 
-void ExpressionGraph::save(std::vector<io::Item>& ioItems) {
-  // sorted by name in std::map
-  for(auto p : params()->getMap()) {
-    std::string pName = p.first;
+void ExpressionGraph::save(std::vector<io::Item>& ioItems, Type saveElementType) {
+  // sorted by type in std::map
+  for(auto kvParams : paramsByElementType_) {
+    // sorted by name in std::map
+    for(auto p : kvParams.second->getMap()) {
+      std::string pName = p.first;
 
-    if(!namespace_.empty()) {
-      if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
-        pName = pName.substr(namespace_.size() + 2);
+      if(!namespace_.empty()) {
+        if(pName.substr(0, namespace_.size() + 2) == namespace_ + "::")
+          pName = pName.substr(namespace_.size() + 2);
+      }
+
+      Tensor val = p.second->val();
+      io::Item item;
+      val->get(item, pName);
+      item.convert(saveElementType);
+      ioItems.emplace_back(std::move(item));
     }
-
-    Tensor val = p.second->val();
-    io::Item item;
-    val->get(item, pName);
-    item.convert(saveType_);
-    ioItems.emplace_back(std::move(item));
   }
 }
 

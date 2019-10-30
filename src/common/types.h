@@ -398,3 +398,12 @@ public:
 };
 
 }  // namespace marian
+
+// custom specialization of std::hash can be injected in namespace std
+namespace std {
+  template<> struct hash<::marian::Type> {
+    size_t operator()(const ::marian::Type& type) const noexcept {
+      return (size_t)type; // type is already a unique value of type size_t
+    }
+  };
+}

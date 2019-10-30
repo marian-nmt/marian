@@ -110,6 +110,8 @@ public:
   void clearLongtermMemory() { longterm_->clear(); }
 };
 
+typedef std::map<Type, Ptr<Parameters>> ElementTypeParamsMap; // keep it sorted, hence map not unordered map
+
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
   size_t count_{0};
 
@@ -124,8 +126,7 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
-  Type parameterType_{Type::float32}; // Type used for storing parameters, currently all parameters have to have the same type
-  Type saveType_{Type::float32};      // Type used for saving to disk, can be different, e.g. double or float16.
+  Type defaultElementType_{Type::float32}; // Type used for storing parameters, currently all parameters have to have the same type
 
   bool inferenceOnly_{false};
 
@@ -143,7 +144,12 @@ protected:
   ExpressionGraph(ExpressionGraph&&) = delete;
 
   // Holds memory and expressions that correspond to graph parameters
-  Ptr<Parameters> params_;
+  // Now we can have multiple types of parameters in a separate parameters object per value type. 
+  // This is currently only accessible through private functions during loading, will abort during training
+  // when params() is called (e.g. optimizer) and there is more or other types than the default parameter type.
+  // Currently the only usecase is inference. Trying to access params() for non-default parameter type is going
+  // to abort. Inference does not need to access a whole set of parameters.
+  ElementTypeParamsMap paramsByElementType_;
   Ptr<Backend> backend_;
 
 public:
@@ -155,11 +161,12 @@ public:
 
   virtual ~ExpressionGraph() {
     clear();
-    params_->clear();
+    for(auto kvParams : paramsByElementType_)
+      kvParams.second->clear();
   }
 
   virtual void setDevice(DeviceId deviceId = {0, DeviceType::gpu},
-                 Ptr<Device> device = nullptr);
+                         Ptr<Device> device = nullptr);
 
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
@@ -220,7 +227,8 @@ public:
   void checkNaN(Tensor t, bool& isNaN, bool& isInf);
 
   void forward() {
-    params_->allocateForward();
+    for(auto kvParams : paramsByElementType_)
+      kvParams.second->allocateForward();
     forwardNext();
   }
 
@@ -262,19 +270,27 @@ public:
       name = namespace_ + "::" + name;
 
     // check first if parameter already exists
-    auto p = params_->get(name);
-    if(p) {
-      // if yes add to tape and return
-      ABORT_IF(shape != p->shape(),
-               "Requested shape {} for existing parameter '{}' does not match "
-               "original shape {}",
-               shape,
-               name,
-               p->shape());
+    auto it = paramsByElementType_.find(valueType);
+    Ptr<Parameters> params = it != paramsByElementType_.end() ? it->second : nullptr;
+    if(!params) { 
+      params = New<Parameters>(valueType);
+      params->init(backend_);
+      paramsByElementType_.insert({valueType, params});
+    } else {
+      Expr p = params->get(name);
+      if(p) {
+        // if yes add to tape and return
+        ABORT_IF(shape != p->shape(),
+                "Requested shape {} for existing parameter '{}' does not match "
+                "original shape {}",
+                shape,
+                name,
+                p->shape());
 
-      p->setTrainable(!fixed);
-      add(p);
-      return p;
+        p->setTrainable(!fixed);
+        add(p);
+        return p;
+      }
     }
 
     // if graph was reloaded do not allow creation of new parameters
@@ -283,14 +299,16 @@ public:
              name);
 
     // if not check if name is not taken by other node
-    ABORT_IF(get(name), "Non-parameter with name '{}' already exists", name);
+    auto other = get(name);
+    ABORT_IF(other, "Parameter with name '{}' already exists and has type {}", name, other->value_type());
 
     // create parameter node (adds to tape)
-    p = Expression<ParamNode>(shared_from_this(), shape, init, valueType, fixed);
+    Expr p = Expression<ParamNode>(shared_from_this(), shape, init, valueType, fixed);
+    LOG(debug, "Created parameter {} with shape {} and type {}", pname, shape, valueType);
 
     // set name and id and add to list of parameters
     p->set_name(name);
-    params_->add(p, name);
+    params->add(p, name);
 
     return p;
   }
@@ -299,7 +317,7 @@ public:
              const Shape& shape,
              const Ptr<inits::NodeInitializer>& init,
              bool fixed = false) {
-    return param(pname, shape, init, parameterType_, fixed);
+    return param(pname, shape, init, defaultElementType_, fixed);
   }
 
   Expr constant(const Shape& shape,
@@ -310,7 +328,7 @@ public:
 
   Expr constant(const Shape& shape,
                 const Ptr<inits::NodeInitializer>& init) {
-    return Expression<ConstantNode>(shared_from_this(), shape, init, parameterType_);
+    return Expression<ConstantNode>(shared_from_this(), shape, init, defaultElementType_);
   }
 
   // @TODO: add version with iterators
@@ -337,14 +355,14 @@ public:
     return constant(shape, inits::ones(), valueType);
   }
   Expr ones(const Shape& shape) {
-    return constant(shape, inits::ones(), parameterType_);
+    return constant(shape, inits::ones(), defaultElementType_);
   }
 
   Expr zeros(const Shape& shape, Type valueType) {
     return constant(shape, inits::zeros(), valueType);
   }
   Expr zeros(const Shape& shape) {
-    return constant(shape, inits::zeros(), parameterType_);
+    return constant(shape, inits::zeros(), defaultElementType_);
   }
 
   // prob = dropProb, e.g. 0.1 means 90% of values are kept
@@ -355,25 +373,31 @@ public:
     if(!namespace_.empty())
       name = namespace_ + "::" + name;
 
-    auto e = params_->get(name);
-    if(e)
-      return e;
-    return Expr();  // @TODO: how is this different from just returning 'e'?
+    for(auto kvParams : paramsByElementType_)
+      return kvParams.second->get(name);
+
+    return Expr();
   }
 
-  Ptr<Parameters>& params() { return params_; }
+  Ptr<Parameters>& params() { 
+    // There are no parameter objects, that's weird.
+    ABORT_IF(paramsByElementType_.empty(), "No parameter object has been created");
+    
+    // Safeguard against accessing parameters from the outside with multiple parameter types, not yet supported
+    ABORT_IF(paramsByElementType_.size() > 1, "Calling of params() is currently not supported with multiple ({}) parameters", paramsByElementType_.size());
+    
+    // Safeguard against accessing parameters from the outside with other than default parameter type, not yet supported
+    auto it = paramsByElementType_.find(defaultElementType_);
+    ABORT_IF(it == paramsByElementType_.end(), "Parameter object for type {} does not exist", defaultElementType_);
 
-  Type getParameterType() {
-    return parameterType_;
+    return it->second;
   }
 
-  Type getSaveType() {
-    return parameterType_;
-  }
-
-  void setParameterType(Type parameterType, Type saveType = Type::float32) {
-    parameterType_ = parameterType;
-    saveType_ = saveType;
+  void setDefaultElementType(Type defaultElementType) {
+    ABORT_IF(!paramsByElementType_.empty() && defaultElementType != defaultElementType_, 
+             "Parameter objects already exist, cannot change default type from {} to {}", 
+             defaultElementType_, defaultElementType);
+    defaultElementType_ = defaultElementType;
   }
 
   Expr add(Expr node);
@@ -406,8 +430,6 @@ public:
 
     tensors_->clear();
   }
-
-  void clearParameters() { params_->clear(); }
 
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
@@ -445,23 +467,31 @@ public:
     ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
-    params_ = New<MappedParameters>();
-    params_->init(backend_);
-
     LOG(info, "Memory mapping model at {}", ptr);
     auto items = io::mmapItems(ptr);
+    
+    // pre-populate parameters by type
+    for(auto& item : items) {
+      auto it = paramsByElementType_.find(item.type);
+      if(it == paramsByElementType_.end()) {
+        auto params = New<MappedParameters>(item.type);
+        params->init(backend_);
+        paramsByElementType_.insert({item.type, params});
+      }
+    }
+
     load(items, markReloaded);
   }
 
 public:
   // convert all parameters into an array of io::Item elements, for saving
-  void save(std::vector<io::Item>& ioItems);
+  void save(std::vector<io::Item>& ioItems, Type saveElementType = Type::float32);
 
-  void save(const std::string& name, const std::string& meta = "") {
+  void save(const std::string& name, const std::string& meta = "", Type saveElementType = Type::float32) {
     // LOG(info, "Saving model to {}", name);
 
     std::vector<io::Item> ioItems;
-    save(ioItems);
+    save(ioItems, saveElementType);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
