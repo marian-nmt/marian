@@ -1,12 +1,27 @@
 #include "catch.hpp"
 #include "graph/expression_graph.h"
 #include "graph/expression_operators.h"
+
+#ifdef CUDA_FOUND
+#include "tensors/gpu/backend.h"
+#endif
+
 #include <cmath>
 
 using namespace marian;
 
 template <typename T>
 void tests(DeviceType device, Type floatType = Type::float32) {
+
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  if(device == DeviceType::gpu && floatType == Type::float16) {
+    auto gpuBackend = New<gpu::Backend>(DeviceId({0, device}), /*seed=*/1234);
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6) return;
+  }
+#endif
+
   auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).epsilon(0.01); };
   auto floatEqual  = [](T x, T y) -> bool { return x == y; };
 
@@ -71,8 +86,8 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(compare(rplus,  [](float a, float b) {return a + b;}, true));
     CHECK(compare(rminus, [](float a, float b) {return a - b;}, true));
     CHECK(compare(rmult,  [](float a, float b) {return a * b;}, true));
-    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, /*exactMatch=*/false));
-    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, /*exactMatch=*/false));
+    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, false));
+    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, false));
     CHECK(compare(rmax,   [](float a, float b) {return std::max(a, b);}, true));
     CHECK(compare(rmin,   [](float a, float b) {return std::min(a, b);}, true));
     CHECK(compare(rlt,    [](float a, float b) {return a <  b;}, true));
@@ -762,9 +777,11 @@ TEST_CASE("Expression graph supports basic math operations (gpu)", "[operator]")
   tests<float>(DeviceType::gpu);
 }
 
+#if COMPILE_FP16
 TEST_CASE("Expression graph supports basic math operations (gpu fp16)", "[operator]") {
   tests<float16>(DeviceType::gpu, Type::float16);
 }
+#endif
 #endif
 
 #ifdef BLAS_FOUND

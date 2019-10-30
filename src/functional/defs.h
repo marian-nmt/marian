@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__  // Compiling with NVCC, host or device code
 
 #include <cuda.h>
 #define HOST __host__
@@ -10,7 +10,7 @@
 #define HOST_DEVICE __host__ __device__
 #define HOST_DEVICE_INLINE __host__ __device__ inline
 
-#else
+#else // Compiling with GCC or other host compiler
 
 #define HOST
 #define DEVICE

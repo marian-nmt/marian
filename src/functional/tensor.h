@@ -19,7 +19,7 @@ inline marian::Shape adapt(const marian::Shape& shape) {
 // modify last shape dimension to automatically map to a larger stride. We are moving now by 4 floats
 // at once and need to stop earlier. This is a shallow typecast to bascially an array of 4 floats.
 
-#ifndef __CUDA_ARCH__
+#ifndef __CUDACC__ // vectorized types not available from .cu files
 
 template <>
 inline marian::Shape adapt<float32x4>(const marian::Shape& shape) {

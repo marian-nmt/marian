@@ -52,37 +52,48 @@ static void unsetTensorMode(cublasHandle_t cublasHandle) {
 #endif
 }
 
-// overload for float, contains configuratio settings for float32
-cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
-                               cublasOperation_t transa, 
-                               cublasOperation_t transb,
-                               int m, int n, int k,
-                               const float* alpha,
-                               const float* A, int lda,
-                               const float* B, int ldb,
-                               const float* beta,
-                               float* C, int ldc) {
-  return cublasGemmEx(handle, transa, transb, 
+// overload for float, contains configuration settings for float32
+static cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
+                                      CudaCompute computeCapability,
+                                      cublasOperation_t transa, 
+                                      cublasOperation_t transb,
+                                      int m, int n, int k,
+                                      const float* alpha,
+                                      const float* A, int lda,
+                                      const float* B, int ldb,
+                                      const float* beta,
+                                      float* C, int ldc) {
+// double #if and if unfortunately required to safeguard against compilation error 
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
+#if CUDA_VERSION > 9000
+  if(computeCapability.major >= 5)
+    return cublasGemmEx(handle, transa, transb, 
+                        m, n, k, alpha, 
+                        A, CUDA_R_32F, lda, 
+                        B, CUDA_R_32F, ldb, beta, 
+                        C, CUDA_R_32F, ldc,
+                        CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+#endif
+  return cublasSgemm(handle, transa, transb, 
                       m, n, k, alpha, 
-                      A, CUDA_R_32F, lda, 
-                      B, CUDA_R_32F, ldb, beta, 
-                      C, CUDA_R_32F, ldc,
-                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
+                      A, lda, 
+                      B, ldb, beta, 
+                      C, ldc);
 }
 
-// overload for half, contains configuratio settings for float16
-cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
-                               cublasOperation_t transa, 
-                               cublasOperation_t transb,
-                               int m, int n, int k,
-                               const half* alpha,
-                               const half* A, int lda,
-                               const half* B, int ldb,
-                               const half* beta,
-                               half* C, int ldc) {
-  //float alphaf = __half2float(*alpha); // has to match computeType
-  //float betaf = __half2float(*beta);   // has to match computeType
-
+#if COMPILE_FP16
+// overload for half, contains configuration settings for float16
+static cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
+                                      CudaCompute computeCapability,
+                                      cublasOperation_t transa, 
+                                      cublasOperation_t transb,
+                                      int m, int n, int k,
+                                      const half* alpha,
+                                      const half* A, int lda,
+                                      const half* B, int ldb,
+                                      const half* beta,
+                                      half* C, int ldc) {
+  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
   return cublasGemmEx(handle, transa, transb, 
                       m, n, k, alpha, 
                       A, CUDA_R_16F, lda, 
@@ -90,6 +101,7 @@ cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
                       C, CUDA_R_16F, ldc,
                       CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: review algorithm
 }
+#endif
 
 template <typename T>
 void ProdTyped(marian::Tensor C,
@@ -99,7 +111,7 @@ void ProdTyped(marian::Tensor C,
                bool transB,
                T beta,
                T scalar) {
-  cudaSetDevice((int)C->getDeviceId().no);
+  CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
   T alpha = scalar;
 
   int m = A->shape().elements() / A->shape().back();
@@ -122,11 +134,13 @@ void ProdTyped(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
-                          ->getCublasHandle();
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto computeCapability = backend->getCudaComputeCapability();
 
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmTyped(cublasHandle,
+                               computeCapability,
                                opB,
                                opA,
                                n,
@@ -152,14 +166,17 @@ void Prod(marian::Tensor C,
           float scalar) {
   if(C->type() == Type::float32) {
     ProdTyped<float>(C, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
   } else if(C->type() == Type::float16) {
     ProdTyped<half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
   } else {
     ABORT("Prod not implemented for type {}", C->type());
   }
 }
 
 cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
+                                      CudaCompute computeCapability,
                                       cublasOperation_t transa, 
                                       cublasOperation_t transb,
                                       int m, int n, int k,
@@ -169,16 +186,27 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const float *beta,
                                       float *Carray[], int ldc, 
                                       int batchCount) {
-  return
-  cublasGemmBatchedEx(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      (void* const*)Aarray, CUDA_R_32F, lda, 
-                      (void* const*)Barray, CUDA_R_32F, ldb, beta,
-                      (void**)Carray, CUDA_R_32F, ldc, batchCount,
-                      CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+// double #if and if unfortunately required to safeguard against compilation error 
+// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
+#if CUDA_VERSION > 9000
+  if(computeCapability.major >= 5)
+    return cublasGemmBatchedEx(handle, transa, transb, 
+                               m, n, k, alpha, 
+                               (void* const*)Aarray, CUDA_R_32F, lda, 
+                               (void* const*)Barray, CUDA_R_32F, ldb, beta,
+                               (void**)Carray, CUDA_R_32F, ldc, batchCount,
+                               CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP);
+#endif
+  return cublasSgemmBatched(handle, transa, transb, 
+                            m, n, k, alpha, 
+                            Aarray, lda, 
+                            Barray, ldb, beta,
+                            Carray, ldc, batchCount);
 }
 
+#if COMPILE_FP16 // should not be visible for CUDA 9.0 and below
 cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
+                                      CudaCompute computeCapability,
                                       cublasOperation_t transa, 
                                       cublasOperation_t transb,
                                       int m, int n, int k,
@@ -188,17 +216,15 @@ cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
                                       const half *beta,
                                       half *Carray[], int ldc, 
                                       int batchCount) {
-  //float alphaf = __half2float(*alpha); // has to match computeType
-  //float betaf = __half2float(*beta);   // has to match computeType
-
-  return
-  cublasGemmBatchedEx(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      (void* const*)Aarray, CUDA_R_16F, lda, 
-                      (void* const*)Barray, CUDA_R_16F, ldb, beta,
-                      (void**)Carray, CUDA_R_16F, ldc, batchCount,
-                      CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: to 16, this is testing
+  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
+  return cublasGemmBatchedEx(handle, transa, transb, 
+                             m, n, k, alpha, 
+                             (void* const*)Aarray, CUDA_R_16F, lda, 
+                             (void* const*)Barray, CUDA_R_16F, ldb, beta,
+                             (void**)Carray, CUDA_R_16F, ldc, batchCount,
+                             CUDA_R_16F, CUBLAS_GEMM_DEFAULT_TENSOR_OP); // @TODO: to 16, this is testing
 }
+#endif
 
 template <typename T>
 void ProdBatchedTyped(marian::Tensor C,                 
@@ -209,7 +235,7 @@ void ProdBatchedTyped(marian::Tensor C,
                  bool transB,
                  T beta,
                  T scalar) {
-  cudaSetDevice((int)C->getDeviceId().no);
+  CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
   T alpha = scalar;
 
   int batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
@@ -235,8 +261,9 @@ void ProdBatchedTyped(marian::Tensor C,
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-  auto cublasHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
-                          ->getCublasHandle();
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto compute = backend->getCudaComputeCapability();
 
   auto strideA = batchA == 1 ? 0 : m * k;
   auto strideB = batchB == 1 ? 0 : n * k;
@@ -265,6 +292,7 @@ void ProdBatchedTyped(marian::Tensor C,
 
   setTensorMode(cublasHandle);
   CUBLAS_CHECK(cublasGemmBatchedTyped(cublasHandle,
+                                      compute,
                                       opB,
                                       opA,
                                       n,
@@ -296,8 +324,10 @@ void ProdBatched(marian::Tensor C,
                  float scalar) {
   if(C->type() == Type::float32) {
     ProdBatchedTyped<float>(C, allocator, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
   } else if(C->type() == Type::float16) { // not a *.cu file
     ProdBatchedTyped<half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
   } else {
     ABORT("ProdBatched not implemented for type {}", C->type());
   }
