@@ -25,6 +25,18 @@ option(COMPILE_TESTS "Compile tests" OFF)
 option(COMPILE_SERVER "Compile marian-server" OFF)
 
 option(USE_DOXYGEN "Build documentation with Doxygen" ON)
+option(USE_CCACHE "Use ccache compiler cache (https://ccache.dev)" OFF)
+
+# use ccache (https://ccache.dev) for faster compilation if requested and available
+if(USE_CCACHE)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  message(STATUS "Found and will be using ccache for faster repeat compilation (use cmake -DUSE_CCACHE=off to disable).")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+else(CCACHE_PROGRAM)
+  message(WARNING "Compilation with ccache requested but no ccache found.")
+endif(CCACHE_PROGRAM)
+endif(USE_CCACHE)
 
 # Project versioning
 find_package(Git QUIET)
