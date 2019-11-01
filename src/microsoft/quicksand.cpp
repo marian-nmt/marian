@@ -190,6 +190,7 @@ Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
                                    const std::vector<const void*>& ptrs,
                                    const std::vector<Ptr<IVocabWrapper>>& vocabs,
                                    WordIndex eosDummy) { // @TODO: remove this parameter
+  marian::setThrowExceptionOnAbort(true); // globally defined to throw now
   ABORT_IF(marian::Word::fromWordIndex(eosDummy) != std::dynamic_pointer_cast<VocabWrapper>(vocabs[1])->getVocab()->getEosId(), "Inconsistent eos vs. vocabs_[1]");
 
   return New<BeamSearchDecoder>(options, ptrs, vocabs/*, eos*/);

@@ -14,6 +14,12 @@
 #define noinline __attribute__((noinline))
 #endif
 
+namespace marian {
+  static bool throwExceptionOnAbort = false;
+  bool getThrowExceptionOnAbort() { return throwExceptionOnAbort; }
+  void setThrowExceptionOnAbort(bool doThrowExceptionOnAbort) { throwExceptionOnAbort = doThrowExceptionOnAbort; };
+}
+
 std::shared_ptr<spdlog::logger> createStderrLogger(const std::string& name,
                                                    const std::string& pattern,
                                                    const std::vector<std::string>& files,

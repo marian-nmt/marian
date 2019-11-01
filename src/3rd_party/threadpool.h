@@ -107,6 +107,7 @@ class ThreadPool {
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads, size_t in_bound)
   : bound(in_bound), stop(false) {
+    ABORT_IF(getThrowExceptionOnAbort(), "Throwing of MarianRuntimeException not presently supported in threads");
     reserve(threads);
 }
 

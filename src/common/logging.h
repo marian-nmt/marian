@@ -4,9 +4,37 @@
 
 #include "spdlog/spdlog.h"
 
+
 namespace marian {
   void logCallStack(size_t skipLevels);
   std::string getCallStack(size_t skipLevels);
+
+  // Marian gives a basic exception guarantee. If you catch a
+  // MarianRuntimeError you must assume that the object can be 
+  // safely destructed, but cannot be used otherwise.
+
+  // Internal multi-threading in exception-throwing mode is not 
+  // allowed; and constructing a thread-pool will cause an exception.
+  
+  class MarianRuntimeException : public std::runtime_error {
+  private:
+    std::string callStack_;
+
+  public:
+    MarianRuntimeException(const std::string& message, const std::string& callStack) 
+    : std::runtime_error(message), 
+      callStack_(callStack) {}
+
+    const char* getCallStack() const throw() {
+      return callStack_.c_str();
+    }
+  };
+
+  // Get the state of throwExceptionOnAbort (see logging.cpp), by default false
+  bool getThrowExceptionOnAbort();
+
+  // Set the state of throwExceptionOnAbort (see logging.cpp)
+  void setThrowExceptionOnAbort(bool);
 }
 
 /**
@@ -57,19 +85,23 @@ namespace marian {
  *
  * @param ... Message text and variables
  */
-#define ABORT(...)                                                             \
-  do {                                                                         \
-    auto logger = spdlog::get("general");                                      \
-    if(logger == nullptr)                                                      \
-      logger = createStderrLogger("general", "[%Y-%m-%d %T] Error: %v");       \
-    else                                                                       \
-      logger->set_pattern("[%Y-%m-%d %T] Error: %v");                          \
-    checkedLog("general", "critical", __VA_ARGS__);                            \
-    checkedLog("general", "critical", "Aborted from {} in {}:{}",              \
-               FUNCTION_NAME, __FILE__, __LINE__);                             \
-    logger->set_pattern("%v");                                                 \
-    checkedLog("general", "critical", marian::getCallStack(/*skipLevels=*/0)); \
-    std::abort();                                                              \
+#define ABORT(...)                                                               \
+  do {                                                                           \
+    auto logger = spdlog::get("general");                                        \
+    if(logger == nullptr)                                                        \
+      logger = createStderrLogger("general", "[%Y-%m-%d %T] Error: %v");         \
+    else                                                                         \
+      logger->set_pattern("[%Y-%m-%d %T] Error: %v");                            \
+    checkedLog("general", "critical", __VA_ARGS__);                              \
+    checkedLog("general", "critical", "Aborted from {} in {}:{}",                \
+               FUNCTION_NAME, __FILE__, __LINE__);                               \
+    logger->set_pattern("%v");                                                   \
+    auto callStack = marian::getCallStack(/*skipLevels=*/0);                     \
+    checkedLog("general", "critical", callStack);                                \
+    if(marian::getThrowExceptionOnAbort())                                       \
+      throw marian::MarianRuntimeException(fmt::format(__VA_ARGS__), callStack); \
+    else                                                                         \
+      std::abort();                                                              \
   } while(0)
 
 /**

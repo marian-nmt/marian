@@ -8,7 +8,6 @@
 
 int main(int argc, char** argv) {
   using namespace marian;
-
   auto options = parseOptions(argc, argv, cli::mode::translation);
   auto task = New<Translate<BeamSearch>>(options);
 
