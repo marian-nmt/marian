@@ -248,7 +248,7 @@ void GemmPackFp32(marian::Tensor C,
                       (int)m,
                       A->data(),
                       packedPlaceholder,
-                      bias != nullptr ? 1.0 : 0.0,
+                      bias != nullptr ? 1.0f : 0.0f,
                       C->data(),
                       tid,
                       num_threads);
