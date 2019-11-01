@@ -41,10 +41,6 @@ public:
   // for GPU, this is invalid. for gpu, isOptimized() function always returns false.
   virtual void setOptimized(bool optimize) = 0;
   virtual bool isOptimized() = 0;
-  // for CPU, selects different GEMM types for the inference.
-  // for GPU, there's no gemm type. so, it does nothing.
-  virtual void setGemmType(std::string gemmType) = 0;
-  virtual GemmType getGemmType() = 0;
 };
 
 Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed);

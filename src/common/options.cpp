@@ -49,7 +49,7 @@ namespace marian {
     }
     try {
       return !options_[key].as<std::string>().empty();
-    } catch(const YAML::BadConversion& e) {
+    } catch(const YAML::BadConversion& /* e */) {
       ABORT("Option '{}' is neither a sequence nor a text");
     }
     return false;

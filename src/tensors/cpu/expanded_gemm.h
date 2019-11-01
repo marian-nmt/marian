@@ -4,7 +4,6 @@
 #include "tensors/cpu/sharp/packed_gemm.h"
 
 #if USE_FBGEMM
-
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -70,7 +69,7 @@ struct PackNodeOp : public UnaryNodeOp {
 
   NodeOps forwardOps() override {
     return {NodeOp(PackFp32(val_,
-                            child(0)->val(),
+                            child(0)->val()->data(),
                             transpose_,
                             nrow_,
                             ncol_,
@@ -97,17 +96,17 @@ struct PackNodeOp : public UnaryNodeOp {
     // Should be 2D - weight matrix
     ABORT_IF(shapeMat.size() != 2,
              "Weight Matrix should be 2D");
-    nrow_ = transpose ? shapeMat[1] : shapeMat[0];
-    ncol_ = transpose ? shapeMat[0] : shapeMat[1];
-    kernel_ncol_blocks_ = 2;
-    brow_ = 512;
-    bcol_ = 8 * kernel_ncol_blocks_;
-    last_brow_ = nrow_ % brow_ == 0 ? brow_ : nrow_ % brow_;
-    nbrow_ = nrow_ % brow_ == 0 ? nrow_ / brow_ : (nrow_ + brow_) / brow_;
-    nbcol_ = ncol_ % bcol_ == 0 ? ncol_ / bcol_ : (ncol_ + bcol_) / bcol_;
-    const int padding = 1024;  // required by sw pipelined kernels
-    const int specialMem = 256;
-    packsize_ = ((nbrow_ * brow_) * (nbcol_ * bcol_)) * sizeof(fbgemm::float16) + padding + specialMem;
+    PackInfoFp32(shapeMat,
+                 transpose,
+                 nrow_,
+                 ncol_,
+                 kernel_ncol_blocks_,
+                 brow_,
+                 bcol_,
+                 last_brow_,
+                 nbrow_,
+                 nbcol_,
+                 packsize_);
 
     Shape outShape({(int)packsize_});
 

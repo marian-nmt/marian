@@ -24,7 +24,7 @@ TEST_CASE("Expression graph can be initialized with constant values",
 
     auto graph = New<ExpressionGraph>();
     graph->setDevice({0, DeviceType::gpu});
-    graph->setParameterType(type);
+    graph->setDefaultElementType(type);
     graph->reserveWorkspaceMB(4);
 
     if(type == Type::float16) {

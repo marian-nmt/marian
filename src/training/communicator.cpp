@@ -169,7 +169,7 @@ public:
     //        to only accept one parameter, and remove this error check can be removed.
     ABORT_IF(sendbuf != recvbuf, "FakeMPIWrapper::allReduce() only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
   }
-#pragma warning(push)
+#pragma warning(pop)
   virtual void finalize() override { }
 };
 

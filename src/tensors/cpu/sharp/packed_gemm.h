@@ -6,9 +6,25 @@ namespace marian {
 namespace cpu {
 namespace variant { // Variants of GEMM implementations
 
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  /*out*/uint64_t& packsize);
+
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  int& nrow,
+                  int& ncol,
+                  int& kernel_ncol_blocks,
+                  int& brow,
+                  int& bcol,
+                  int& last_brow,
+                  int& nbrow,
+                  int& nbcol,
+                  /*out*/uint64_t& packsize); // @TODO: change to size_t where appropriate
+
 // Pack a matrix into cache utilization efficient way (block format)
 // out: output tensor - packed format
-// in: input tensor - normal format
+// inData: input tensor data - pointer of float data
 // transpose: the matrix is transposed
 // nrow: the number of rows
 // ncol: the number of columns
@@ -21,7 +37,7 @@ namespace variant { // Variants of GEMM implementations
 // packsize: the size of the packed matrix
 //          (the number of fp16 elements + padding (1024) + extra temporary memory (256))
 void PackFp32(marian::Tensor out,
-              const marian::Tensor in,
+              const float* inData,
               const bool transpose,
               const int nrow,
               const int ncol,
@@ -31,7 +47,7 @@ void PackFp32(marian::Tensor out,
               const int last_brow,
               const int nbrow,
               const int nbcol,
-              const uint64_t packsize);
+              const uint64_t packsize); // @TODO: change to size_t where appropriate
 
 // GEMM operation on the packed B matrix
 // C: output matrix

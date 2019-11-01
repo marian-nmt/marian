@@ -18,16 +18,14 @@ namespace marian {
 // sets of one type.
 class Parameters {
 protected:
+  Type acceptedElementType_; // this parameter object only takes paramters of this type
+
   /** @brief List of all parameter nodes of this expression graph. */
   std::vector<Expr> params_;
   std::map<std::string, Expr> named_;
 
   Ptr<TensorAllocator> vals_;
   Ptr<TensorAllocator> grads_;
-
-  // A set of parameters should be of the same type
-  Type parameterType_{Type::float32};
-  bool parameterTypeSet_{false};
 
   size_t totalCapacity(Ptr<TensorAllocator> alloc) {
     size_t sum = 0;
@@ -38,6 +36,14 @@ protected:
   }
 
 public:
+  Parameters(Type acceptedType) : acceptedElementType_(acceptedType) {
+    LOG(debug, "Created parameter object of type {}", acceptedElementType_);
+  }
+
+  ~Parameters() {
+    LOG(debug, "Destroyed parameter object of type {}", acceptedElementType_);
+  }
+
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }
 
   auto end() -> decltype(params_.begin()) { return params_.end(); }
@@ -56,14 +62,14 @@ public:
   size_t size() { return params_.size(); }
 
   void add(Expr p, const std::string& name) {
+    LOG(debug, "Adding parameter {} to parameter object of type {}", name, acceptedElementType_);
+
     ABORT_IF(named_.count(name), "Parameter '{}' already exists", name);
-    ABORT_IF(parameterTypeSet_ && p->value_type() != parameterType_,
+    ABORT_IF(p->value_type() != acceptedElementType_,
              "Requested parameter type ({}) is different from chosen parameter type ({})",
-             p->value_type(), parameterType_);
+             p->value_type(), acceptedElementType_);
     params_.push_back(p);
     named_[name] = p;
-    parameterType_ = p->value_type();
-    parameterTypeSet_ = true;
   }
 
   virtual void init(Ptr<Backend> backend) {
@@ -106,9 +112,9 @@ public:
 
   virtual void set_zero_adjoint() { grads()->set(0.f); }
 
-  virtual Tensor vals() { return vals_->asTensor(parameterType_); }
+  virtual Tensor vals() { return vals_->asTensor(acceptedElementType_); }
 
-  virtual Tensor grads() { return grads_->asTensor(parameterType_); }
+  virtual Tensor grads() { return grads_->asTensor(acceptedElementType_); }
 
   virtual void clear() {
     params_.clear();
@@ -124,6 +130,8 @@ private:
   Ptr<Backend> backend_;
 
 public:
+  MappedParameters(Type acceptedType) : Parameters(acceptedType) {}
+
   virtual void init(Ptr<Backend> backend) override { backend_ = backend; }
   virtual void init(Ptr<Backend> backend, Ptr<Device>) override { init(backend); }
 

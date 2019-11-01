@@ -20,16 +20,13 @@
 //#pragma comment(linker, "/ignore:4217") // locally defined symbol ...asmjit... imported
 #endif
 
-
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
-
 #include "3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h"
 #include "3rd_party/fbgemm/include/fbgemm/QuantUtils.h"
 #include "3rd_party/fbgemm/include/fbgemm/Fbgemm.h"
-
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -67,6 +64,14 @@ namespace variant { // Variants of GEMM implementations
 // In a multi marian instance setting (as a dynamic library),
 // different marian instances should not share this variable.
 static thread_local PackedGemmMatrixFP16 packedPlaceholder(1, 1, 1, 1, 1, 1, 1, 1);
+
+// Copied code from fbgemm. It's padding required from some kernel in FBGEMM
+// Verbatim - 'required by sw pipelined kernels'
+// https://github.com/marian-nmt/FBGEMM/blob/master/include/fbgemm/FbgemmFP16.h#L109
+const int PACK16_PADDING = 1024;  
+
+// This is a memory space to store auxiliary variables for FBGEMM (e.g. block row, block column, kernel_ncol_blocks and etc.)
+const int PACK16_SPECIALMEM = 256;
 
 // This is copied from FBGEMM code
 // A better way?
@@ -106,8 +111,39 @@ inline uint64_t addr(const int r_,
   return index;
 }
 
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  uint64_t& packsize) {
+  int nrow, ncol, kernel_ncol_blocks, brow = 512, bcol, last_brow, nbrow, nbcol;
+  PackInfoFp32(shape, transpose, nrow, ncol, kernel_ncol_blocks, brow, bcol, last_brow, nbrow, nbcol, packsize);
+}
+
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  int& nrow,
+                  int& ncol,
+                  int& kernel_ncol_blocks,
+                  int& brow,
+                  int& bcol,
+                  int& last_brow,
+                  int& nbrow,
+                  int& nbcol,
+                  uint64_t& packsize) {
+  nrow = transpose ? shape[1] : shape[0];
+  ncol = transpose ? shape[0] : shape[1];
+  kernel_ncol_blocks = 2;
+  brow = 512;
+  bcol = 8 * kernel_ncol_blocks;
+  last_brow = nrow % brow == 0 ? brow : nrow % brow;
+  nbrow = nrow % brow == 0 ? nrow / brow : (nrow + brow) / brow;
+  nbcol = ncol % bcol == 0 ? ncol / bcol : (ncol + bcol) / bcol;
+  ABORT_IF(ncol % bcol != 0, "ncol (number of columns) should be multiple of 16. {}", ncol);
+  packsize = ((nbrow * brow) * (nbcol * bcol)) * sizeof(fbgemm::float16) + PACK16_PADDING
+             + PACK16_SPECIALMEM;
+}
+
 void PackFp32(marian::Tensor out,
-              const marian::Tensor in,
+              const float* inData, // Packing is only available for 2D weight matrix in Marian. Otherwise, it's aborted in expanded_gemm.h.
               const bool transpose,
               const int nrow,
               const int ncol,
@@ -141,11 +177,10 @@ void PackFp32(marian::Tensor out,
   fbgemm::float16* outmem = (fbgemm::float16*)(outmemorg + 256);
   fbgemm::float16* dummy = new fbgemm::float16;
   // pack the matrix
-  float* inmem = in->data();
   for(int i = 0; i < nrow; i++) {
     for(int j = 0; j < ncol; j++) {
       outmem[addr(i, j, brow, bcol, nbrow, nbcol, last_brow)]
-          = tconv(!transpose ? inmem[i * ncol + j] : inmem[i + nrow * j], *dummy);
+          = tconv(!transpose ? inData[i * ncol + j] : inData[i + nrow * j], *dummy);
     }
   }
   delete dummy;
@@ -186,15 +221,17 @@ void GemmPackFp32(marian::Tensor C,
   // packed matrix
   packedPlaceholder.pmat_ = (fbgemm::float16*)(B->data<uint8_t>() + 256);
 
+  if(bias != nullptr) {
 #if MKL_FOUND
-  for(int i = 0; i < m; ++i) {
-    mkl_somatcopy('R', 'N', 1, n, 1, bias->data(), n, C->data() + n * i, n);
-  }
+    for(int i = 0; i < m; ++i) {
+      mkl_somatcopy('R', 'N', 1, n, 1, bias->data(), n, C->data() + n * i, n);
+    }
 #else
-  for(int i = 0; i < m; ++i) {
-    std::copy(bias->data(), bias->data() + n, C->data() + n * i);
-  }
+    for(int i = 0; i < m; ++i) {
+      std::copy(bias->data(), bias->data() + n, C->data() + n * i);
+    }
 #endif
+  }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -211,7 +248,7 @@ void GemmPackFp32(marian::Tensor C,
                       (int)m,
                       A->data(),
                       packedPlaceholder,
-                      1,
+                      bias != nullptr ? 1.0f : 0.0f,
                       C->data(),
                       tid,
                       num_threads);
@@ -221,8 +258,31 @@ void GemmPackFp32(marian::Tensor C,
   packedPlaceholder.pmat_ = pmat;
 }
 #else // USE_FBGEMM
+
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  uint64_t& packsize) {
+  // does nothing. supports only FBGEMM based packed gemm at this moment.
+  ABORT("FBGEMM is needed to use packed GEMM.");
+}
+
+void PackInfoFp32(const marian::Shape& shape,
+                  const bool transpose,
+                  int& nrow,
+                  int& ncol,
+                  int& kernel_ncol_blocks,
+                  int& brow,
+                  int& bcol,
+                  int& last_brow,
+                  int& nbrow,
+                  int& nbcol,
+                  uint64_t& packsize) {
+  // does nothing. supports only FBGEMM based packed gemm at this moment.
+  ABORT("FBGEMM is needed to use packed GEMM.");
+}
+
 void PackFp32(marian::Tensor out,
-              const marian::Tensor in,
+              const float* inData,
               const bool transpose,
               const int nrow,
               const int ncol,

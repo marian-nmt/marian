@@ -24,7 +24,6 @@ private:
   // the autotuner runs each algorithm at least this 'collectStatMax' number of times and
   // collects the statistics.
   const size_t collectStatMax = 50;
-
   UPtr<timer::CPUTimer> timer_;
 
   // This structure holds a hash key an algorithm function (e.g. int16, packed gemm, mkl gemm)

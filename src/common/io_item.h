@@ -24,11 +24,8 @@ struct Item {
       return bytes.data();
   }
 
-  size_t size() const {
-    if(mapped)
-      return shape.elements() * sizeOf(type);
-    else
-      return bytes.size();
+  size_t size() const { // @TODO: review this again for 256-bytes boundary alignment
+    return requiredBytes(shape, type);
   }
 
   // Extend this item with data and shape from the input item, creating a flattened concatenation.

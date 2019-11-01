@@ -51,7 +51,7 @@ void tests(DeviceType type, Type floatType = Type::float32) {
 
   SECTION("Attention over encoder context") {
     auto graph = New<ExpressionGraph>();
-    graph->setParameterType(floatType);
+    graph->setDefaultElementType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 

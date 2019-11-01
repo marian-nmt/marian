@@ -27,7 +27,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
   Config::seed = 1234;
   auto graph = New<ExpressionGraph>();
-  graph->setParameterType(floatType);
+  graph->setDefaultElementType(floatType);
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
 

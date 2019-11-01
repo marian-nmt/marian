@@ -59,14 +59,12 @@ public:
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
         auto graph = New<ExpressionGraph>(true);
-        graph->setDevice(device);
         auto prec = options_->get<std::vector<std::string>>("precision", {"float32"});
-        graph->setParameterType(typeFromString(prec[0]));
-
+        graph->setDefaultElementType(typeFromString(prec[0]));
+        graph->setDevice(device);
         graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
         if (device.type == DeviceType::cpu) {
           graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
-          graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
         }
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
@@ -181,15 +179,13 @@ public:
     // initialize scorers
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
-      graph->setDevice(device);
       
       auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
-      graph->setParameterType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
-
+      graph->setDefaultElementType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
+      graph->setDevice(device);
       graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
       if (device.type == DeviceType::cpu) {
         graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
-        graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
       }
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);

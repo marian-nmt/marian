@@ -139,8 +139,7 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
     else
       ABORT("Other types not supported yet");
 
-    npzItems.emplace_back(
-        item.name, item.bytes, shape, type, sizeOf(item.type));
+    npzItems.emplace_back(item.name, item.bytes, shape, type, sizeOf(item.type));
   }
   cnpy::npz_save(fileName, npzItems);
 }
