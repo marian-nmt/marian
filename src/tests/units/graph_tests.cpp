@@ -23,8 +23,8 @@ TEST_CASE("Expression graph can be initialized with constant values",
   for(auto type : std::vector<Type>({Type::float32, Type::float16})) {
 
     auto graph = New<ExpressionGraph>();
-    graph->setDevice({0, DeviceType::gpu});
     graph->setDefaultElementType(type);
+    graph->setDevice({0, DeviceType::gpu});
     graph->reserveWorkspaceMB(4);
 
     if(type == Type::float16) {
