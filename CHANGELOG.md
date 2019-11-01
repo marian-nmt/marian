@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Added --cite and --authors flag
+- Added optional support for ccache
 - Switch to change abort to exception, only to be used in library mode
 - Support for 16-bit packed models with FBGEMM
 - Multiple separated parameter types in ExpressionGraph, currently inference-only
