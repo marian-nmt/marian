@@ -70,14 +70,13 @@ public:
   void clear() { allocator_->clear(); }
 
   size_t capacity(Shape shape, Type type = Type::float32) {
-    return allocator_->capacity(shape.elements(), type);
+    return allocator_->capacity<char>(requiredBytes(shape, type));
   }
 
-  void allocate(Tensor& t, Shape shape, Type type = Type::float32) {
+  void allocate(/*out*/ Tensor& t, Shape shape, Type type = Type::float32) {
     if(!t || t->shape() != shape) {
-      int size = shape.elements();
-      auto mem = allocator_->alloc(size, type);
-      t = TensorBase::New(mem, shape, type, backend_);
+      auto mem = allocator_->alloc(requiredBytes(shape, type));
+      t = Tensor(TensorBase::New(mem, shape, type, backend_));
     }
   }
 

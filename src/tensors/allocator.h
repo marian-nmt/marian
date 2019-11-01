@@ -193,12 +193,6 @@ public:
     return alignedSize(num * sizeof(T));
   }
 
-  size_t capacity(size_t num, Type type) { return alignedSize(num * sizeOf(type)); }
-
-  MemoryPiece::PtrType alloc(size_t num, Type type) {
-    return alloc(num * sizeOf(type));
-  }
-
   template <typename T>
   MemoryPiece::PtrType alloc(size_t num) {
     return alloc(capacity<T>(num));

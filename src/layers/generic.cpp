@@ -281,7 +281,7 @@ namespace marian {
             factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
           }
           // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
-          auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true, /*scale=*/1.0f); // [B... x U] factor logits
           // optionally add lemma-dependent bias
           if (Plemma) { // [B... x U0]
             int lemmaVocabDim = Plemma->shape()[-1];

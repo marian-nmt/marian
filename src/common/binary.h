@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-// Increase this if binary format changes
-#define BINARY_FILE_VERSION 1
-
 namespace marian {
+
+const static int BINARY_FILE_VERSION = 1;
+
 namespace io {
 namespace binary {
 

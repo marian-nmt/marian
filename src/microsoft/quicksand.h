@@ -25,6 +25,12 @@ typedef std::tuple<WordIndices, AlignmentSets, float> QSSentenceWithProb;
 typedef std::vector<QSSentenceWithProb> QSNBest;
 typedef std::vector<QSNBest> QSNBestBatch;
 
+enum class DecoderCpuAvxVersion {
+  AVX,
+  AVX2,
+  AVX512
+};
+
 Ptr<Options> newOptions();
 
 template <class T>
@@ -63,6 +69,12 @@ Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
 
 // load src and tgt vocabs
 std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocabPaths);
+
+// query CPU AVX version
+DecoderCpuAvxVersion getCpuAvxVersion();
+DecoderCpuAvxVersion parseCpuAvxVersion(std::string name);
+
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec);
 
 }  // namespace quicksand
 }  // namespace marian

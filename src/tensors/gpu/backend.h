@@ -59,16 +59,6 @@ public:
     return false;
   }
 
-  // for CPU, selects different GEMM types for the inference.
-  // for GPU, there's no gemm type. so, it does nothing.
-  void setGemmType(std::string gemmType) override {
-    LOG_ONCE(info, "setGemmType() not supported for GPU_{}", gemmType);
-  }
-  GemmType getGemmType() override {
-    LOG_ONCE(info, "getGemmType() not supported for GPU");
-    return GemmType::Auto;
-  }
-
 private:
   cublasHandle_t cublasHandle_;
   cusparseHandle_t cusparseHandle_;

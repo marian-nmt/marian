@@ -40,6 +40,10 @@ public:
     LOG(debug, "Created parameter object of type {}", acceptedElementType_);
   }
 
+  ~Parameters() {
+    LOG(debug, "Destroyed parameter object of type {}", acceptedElementType_);
+  }
+
   auto begin() -> decltype(params_.begin()) { return params_.begin(); }
 
   auto end() -> decltype(params_.begin()) { return params_.end(); }
@@ -58,6 +62,8 @@ public:
   size_t size() { return params_.size(); }
 
   void add(Expr p, const std::string& name) {
+    LOG(debug, "Adding parameter {} to parameter object of type {}", name, acceptedElementType_);
+
     ABORT_IF(named_.count(name), "Parameter '{}' already exists", name);
     ABORT_IF(p->value_type() != acceptedElementType_,
              "Requested parameter type ({}) is different from chosen parameter type ({})",

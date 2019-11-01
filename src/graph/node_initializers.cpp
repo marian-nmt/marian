@@ -39,7 +39,7 @@ class LambdaInitConvert : public NodeInitializer {
         auto sharedAllocator = allocator_.lock();
         ABORT_IF(!sharedAllocator, "Allocator in LambdaInitConvert has not been set or expired");
 
-        auto memory = sharedAllocator->alloc(tensor->size(), intermediateType_);
+        auto memory = sharedAllocator->alloc(requiredBytes(tensor->shape(), intermediateType_));
         auto temp = TensorBase::New(memory,
                                     tensor->shape(),
                                     intermediateType_,
@@ -183,11 +183,11 @@ Ptr<NodeInitializer> fromItem(const io::Item& item) {
                "Tensor type ({}) and type for mapping ({}) do not match",
                tensor->type(),
                item.type);
-      ABORT_IF(tensor->size() != item.size() / sizeOf(item.type),
-               "Tensor size ({}) and mapped size ({}) do not match",
-               tensor->size(),
-               item.size() / sizeOf(item.type));
-      auto mp = MemoryPiece::New((uint8_t*)item.ptr, tensor->size() * sizeOf(item.type));
+      ABORT_IF(tensor->shape() != item.shape,
+               "Tensor shape ({}) and shape of mapped item ({}) do not match",
+               tensor->shape(),
+               item.shape);
+      auto mp = MemoryPiece::New((uint8_t*)item.ptr, item.size()); // @TODO: this is not properly aligned now
       tensor->reset(mp);
     });
   } else {

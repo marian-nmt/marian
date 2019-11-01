@@ -214,12 +214,10 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     int threads = std::min(MAX_THREADS, cols_in);
 
     if(out->type() == Type::float32) {
-      gInsertCols<false><<<blocks, threads>>>(
-          out->data<float>(), in->data<float>(), rows, cols_in, cols_out, cols_in, offset, 0);
+      gInsertCols<false><<<blocks, threads>>>(out->data<float>(), in->data<float>(), rows, cols_in, cols_out, cols_in, offset, 0);
 #if COMPILE_FP16
     } else if(out->type() == Type::float16) {
-      gInsertCols<false><<<blocks, threads>>>(
-          out->data<half>(), in->data<half>(), rows, cols_in, cols_out, cols_in, offset, 0);
+      gInsertCols<false><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols_in, cols_out, cols_in, offset, 0);
 #endif
     } else {
       ABORT("Concatenate1 not implemented for type {}", out->type());
@@ -2130,11 +2128,11 @@ void LayerNormalizationGrad(Ptr<Allocator> allocator,
   int threads = std::min(MAX_THREADS, cols);
   int blocks = std::min(MAX_BLOCKS, rows);
 
-  auto tempGradGammaMemory = allocator->alloc(adj->memory()->size(), adj->type());
+  auto tempGradGammaMemory = allocator->alloc(adj->memory()->size());
   Tensor tempGradGamma = TensorBase::New(tempGradGammaMemory, adj->shape(), adj->type(), adj->getBackend());
   tempGradGamma->set(0.f);
 
-  auto tempOnesMemory = allocator->alloc(rows * sizeOf(adj->type()), adj->type());
+  auto tempOnesMemory = allocator->alloc(rows * sizeOf(adj->type()));
   Tensor tempOnes = TensorBase::New(tempOnesMemory, Shape({1, rows}), adj->type(), adj->getBackend());
   tempOnes->set(1.f);
 

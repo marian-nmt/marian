@@ -41,7 +41,6 @@ int main(int argc, char** argv) {
         auto g = New<ExpressionGraph>(true);
         g->setDevice({0, DeviceType::cpu});
         g->getBackend()->setOptimized(true);
-        g->getBackend()->setGemmType("auto");
         g->reserveWorkspaceMB(2512);
 
         timer::AutoTimer timer;

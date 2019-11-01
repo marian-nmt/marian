@@ -1,7 +1,7 @@
 #include "graph/expression_graph.h"
-#include <sstream>
-
 #include "tensors/tensor_operators.h"
+
+#include <sstream>
 
 namespace marian {
 
@@ -69,7 +69,6 @@ void createSubtape(Expr node) {
 
   node->setSubtape(subtape);
 }
-
 
 void ExpressionGraph::forwardNext() {
   // @TODO: check if allocation works properly

@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 
 namespace marian {
 

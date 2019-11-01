@@ -10,6 +10,11 @@
 #include "translator/scorers.h"
 #include "data/alignment.h"
 #include "data/vocab_base.h"
+#include "graph/expression_graph_packable.h"
+
+#if USE_FBGEMM
+#include "fbgemm/Utils.h"
+#endif
 
 namespace marian {
 
@@ -68,10 +73,6 @@ public:
     DeviceId deviceId{0, DeviceType::cpu};
     device_ = New<cpu::WrappedDevice>(deviceId);
     graph_->setDevice(deviceId, device_);
-
-    // Use packed GEMM for the production
-    graph_->getBackend()->setOptimized(true);
-    graph_->getBackend()->setGemmType("fp16packed");
 
 #if MKL_FOUND
     mkl_set_num_threads(options->get<int>("mkl-threads", 1));
@@ -209,6 +210,65 @@ std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocab
     }
   }
   return res;
+}
+
+// query CPU AVX version
+DecoderCpuAvxVersion getCpuAvxVersion() {
+#if USE_FBGEMM
+  // Default value is AVX
+  DecoderCpuAvxVersion cpuAvxVer = DecoderCpuAvxVersion::AVX;
+  if (fbgemm::fbgemmHasAvx512Support())
+    cpuAvxVer = DecoderCpuAvxVersion::AVX512;
+  else if (fbgemm::fbgemmHasAvx2Support())
+    cpuAvxVer = DecoderCpuAvxVersion::AVX2;
+
+  return cpuAvxVer;
+#else
+  // Default value is AVX
+  return DecoderCpuAvxVersion::AVX;
+#endif
+}
+
+DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
+  if (name == "avx") {
+    return DecoderCpuAvxVersion::AVX;
+  } else if (name == "avx2") {
+    return DecoderCpuAvxVersion::AVX2;
+  } else if (name == "avx512") {
+    return DecoderCpuAvxVersion::AVX512;
+  } else {
+    ABORT("Unknown CPU Instruction Set: {}", name);
+    return DecoderCpuAvxVersion::AVX;
+  }
+}
+
+// @TODO: clean-up this code and unify with marian-conv. The targetPrec parameter is not clear enought etc. 
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec) {
+  std::cout << "Converting from: " << inputFile << ", to: " << outputFile << std::endl;
+
+  YAML::Node config;
+  std::stringstream configStr;
+  marian::io::getYamlFromModel(config, "special:model.yml", inputFile);
+  configStr << config;
+
+  auto graph = New<ExpressionGraphPackable>();
+  graph->setDevice(CPU0);
+  graph->getBackend()->setOptimized(false);
+
+  graph->load(inputFile);
+  graph->forward();
+  std::string saveGemmType = "fp32default";
+  if (targetPrec == 16)
+    saveGemmType = "fp16packed";
+  else if (targetPrec == 8)
+    saveGemmType = "int8packed";
+
+  // added a flag if the weights needs to be packed or not
+  graph->packAndSave(outputFile, configStr.str(), saveGemmType); // @TODO: this should just be type-based
+
+  std::cout << "Conversion Finished." << std::endl;
+
+  return true;
 }
 
 }  // namespace quicksand
