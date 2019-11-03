@@ -308,8 +308,11 @@ public:
   }
 
   ~NthElementGPU() {
-    cudaSetDevice(deviceId_.no);
-
+#if __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wterminate"
+#endif
+    CUDA_CHECK(cudaSetDevice(deviceId_.no));
     CUDA_CHECK(cudaFree(d_cumBeamSizes));
     CUDA_CHECK(cudaFree(d_batchPosition));
     CUDA_CHECK(cudaFree(d_breakdown));
@@ -319,6 +322,9 @@ public:
     CUDA_CHECK(cudaFree(d_res_idx));
     CUDA_CHECK(cudaFree(d_out));
     CUDA_CHECK(cudaFree(d_ind));
+#if __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
   }
 
 private:
