@@ -8,12 +8,12 @@ namespace marian {
 namespace gpu {
 
 Device::~Device() {
-  // Note: The CUDA_CHECKs here are not throwing, but will terminate the program.
-  CUDA_CHECK(cudaSetDevice(deviceId_.no));
+  // No CUDA error checking as this is a destructor and we cannot do anything about errors anyway.
+  cudaSetDevice(deviceId_.no);
   if(data_) {
-    CUDA_CHECK(cudaFree(data_));
+    cudaFree(data_);
   }
-  CUDA_CHECK(cudaDeviceSynchronize());
+  cudaDeviceSynchronize();
 }
 
 void Device::reserve(size_t size) {

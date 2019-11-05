@@ -308,17 +308,17 @@ public:
   }
 
   ~NthElementGPU() {
+    // No CUDA error checking as this is a destructor and we cannot do anything about errors anyway.
     cudaSetDevice(deviceId_.no);
-
-    CUDA_CHECK(cudaFree(d_cumBeamSizes));
-    CUDA_CHECK(cudaFree(d_batchPosition));
-    CUDA_CHECK(cudaFree(d_breakdown));
-    CUDA_CHECK(cudaFreeHost(h_res_idx));
-    CUDA_CHECK(cudaFreeHost(h_res));
-    CUDA_CHECK(cudaFree(d_res));
-    CUDA_CHECK(cudaFree(d_res_idx));
-    CUDA_CHECK(cudaFree(d_out));
-    CUDA_CHECK(cudaFree(d_ind));
+    cudaFree(d_cumBeamSizes);
+    cudaFree(d_batchPosition);
+    cudaFree(d_breakdown);
+    cudaFreeHost(h_res_idx);
+    cudaFreeHost(h_res);
+    cudaFree(d_res);
+    cudaFree(d_res_idx);
+    cudaFree(d_out);
+    cudaFree(d_ind);
   }
 
 private:

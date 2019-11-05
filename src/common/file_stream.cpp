@@ -103,9 +103,9 @@ TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
 }
 
 TemporaryFile::~TemporaryFile() {
-  if(!unlink_) {
-    ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
-  }
+  if(!unlink_)
+    // We do not check for errors here as this is the destructor and we cannot really fix an error anyway.
+    remove(file_.string().c_str()), "Error while deleting '{}'", file_.string();
 }
 
 void TemporaryFile::NormalizeTempPrefix(std::string &base) const {
