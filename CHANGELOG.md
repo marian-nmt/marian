@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Compilation for GCC >= 7 due to exception thrown in destrutor
 - Sort parameters by lexicographical order during allocation to ensure consistent 
   memory-layout during allocation, loading, saving.
 - Output empty line when input is empty line. Previous behavior might result in 
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Faster option look-up, up to 20-30% faster translation
 - Removed autotuner for now, will be switched back on later
 - Boost depdendency is now optional and only required for marian_server 
   or for boost::regex when compiling with g++-4.9
