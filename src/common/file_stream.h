@@ -38,8 +38,8 @@ public:
 
 protected:
   marian::filesystem::Path file_;
-  std::streambuf* streamBuf1_;
-  std::streambuf* streamBuf2_;
+  std::unique_ptr<std::streambuf> streamBuf1_;
+  std::unique_ptr<std::streambuf> streamBuf2_;
   std::vector<char> readBuf_;
 };
 
@@ -63,8 +63,8 @@ protected:
   explicit OutputFileStream();  // for temp file
 
   marian::filesystem::Path file_;
-  std::streambuf* streamBuf1_;
-  std::streambuf* streamBuf2_;
+  std::unique_ptr<std::streambuf> streamBuf1_;
+  std::unique_ptr<std::streambuf> streamBuf2_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

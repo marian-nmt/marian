@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
-- Compilation for GCC >= 7 due to exception thrown in destrutor
+- Removed naked pointer and potential memory-leak from file_stream.{cpp,h}
+- Compilation for GCC >= 7 due to exception thrown in destructor
 - Sort parameters by lexicographical order during allocation to ensure consistent 
   memory-layout during allocation, loading, saving.
 - Output empty line when input is empty line. Previous behavior might result in 

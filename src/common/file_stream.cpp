@@ -18,26 +18,23 @@ namespace io {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStream::InputFileStream(const std::string &file)
-    : std::istream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {
+    : std::istream(NULL), file_(file) {
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
-  std::filebuf *fileBuf = new std::filebuf();
-  streamBuf1_ = fileBuf->open(file.c_str(), std::ios::in);
-  ABORT_IF(!streamBuf1_, "File can't be opened", file);
-  assert(fileBuf == streamBuf1_);
+  streamBuf1_.reset(new std::filebuf());
+  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file.c_str(), std::ios::in | std::ios::binary); 
+  ABORT_IF(!ret, "File cannot be opened", file);
+  ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf2_ = new zstr::istreambuf(streamBuf1_);
-    this->init(streamBuf2_);
+    streamBuf2_.reset(new zstr::istreambuf(streamBuf1_.get()));
+    this->init(streamBuf2_.get());
   } else {
-    this->init(streamBuf1_);
+    this->init(streamBuf1_.get());
   }
 }
 
-InputFileStream::~InputFileStream() {
-  delete streamBuf2_;
-  delete streamBuf1_;
-}
+InputFileStream::~InputFileStream() {}
 
 bool InputFileStream::empty() {
   return this->peek() == std::ifstream::traits_type::eof();
@@ -66,27 +63,25 @@ std::istream &getline(std::istream &in, std::string &line) {
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStream::OutputFileStream(const std::string &file)
-    : std::ostream(NULL), file_(file), streamBuf1_(NULL), streamBuf2_(NULL) {
-  std::filebuf *fileBuf = new std::filebuf();
-  streamBuf1_ = fileBuf->open(file.c_str(), std::ios::out | std::ios_base::binary);
-  ABORT_IF(!streamBuf1_, "File can't be opened", file);
-  assert(fileBuf == streamBuf1_);
+    : std::ostream(NULL), file_(file) {
+  streamBuf1_.reset(new std::filebuf());
+  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file.c_str(), std::ios::out | std::ios_base::binary);
+  ABORT_IF(!ret, "File cannot be opened", file);
+  ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
 
   if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf2_ = new zstr::ostreambuf(streamBuf1_);
-    this->init(streamBuf2_);
+    streamBuf2_.reset(new zstr::ostreambuf(streamBuf1_.get()));
+    this->init(streamBuf2_.get());
   } else {
-    this->init(streamBuf1_);
+    this->init(streamBuf1_.get());
   }
 }
 
 OutputFileStream::OutputFileStream()
-    : std::ostream(NULL), streamBuf1_(NULL), streamBuf2_(NULL) {}
+    : std::ostream(NULL) {}
 
 OutputFileStream::~OutputFileStream() {
   this->flush();
-  delete streamBuf2_;
-  delete streamBuf1_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,12 +145,12 @@ void TemporaryFile::MakeTemp(const std::string &base) {
 #endif
 
   // open again with c++
-  std::filebuf *fileBuf = new std::filebuf();
-  streamBuf1_ = fileBuf->open(name, std::ios::out | std::ios_base::binary);
-  ABORT_IF(!streamBuf1_, "File can't be temp opened", name);
-  assert(fileBuf == streamBuf1_);
+  streamBuf1_.reset(new std::filebuf());
+  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(name, std::ios::out | std::ios_base::binary);
+  ABORT_IF(!streamBuf1_, "File cannot be temp opened", name);
+  ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
 
-  this->init(streamBuf1_);
+  this->init(streamBuf1_.get());
 
   // close original file descriptor
   ABORT_IF(close(fd), "Can't close file descriptor", name);
