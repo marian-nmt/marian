@@ -12,8 +12,6 @@ namespace marian { namespace mlp {
   enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
 }}
 
-YAML_REGISTER_TYPE(marian::mlp::act, int)
-
 namespace marian {
 
 // Each layer consists of LayerBase and IXXXLayer which defines one or more apply()
@@ -175,7 +173,7 @@ public:
 
     auto useLayerNorm = opt<bool>("layer-normalization", false);
     auto useNematusNorm = opt<bool>("nematus-normalization", false);
-    auto activation = opt<act>("activation", act::linear);
+    auto activation = (act)opt<int>("activation", (int)act::linear);
 
     auto g = graph_;
 

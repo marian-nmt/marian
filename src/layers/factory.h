@@ -31,15 +31,21 @@ public:
 
   virtual ~Factory() {}
 
-  std::string str() { return options_->str(); }
+  std::string asYamlString() { return options_->asYamlString(); }
 
   // retrieve an option
   // auto val = opt<T>("var");
   template <typename T>
-  T opt(const std::string& key) { return options_->get<T>(key); }
+  T opt(const char* const key) { return options_->get<T>(key); }
 
   template <typename T>
-  T opt(const std::string& key, T defaultValue) { return options_->get<T>(key, defaultValue); }
+  T opt(const char* const key, T defaultValue) { return options_->get<T>(key, defaultValue); }
+
+  template <typename T>
+  T opt(const std::string& key) { return options_->get<T>(key.c_str()); }
+
+  template <typename T>
+  T opt(const std::string& key, T defaultValue) { return options_->get<T>(key.c_str(), defaultValue); }
 
   // set a single option
   // setOpt("var", val);

@@ -34,8 +34,8 @@ public:
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator
 
-    options_->set("inference", true);
-    options_->set("shuffle", "none");
+    options_->set("inference", true, 
+                  "shuffle", "none");
 
     corpus_ = New<data::Corpus>(options_, true);
 

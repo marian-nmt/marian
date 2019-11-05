@@ -25,7 +25,7 @@ Config::Config(int argc, char** argv, cli::mode mode, bool validate /*= true*/)
   : Config(ConfigParser(argc, argv, mode, validate)) {}
 
 Config::Config(const Config& other) : config_(YAML::Clone(other.config_)) {}
-Config::Config(const Options& options) : config_(YAML::Clone(options.getYaml())) {}
+Config::Config(const Options& options) : config_(options.cloneToYamlNode()) {}
 
 void Config::initialize(ConfigParser const& cp) {
   config_ = YAML::Clone(cp.getConfig());

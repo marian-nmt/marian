@@ -93,7 +93,7 @@ public:
       modelOpts->merge(options_);
       modelOpts->merge(config);
 
-      std::cerr << modelOpts->str() << std::flush;
+      std::cerr << modelOpts->asYamlString() << std::flush; // @TODO: take a look at why this is even here.
 
       auto encdec = models::createModelFromOptions(modelOpts, models::usage::translation);
 

@@ -67,11 +67,12 @@ protected:
 
   Config::YamlNode getModelParameters() {
     Config::YamlNode modelParams;
+    auto clone = options_->cloneToYamlNode();
     for(auto& key : modelFeatures_)
-        modelParams[key] = options_->getYaml()[key];
+      modelParams[key] = clone[key];
 
     if(options_->has("original-type"))
-        modelParams["type"] = options_->getYaml()["original-type"];
+      modelParams["type"] = clone["original-type"];
 
     modelParams["version"] = buildVersion();
     return modelParams;

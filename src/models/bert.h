@@ -283,7 +283,7 @@ public:
                     .push_back(mlp::dense()                           //
                                  ("prefix", prefix_ + "_ff_logit_l1") //
                                  ("dim", dimModel)                    //
-                                 ("activation", mlp::act::tanh))      // @TODO: do we actually need this?
+                                 ("activation", (int)mlp::act::tanh))      // @TODO: do we actually need this?
                     .push_back(mlp::output()                          //
                                  ("dim", dimTrgCls))                  //
                                  ("prefix", prefix_ + "_ff_logit_l2") //

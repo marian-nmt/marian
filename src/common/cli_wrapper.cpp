@@ -100,14 +100,6 @@ CLIWrapper::CLIWrapper(YAML::Node &config,
   optVersion_->group(defaultGroup_);
 }
 
-CLIWrapper::CLIWrapper(Ptr<marian::Options> options,
-                       const std::string &description,
-                       const std::string &header,
-                       const std::string &footer,
-                       size_t columnWidth,
-                       size_t screenWidth)
-    : CLIWrapper(options->getYaml(), description, header, footer, columnWidth, screenWidth) {}
-
 CLIWrapper::~CLIWrapper() {}
 
 // set current group to name, return previous group
@@ -202,8 +194,7 @@ void CLIWrapper::updateConfig(const YAML::Node &config, cli::OptionPriority prio
       } else {
         // Default value is a sequence and incoming node is a scalar, hence we can upcast to
         // single element sequence
-        if(config_[key].Type() == YAML::NodeType::Sequence
-           && it.second.Type() == YAML::NodeType::Scalar) {
+        if(config_[key].IsSequence() && it.second.IsScalar()) {
           // create single element sequence
           YAML::Node sequence;
           sequence.push_back(YAML::Clone(it.second));
