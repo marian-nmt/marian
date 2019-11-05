@@ -103,17 +103,9 @@ TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
 }
 
 TemporaryFile::~TemporaryFile() {
-  if(!unlink_) {
-// suppress 'throw will always call terminate() [-Wterminate]'
-#if __GNUC__ >= 7
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wterminate"
-#endif
-    ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
-#if __GNUC__ >= 7
-#pragma GCC diagnostic pop
-#endif
-  }
+  if(!unlink_)
+    // We do not check for errors here as this is the destructor and we cannot really fix an error anyway.
+    remove(file_.string().c_str()), "Error while deleting '{}'", file_.string();
 }
 
 void TemporaryFile::NormalizeTempPrefix(std::string &base) const {

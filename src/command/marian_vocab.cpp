@@ -9,10 +9,11 @@ int main(int argc, char** argv) {
 
   createLoggers();
 
-  auto options = New<Options>();
+  Ptr<Options> options = New<Options>();
   {
+    YAML::Node config; // @TODO: get rid of YAML::Node here entirely to avoid the pattern. Currently not fixing as it requires more changes to the Options object.
     auto cli = New<cli::CLIWrapper>(
-        options,
+        config,
         "Create a vocabulary from text corpora given on STDIN",
         "Allowed options",
         "Examples:\n"
@@ -20,6 +21,7 @@ int main(int argc, char** argv) {
         "  cat text.src text.trg | ./marian-vocab > vocab.yml");
     cli->add<size_t>("--max-size,-m", "Generate only UINT most common vocabulary items", 0);
     cli->parse(argc, argv);
+    options->merge(config);
   }
 
   LOG(info, "Creating vocabulary...");

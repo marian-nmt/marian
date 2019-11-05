@@ -100,6 +100,7 @@ private:
   static std::string failureMessage(const CLI::App *app, const CLI::Error &e);
 
 public:
+
   /**
    * @brief Create an instance of the command-line argument parser
    *
@@ -117,18 +118,6 @@ public:
              const std::string &header = "General options",
              const std::string &footer = "",
              size_t columnWidth = 40,
-             size_t screenWidth = 0);
-
-  /**
-   * @brief Create an instance of the command-line argument parser, short-cut for Options object.
-   *
-   * @see Other constructor
-   */
-  CLIWrapper(Ptr<Options> options,
-             const std::string &description = "",
-             const std::string &header = "General options",
-             const std::string &footer = "",
-             size_t columnWidth = 30,
              size_t screenWidth = 0);
 
   virtual ~CLIWrapper();

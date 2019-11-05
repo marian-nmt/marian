@@ -8,19 +8,12 @@ namespace marian {
 namespace gpu {
 
 Device::~Device() {
-// suppress 'throw will always call terminate() [-Wterminate]'
-#if __GNUC__ >= 7
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wterminate"
-#endif
-  CUDA_CHECK(cudaSetDevice(deviceId_.no));
+  // No CUDA error checking as this is a destructor and we cannot do anything about errors anyway.
+  cudaSetDevice(deviceId_.no);
   if(data_) {
-    CUDA_CHECK(cudaFree(data_));
+    cudaFree(data_);
   }
-  CUDA_CHECK(cudaDeviceSynchronize());
-#if __GNUC__ >= 7
-#pragma GCC diagnostic pop
-#endif
+  cudaDeviceSynchronize();
 }
 
 void Device::reserve(size_t size) {

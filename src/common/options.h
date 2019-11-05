@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 #include "common/definitions.h"
-
+#include "common/fastopt.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
 #define YAML_REGISTER_TYPE(registered, type)                \
@@ -29,7 +29,25 @@ namespace marian {
  */
 class Options {
 protected:
-  YAML::Node options_;
+  YAML::Node options_;  // YAML options use for parsing, modification and printing
+  
+  // Only to be modified in lazyRebuild and setLazyRebuild
+  mutable FastOpt fastOptions_; // FastOpt used for fast lookup, lazily rebuilt from YYAML whenever required
+  mutable bool lazyRebuildPending_{false}; // flag if need to lazily rebuild
+
+  // set flag that a rebuild is required
+  void setLazyRebuild() const {
+    lazyRebuildPending_ = true;
+  }
+
+  // check if rebuild is required, rebuild, unset flag.
+  void lazyRebuild() const {
+    if(lazyRebuildPending_) {
+      FastOpt temp(options_);
+      fastOptions_.swap(temp);
+      lazyRebuildPending_ = false;
+    }
+  }
 
 public:
   Options();
@@ -56,9 +74,10 @@ public:
    */
   Options clone() const;
 
-  YAML::Node& getYaml();
-
-  const YAML::Node& getYaml() const;
+  // Do not allow access to internal YAML object as changes on the outside are difficult to track
+  // and mess with the rebuilding of the fast options lookup. Hence only return a clone which guarentees
+  // full encapsulation.
+  YAML::Node cloneToYamlNode() const;
 
   void parse(const std::string& yaml);
 
@@ -74,11 +93,12 @@ public:
   void merge(const YAML::Node& node, bool overwrite = false);
   void merge(Ptr<Options> options);
 
-  std::string str();
+  std::string asYamlString();
 
   template <typename T>
   void set(const std::string& key, T value) {
     options_[key] = value;
+    setLazyRebuild();
   }
 
   // set multiple
@@ -87,20 +107,33 @@ public:
   void set(const std::string& key, T value, Args&&... moreArgs) {
     set(key, value);
     set(std::forward<Args>(moreArgs)...);
+    setLazyRebuild();
+  }
+
+  template <typename T>
+  T get(const char* const key) const {
+    lazyRebuild();
+    ABORT_IF(!has(key), "Required option '{}' has not been set", key);
+    return fastOptions_[key].as<T>();
   }
 
   template <typename T>
   T get(const std::string& key) const {
-    ABORT_IF(!has(key), "Required option '{}' has not been set", key);
-    return options_[key].as<T>();
+    return get<T>(key.c_str());
+  }
+
+  template <typename T>
+  T get(const char* const key, T defaultValue) const {
+    lazyRebuild();
+    if(has(key))
+      return fastOptions_[key].as<T>();
+    else
+      return defaultValue;
   }
 
   template <typename T>
   T get(const std::string& key, T defaultValue) const {
-    if(has(key))
-      return options_[key].as<T>();
-    else
-      return defaultValue;
+    return get<T>(key.c_str(), defaultValue);
   }
 
   /**
@@ -113,8 +146,10 @@ public:
    *
    * @return true if the option is defined and is a nonempty sequence or string
    */
+  bool hasAndNotEmpty(const char* const key) const;
   bool hasAndNotEmpty(const std::string& key) const;
 
+  bool has(const char* const key) const;
   bool has(const std::string& key) const;
 };
 

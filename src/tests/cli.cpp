@@ -39,7 +39,8 @@ int main(int argc, char** argv) {
 
   auto options = New<Options>();
   {
-    auto w = New<CLIWrapper>(options);
+    YAML::Node config;
+    auto w = New<CLIWrapper>(config);
     w->add<int>("-i,--int", "help message")->implicit_val("555")->default_val("123");
     w->add<std::string>("-s,--str", "help message");
     w->add<std::vector<float>>("-v,--vec", "help message")->expected(-2);
@@ -53,6 +54,7 @@ int main(int argc, char** argv) {
     //w.add<color>("-e,--enum", "help message for enum");
 
     w->parse(argc, argv);
+    options->merge(config);
   }
 
   options->get<int>("int");
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
   //w.get<color>("enum");
 
   YAML::Emitter emit;
-  OutputYaml(options->getYaml(), emit);
+  OutputYaml(options->cloneToYamlNode(), emit);
   std::cout << emit.c_str() << std::endl;
 
   std::cout << "===" << std::endl;

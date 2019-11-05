@@ -80,17 +80,10 @@ CurandRandomGenerator::CurandRandomGenerator(size_t seed, DeviceId deviceId)
 }
 
 CurandRandomGenerator::~CurandRandomGenerator() {
-    if(deviceId_.type == DeviceType::gpu)
-      cudaSetDevice((int)deviceId_.no);
-// suppress 'throw will always call terminate() [-Wterminate]'
-#if __GNUC__ >= 7
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wterminate"
-#endif
-    CURAND_CHECK(curandDestroyGenerator(generator_)); // this might throw
-#if __GNUC__ >= 7
-#pragma GCC diagnostic pop
-#endif
+  // No CUDA error checking as this is a destructor and we cannot do anything about errors anyway.
+  if(deviceId_.type == DeviceType::gpu)
+    cudaSetDevice((int)deviceId_.no);
+  curandDestroyGenerator(generator_);
 }
 
 void CurandRandomGenerator::uniform(Tensor tensor, float a, float b) {

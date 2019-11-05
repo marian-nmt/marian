@@ -280,10 +280,11 @@ public:
 
     if(!output_) {
       // construct deep output multi-layer network layer-wise
+
       auto hidden = mlp::dense()                                     //
           ("prefix", prefix_ + "_ff_logit_l1")                       //
           ("dim", opt<int>("dim-emb"))                               //
-          ("activation", mlp::act::tanh)                             //
+          ("activation", (int)mlp::act::tanh)                        //
           ("layer-normalization", opt<bool>("layer-normalization"))  //
           ("nematus-normalization",
            options_->has("original-type")
