@@ -92,6 +92,11 @@ namespace fastopt_helpers {
   struct As<std::vector<T>> {
     static std::vector<T> apply(const FastOpt&);
   };
+
+  template <typename T1, typename T2> 
+  struct As<std::pair<T1, T2>> {
+    static std::pair<T1, T2> apply(const FastOpt&);
+  };
 }
 
 // Fast access option class, meant as a replacment/supplement to YAML::Node.
