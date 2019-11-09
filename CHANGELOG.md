@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Remove thread-unsafe reference counting from FastOpt, use normal pointers
 - Removed naked pointer and potential memory-leak from file_stream.{cpp,h}
 - Compilation for GCC >= 7 due to exception thrown in destructor
 - Sort parameters by lexicographical order during allocation to ensure consistent 
