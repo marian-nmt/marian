@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/intrusive_ptr.h"
+#include "common/definitions.h"
 #include "3rd_party/any_type.h"
 #include "3rd_party/phf/phf.h"
 #include "3rd_party/yaml-cpp/yaml.h"
@@ -43,8 +43,6 @@ inline constexpr uint64_t crc(const char* const str) noexcept {
 // m - n fields stay undefined (a bit of waste).
 class PerfectHash {
 private:
-  ENABLE_INTRUSIVE_PTR(PerfectHash)
-
   phf phf_;
 
   PerfectHash(const uint64_t keys[], size_t num) {
@@ -106,8 +104,6 @@ namespace fastopt_helpers {
 // Still requires YAML::Node support for parsing and modification via rebuilding.
 class FastOpt {
 private:
-  ENABLE_INTRUSIVE_PTR(FastOpt)
-
   template <typename T>
   friend struct fastopt_helpers::As;
 
@@ -118,18 +114,9 @@ public:
   };
 
 private:
-  struct ElementType {
-    ENABLE_INTRUSIVE_PTR(ElementType)
-
-    any_type value{0};
-
-    template <typename T>
-    const T& as() const { return value.as<T>(); }
-  };
-
-  IntrusivePtr<ElementType> value_;
-  IntrusivePtr<PerfectHash> ph_;
-  std::vector<IntrusivePtr<FastOpt>> array_;
+  any_type value_;
+  const PerfectHash* ph_{nullptr};
+  std::vector<const FastOpt*> array_;
   NodeType type_{NodeType::Null};
 
   uint64_t fingerprint_{0}; // When node is used as a value in a map, used to check if the perfect hash 
@@ -137,7 +124,7 @@ private:
   size_t elements_{0};      // Number of elements if isMap or isSequence is true, 0 otherwise.
 
   // Used to find elements if isSequence() is true.
-  inline const IntrusivePtr<FastOpt> arrayLookup(size_t keyId) const {
+  inline const FastOpt* arrayLookup(size_t keyId) const {
     if(keyId < array_.size())
       return array_[keyId];
     else
@@ -145,7 +132,7 @@ private:
   }
 
   // Used to find elements if isMap() is true.
-  inline const IntrusivePtr<FastOpt> phLookup(size_t keyId) const {
+  inline const FastOpt* phLookup(size_t keyId) const {
     if(ph_)
       return array_[(*ph_)[keyId]];
     else
@@ -154,30 +141,30 @@ private:
 
   // Build Null node.
   void makeNull() {
-    value_.reset(nullptr);
     elements_ = 0;
     type_ = NodeType::Null;
+
+    ABORT_IF(ph_, "ph_ should be undefined");
+    ABORT_IF(!array_.empty(), "array_ should be empty");
   }
 
   // Build Scalar node via controlled failure to convert from a YAML::Node object.
   void makeScalar(const YAML::Node& v) {
     elements_ = 0;
-    value_.reset(new ElementType());
-    
     try {
-      value_->value = v.as<bool>();
+      value_ = v.as<bool>();
       type_ = NodeType::Bool;
     } catch(const YAML::BadConversion& /*e*/) {
       try {
-        value_->value = v.as<int64_t>();
+        value_ = v.as<int64_t>();
         type_ = NodeType::Int64;
       } catch(const YAML::BadConversion& /*e*/) {
         try {
-          value_->value = v.as<double>();
+          value_ = v.as<double>();
           type_ = NodeType::Float64;
         } catch(const YAML::BadConversion& /*e*/) {
           try { 
-            value_->value = v.as<std::string>();
+            value_ = v.as<std::string>();
             type_ = NodeType::String;
           } catch (const YAML::BadConversion& /*e*/) {
             ABORT("Cannot convert YAML node {}", v);
@@ -185,19 +172,21 @@ private:
         }
       }
     }
+    
+    ABORT_IF(ph_, "ph_ should be undefined");
+    ABORT_IF(!array_.empty(), "array_ should be empty");
   }
 
   // Build a Sequence node, can by converted to std::vector<T> if elements can be converted to T.
   void makeSequence(const std::vector<YAML::Node>& v) {
-    array_.resize(v.size());
     elements_ = v.size();
-
+    ABORT_IF(!array_.empty(), "array_ is not empty??");
     for(size_t pos = 0; pos < v.size(); ++pos) {
-      array_[pos].reset(new FastOpt(v[pos]));
-      array_[pos]->fingerprint_ = pos;
+      array_.emplace_back(new FastOpt(v[pos], pos));
     }
-
     type_ = NodeType::Sequence;
+
+    ABORT_IF(ph_, "ph_ should be undefined");
   }
 
   // Build a Map node.
@@ -206,16 +195,17 @@ private:
     for(const auto& it : m)
       keys.push_back(it.first);
 
-    ph_.reset(new PerfectHash(keys));
+    ABORT_IF(ph_, "ph_ is already defined??");
+    ph_ = new PerfectHash(keys);
 
-    array_.resize(ph_->size());
+    ABORT_IF(!array_.empty(), "array_ is not empty??");
+    array_.resize(ph_->size(), nullptr);
     elements_ = keys.size();
 
     for(const auto& it : m) {
       uint64_t key = it.first;
       size_t pos = (*ph_)[key];
-      array_[pos].reset(new FastOpt(it.second));
-      array_[pos]->fingerprint_ = key;
+      array_[pos] = new FastOpt(it.second, key);
     }
 
     type_ = NodeType::Map;
@@ -236,9 +226,7 @@ private:
   FastOpt(const FastOpt&) = delete;
   FastOpt() = delete;
 
-public:
-  // Constructor to recursively create a FastOpt object from a YAML::Node following the yaml structure.
-  FastOpt(const YAML::Node& node) {
+  void construct(const YAML::Node& node) {
     switch(node.Type()) {
       case YAML::NodeType::Scalar:
         makeScalar(node);
@@ -261,6 +249,23 @@ public:
       case YAML::NodeType::Null:
         makeNull();
     }
+  }
+
+public:
+  // Constructor to recursively create a FastOpt object from a YAML::Node following the yaml structure.
+  FastOpt(const YAML::Node& node) 
+  { construct(node); }
+
+  FastOpt(const YAML::Node& node, uint64_t fingerprint) 
+     : fingerprint_{fingerprint}
+  { construct(node); }
+
+  ~FastOpt() {
+    if(ph_)
+      delete ph_;
+    for(auto ptr : array_)
+      if(ptr)
+        delete ptr;
   }
 
   bool isSequence() const {
@@ -306,9 +311,9 @@ public:
 
   // replace current node with an externally built FastOpt object
   void swap(FastOpt& other) {
-    value_.swap(other.value_);
-    ph_.swap(other.ph_);
-    array_.swap(other.array_);
+    std::swap(value_, other.value_);
+    std::swap(ph_, other.ph_);
+    std::swap(array_, other.array_);
     std::swap(type_, other.type_);
     std::swap(elements_, other.elements_);
     // leave fingerprint alone as it needed by parent node. 
@@ -341,12 +346,12 @@ public:
   // access sequence or map element
   const FastOpt& operator[](size_t keyId) const {
     if(isSequence()) {
-      return *arrayLookup(keyId);
+      const auto ptr = arrayLookup(keyId);
+      ABORT_IF(!ptr, "Unseen key {}" , keyId);
+      return *ptr;
     } else if(isMap()) {
       const auto ptr = phLookup(keyId);
-      ABORT_IF(!ptr || ptr->fingerprint_ != keyId, 
-               "Unseen key {}" , 
-               keyId);
+      ABORT_IF(!ptr || ptr->fingerprint_ != keyId, "Unseen key {}", keyId);
       return *ptr; 
     } else {
       ABORT("Not a sequence or map node");

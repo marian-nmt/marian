@@ -1,13 +1,19 @@
 #pragma once
 
+// @TODO: to be removed when sure it works
+#define FASTOPT 1 // for diagnostics, 0 reverts to old behavior
+
 #include <sstream>
 #include <string>
 #include "common/definitions.h"
-#include "common/fastopt.h"
 #include "3rd_party/yaml-cpp/yaml.h"
 
+#ifdef FASTOPT
+#include "common/fastopt.h"
+#endif
+
 #define YAML_REGISTER_TYPE(registered, type)                \
-  namespace YAML {                                          \
+namespace YAML {                                            \
   template <>                                               \
   struct convert<registered> {                              \
     static Node encode(const registered& rhs) {             \
@@ -20,7 +26,7 @@
       return true;                                          \
     }                                                       \
   };                                                        \
-  }
+}
 
 namespace marian {
 
@@ -31,6 +37,7 @@ class Options {
 protected:
   YAML::Node options_;  // YAML options use for parsing, modification and printing
   
+#if FASTOPT
   // Only to be modified in lazyRebuild and setLazyRebuild
   mutable FastOpt fastOptions_; // FastOpt used for fast lookup, lazily rebuilt from YYAML whenever required
   mutable bool lazyRebuildPending_{false}; // flag if need to lazily rebuild
@@ -48,6 +55,7 @@ protected:
       lazyRebuildPending_ = false;
     }
   }
+#endif
 
 public:
   Options();
@@ -59,7 +67,7 @@ public:
   Options(const std::string& key, T value, Args&&... moreArgs) : Options() {
     set(key, value, std::forward<Args>(moreArgs)...);
   }
-
+  
   // constructor that clones and zero or more updates
   // options->with("var1", val1, "var2", val2, ...)
   template <typename... Args>
@@ -98,7 +106,9 @@ public:
   template <typename T>
   void set(const std::string& key, T value) {
     options_[key] = value;
+#if FASTOPT
     setLazyRebuild();
+#endif
   }
 
   // set multiple
@@ -107,14 +117,21 @@ public:
   void set(const std::string& key, T value, Args&&... moreArgs) {
     set(key, value);
     set(std::forward<Args>(moreArgs)...);
+#if FASTOPT
     setLazyRebuild();
+#endif
   }
 
   template <typename T>
   T get(const char* const key) const {
+#if FASTOPT
     lazyRebuild();
     ABORT_IF(!has(key), "Required option '{}' has not been set", key);
     return fastOptions_[key].as<T>();
+#else
+    ABORT_IF(!has(key), "Required option '{}' has not been set", key);
+    return options_[key].as<T>();
+#endif
   }
 
   template <typename T>
@@ -124,9 +141,14 @@ public:
 
   template <typename T>
   T get(const char* const key, T defaultValue) const {
+#if FASTOPT
     lazyRebuild();
     if(has(key))
       return fastOptions_[key].as<T>();
+#else
+    if(has(key))
+      return options_[key].as<T>();
+#endif
     else
       return defaultValue;
   }

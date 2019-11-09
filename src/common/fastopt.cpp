@@ -48,13 +48,13 @@ T As<T>::apply(const FastOpt& node) {
   ABORT_IF(!node.isScalar(), "Node is not a scalar node");
 
   if(node.isBool())
-    return Convert<T, bool>::apply(node.value_->as<bool>());
+    return Convert<T, bool>::apply(node.value_.as<bool>());
   else if(node.isInt())
-    return Convert<T, int64_t>::apply(node.value_->as<int64_t>());
+    return Convert<T, int64_t>::apply(node.value_.as<int64_t>());
   else if(node.isFloat())
-    return Convert<T, double>::apply(node.value_->as<double>());
+    return Convert<T, double>::apply(node.value_.as<double>());
   else if(node.isString())
-    return Convert<T, std::string>::apply(node.value_->as<std::string>());      
+    return Convert<T, std::string>::apply(node.value_.as<std::string>());      
   else {
     ABORT("Casting of value failed");
   }
