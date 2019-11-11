@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
+  due to thread-non-safty of reference counting.
 - Make sure that items are 256-byte aligned during saving
 - Make explicit matmul functions respect setting of cublasMathMode
 - Fix memory mapping for mixed paramter models
