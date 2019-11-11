@@ -4,6 +4,7 @@
 
 #include "data/shortlist.h"
 #include "models/model_factory.h"
+#include "3rd_party/mio/mio.hpp"
 
 namespace marian {
 
@@ -147,5 +148,6 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          Ptr<Options> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<mio::mmap_source>& mmaps);
 
 }  // namespace marian
