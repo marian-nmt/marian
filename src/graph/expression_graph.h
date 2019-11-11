@@ -522,7 +522,9 @@ public:
     LOG(info, "Memory mapping model at {}", ptr);
     auto items = io::mmapItems(ptr);
     
-    // deal with default parameter object that might not be a mapped object
+    // Deal with default parameter set object that might not be a mapped object.
+    // This gets assigned during ExpressionGraph::setDevice(...) and by default 
+    // would contain allocated tensors. Here we replace it with a mmapped version.
     auto it = paramsByElementType_.find(defaultElementType_);
     if(it != paramsByElementType_.end()) {
       // there is parameter object for that type
