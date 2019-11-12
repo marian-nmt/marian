@@ -522,6 +522,22 @@ public:
     LOG(info, "Memory mapping model at {}", ptr);
     auto items = io::mmapItems(ptr);
     
+    // Deal with default parameter set object that might not be a mapped object.
+    // This gets assigned during ExpressionGraph::setDevice(...) and by default 
+    // would contain allocated tensors. Here we replace it with a mmapped version.
+    auto it = paramsByElementType_.find(defaultElementType_);
+    if(it != paramsByElementType_.end()) {
+      // there is parameter object for that type
+      auto defaultParams = std::dynamic_pointer_cast<MappedParameters>(it->second);
+      if(!defaultParams) {
+        // but it's not mapped, so delete it and replace it with a mapped version
+        auto defaultParams = New<MappedParameters>(defaultElementType_);
+        defaultParams->init(backend_);
+        paramsByElementType_[defaultElementType_] = defaultParams;
+      }
+    }
+
+
     // pre-populate parameters by type
     for(auto& item : items) {
       auto it = paramsByElementType_.find(item.type);

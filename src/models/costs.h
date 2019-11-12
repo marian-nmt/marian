@@ -281,12 +281,11 @@ public:
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state,
-                                 const std::vector<IndexType>& hypIndices,
-                                 const Words& words,
-                                 int dimBatch,
+                                 const std::vector<IndexType>& hypIndices,   // [beamIndex * activeBatchSize + batchIndex]
+                                 const Words& words,                         // [beamIndex * activeBatchSize + batchIndex]
+                                 const std::vector<IndexType>& batchIndices, // [batchIndex]
                                  int beamSize) override {
-    auto nextState = encdec_->step(
-        graph, state, hypIndices, words, dimBatch, beamSize);
+    auto nextState = encdec_->step(graph, state, hypIndices, words, batchIndices, beamSize);
     return cost_->apply(nextState);
   }
 

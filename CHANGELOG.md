@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Purging of finished hypotheses during beam-search. A lot faster for large batches.
+- Faster option look-up, up to 20-30% faster translation
 - Added --cite and --authors flag
 - Added optional support for ccache
 - Switch to change abort to exception, only to be used in library mode
@@ -15,14 +17,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Multiple separated parameter types in ExpressionGraph, currently inference-only
 - Safe handling of sigterm signal
 - Automatic vectorization of elementwise operations on CPU for tensors dims that 
-  are divible by 4 (AVX) and 8 (AVX2)
+  are divisible by 4 (AVX) and 8 (AVX2)
 - Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
   Tensors, Hypotheses and Expressions.
 - Fp16 inference working for translation
 - Gradient-checkpointing
 
 ### Fixed
-- Remove thread-unsafe reference counting from FastOpt, use normal pointers
+- Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
+  due to thread-non-safty of reference counting.
+- Make sure that items are 256-byte aligned during saving
+- Make explicit matmul functions respect setting of cublasMathMode
+- Fix memory mapping for mixed paramter models
 - Removed naked pointer and potential memory-leak from file_stream.{cpp,h}
 - Compilation for GCC >= 7 due to exception thrown in destructor
 - Sort parameters by lexicographical order during allocation to ensure consistent 
@@ -32,10 +38,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
-- Faster option look-up, up to 20-30% faster translation
 - Removed autotuner for now, will be switched back on later
 - Boost depdendency is now optional and only required for marian_server 
-  or for boost::regex when compiling with g++-4.9
+- Dropped support for g++-4.9
 - Simplified file stream and temporary file handling
 - Unified node intializers, same function API.
 

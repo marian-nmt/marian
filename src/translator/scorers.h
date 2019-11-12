@@ -4,6 +4,7 @@
 
 #include "data/shortlist.h"
 #include "models/model_factory.h"
+#include "3rd_party/mio/mio.hpp"
 
 namespace marian {
 
@@ -34,7 +35,7 @@ public:
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
                                 const Words&,
-                                int dimBatch,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize)
       = 0;
 
@@ -110,11 +111,11 @@ public:
                                 Ptr<ScorerState> state,
                                 const std::vector<IndexType>& hypIndices,
                                 const Words& words,
-                                int dimBatch,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
-    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, dimBatch, beamSize);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, batchIndices, beamSize);
     return New<ScorerWrapperState>(newState);
   }
 
@@ -147,5 +148,6 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          Ptr<Options> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<mio::mmap_source>& mmaps);
 
 }  // namespace marian

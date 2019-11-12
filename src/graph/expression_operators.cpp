@@ -487,6 +487,9 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
     }
   } else {
     // Default GEMM
+    ABORT_IF(!isFloat(aElementType) || !isFloat(bElementType), 
+             "GPU-based GEMM only supports float types, you have A: {} and B: {}", 
+             aElementType, bElementType);
     return affineDefault(a, b, bias, transA, transB, scale);
   }
 }

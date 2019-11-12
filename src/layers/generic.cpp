@@ -64,7 +64,7 @@ namespace marian {
 
   // get logits for one factor group
   // For groupIndex == 0, the function also requires the shortlist if there is one.
-  Expr Logits::getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist /*= nullptr*/, const std::vector<IndexType>& selIdx /*= {}*/, size_t beamSize /*= 0*/) const {
+  Expr Logits::getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist /*= nullptr*/, const std::vector<IndexType>& hypIndices /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
 
@@ -84,8 +84,8 @@ namespace marian {
     }
 
     // if selIdx are given, then we must reshuffle accordingly
-    if (!selIdx.empty()) // use the same function that shuffles decoder state
-      sel = rnn::State::select(sel, selIdx, (int)beamSize, /*isBatchMajor=*/false);
+    if (!hypIndices.empty()) // use the same function that shuffles decoder state
+      sel = rnn::State::select(sel, hypIndices, (int)beamSize, /*isBatchMajor=*/false);
     return sel;
   }
 

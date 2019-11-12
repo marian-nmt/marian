@@ -4,6 +4,8 @@
 
 namespace marian {
 
+const std::unique_ptr<const FastOpt> FastOpt::uniqueNullPtr{nullptr};
+
 // see fastopt.h for comments
 namespace fastopt_helpers {
 

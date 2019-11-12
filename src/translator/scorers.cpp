@@ -122,4 +122,13 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
   return scorers;
 }
 
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<mio::mmap_source>& mmaps) {
+  std::vector<const void*> ptrs;
+  for(const auto& mmap : mmaps) {
+    ABORT_IF(!mmap.is_mapped(), "Memory mapping did not succeed");
+    ptrs.push_back(mmap.data());
+  }
+  return createScorers(options, ptrs);
+}
+
 }  // namespace marian

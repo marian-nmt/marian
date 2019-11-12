@@ -115,28 +115,30 @@ public:
 
 private:
   any_type value_;
-  const PerfectHash* ph_{nullptr};
-  std::vector<const FastOpt*> array_;
+  std::unique_ptr<const PerfectHash> ph_;
+  std::vector<std::unique_ptr<const FastOpt>> array_;
   NodeType type_{NodeType::Null};
+
+  static const std::unique_ptr<const FastOpt> uniqueNullPtr; // return this unique_ptr if key not found, equivalent to nullptr
 
   uint64_t fingerprint_{0}; // When node is used as a value in a map, used to check if the perfect hash 
                             // returned the right value (they can produce false positives)
   size_t elements_{0};      // Number of elements if isMap or isSequence is true, 0 otherwise.
 
   // Used to find elements if isSequence() is true.
-  inline const FastOpt* arrayLookup(size_t keyId) const {
+  inline const std::unique_ptr<const FastOpt>& arrayLookup(size_t keyId) const {
     if(keyId < array_.size())
       return array_[keyId];
     else
-      return nullptr;
+      return uniqueNullPtr;
   }
 
   // Used to find elements if isMap() is true.
-  inline const FastOpt* phLookup(size_t keyId) const {
+  inline const std::unique_ptr<const FastOpt>& phLookup(size_t keyId) const {
     if(ph_)
       return array_[(*ph_)[keyId]];
     else
-      return nullptr;
+      return uniqueNullPtr;
   }
 
   // Build Null node.
@@ -196,16 +198,19 @@ private:
       keys.push_back(it.first);
 
     ABORT_IF(ph_, "ph_ is already defined??");
-    ph_ = new PerfectHash(keys);
+    ph_.reset(new PerfectHash(keys));
 
     ABORT_IF(!array_.empty(), "array_ is not empty??");
-    array_.resize(ph_->size(), nullptr);
+
+    // for lack of resize_emplace
+    for(int i = 0; i < ph_->size(); ++i)
+      array_.emplace_back(nullptr);
     elements_ = keys.size();
 
     for(const auto& it : m) {
       uint64_t key = it.first;
       size_t pos = (*ph_)[key];
-      array_[pos] = new FastOpt(it.second, key);
+      array_[pos].reset(new FastOpt(it.second, key));
     }
 
     type_ = NodeType::Map;
@@ -259,14 +264,6 @@ public:
   FastOpt(const YAML::Node& node, uint64_t fingerprint) 
      : fingerprint_{fingerprint}
   { construct(node); }
-
-  ~FastOpt() {
-    if(ph_)
-      delete ph_;
-    for(auto ptr : array_)
-      if(ptr)
-        delete ptr;
-  }
 
   bool isSequence() const {
     return type_ == NodeType::Sequence;
@@ -322,7 +319,7 @@ public:
   // Is the hashed key in a map? 
   bool has(size_t keyId) const {
     if(isMap() && elements_ > 0) {
-      const auto ptr = phLookup(keyId);
+      const auto& ptr = phLookup(keyId);
       return ptr ? ptr->fingerprint_ == keyId : false;
     } else {
       return false;
@@ -346,11 +343,11 @@ public:
   // access sequence or map element
   const FastOpt& operator[](size_t keyId) const {
     if(isSequence()) {
-      const auto ptr = arrayLookup(keyId);
+      const auto& ptr = arrayLookup(keyId);
       ABORT_IF(!ptr, "Unseen key {}" , keyId);
       return *ptr;
     } else if(isMap()) {
-      const auto ptr = phLookup(keyId);
+      const auto& ptr = phLookup(keyId);
       ABORT_IF(!ptr || ptr->fingerprint_ != keyId, "Unseen key {}", keyId);
       return *ptr; 
     } else {

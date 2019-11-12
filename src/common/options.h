@@ -32,6 +32,7 @@ namespace marian {
 
 /**
  * Container for options stored as key-value pairs. Keys are unique strings.
+ * This is not thread-safe and locking is the responsibility of the caller.
  */
 class Options {
 protected:

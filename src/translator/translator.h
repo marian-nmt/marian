@@ -6,12 +6,21 @@
 #include "data/text_input.h"
 
 #include "3rd_party/threadpool.h"
+
 #include "translator/history.h"
 #include "translator/output_collector.h"
 #include "translator/output_printer.h"
 
 #include "models/model_task.h"
 #include "translator/scorers.h"
+
+// currently for diagnostics only, will try to mmap files ending in *.bin suffix when enabled.
+// @TODO: add this as an actual feature.
+#define MMAP 0
+
+#if MMAP
+#include "3rd_party/mio/mio.hpp"
+#endif
 
 namespace marian {
 
@@ -27,6 +36,10 @@ private:
   Ptr<data::ShortlistGenerator> shortlistGenerator_;
 
   size_t numDevices_;
+
+#if MMAP
+  std::vector<mio::mmap_source> mmaps_;
+#endif
 
 public:
   Translate(Ptr<Options> options) 
@@ -55,6 +68,16 @@ public:
     scorers_.resize(numDevices_);
     graphs_.resize(numDevices_);
 
+#if MMAP
+    auto models = options->get<std::vector<std::string>>("models");
+    for(auto model : models) {
+      marian::filesystem::Path modelPath(model);
+      ABORT_IF(modelPath.extension() != marian::filesystem::Path(".bin"), 
+              "Non-binarized models cannot be mmapped");
+      mmaps_.push_back(std::move(mio::mmap_source(model)));
+    }
+#endif
+
     size_t id = 0;
     for(auto device : devices) {
       auto task = [&](DeviceId device, size_t id) {
@@ -69,7 +92,11 @@ public:
         graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
         graphs_[id] = graph;
 
+#if MMAP
+        auto scorers = createScorers(options_, mmaps_);
+#else 
         auto scorers = createScorers(options_);
+#endif
         for(auto scorer : scorers) {
           scorer->init(graph);
           if(shortlistGenerator_)
