@@ -14,8 +14,8 @@ private:
   struct SentenceHypothesisCoord {
     bool operator<(const SentenceHypothesisCoord& hc) const { return normalizedPathScore < hc.normalizedPathScore; }
 
-    size_t i; // last time step of this sentence hypothesis
-    size_t j; // which beam entry
+    size_t timeStepIdx;        // last time step of this sentence hypothesis
+    size_t beamIdx;            // which beam entry
     float normalizedPathScore; // length-normalized sentence score
   };
 
@@ -25,14 +25,11 @@ public:
   History(size_t lineNo, float alpha = 1.f, float wp_ = 0.f);
 
   void add(const Beam& beam, Word trgEosId, bool last = false) {
-    if(beam.back()->getPrevHyp() != nullptr) {
-      for(size_t j = 0; j < beam.size(); ++j)
-        if(beam[j]->getWord() == trgEosId || last) {
-          float pathScore =
-              (beam[j]->getPathScore() - wordPenalty(history_.size())) / lengthPenalty(history_.size());
-          topHyps_.push({history_.size(), j, pathScore});
-          // std::cerr << "Add " << history_.size() << " " << j << " " << pathScore
-          // << std::endl;
+    if(beam.back()->getPrevHyp() != nullptr) { // if not start hyp do
+      for(size_t beamIdx = 0; beamIdx < beam.size(); ++beamIdx)
+        if(beam[beamIdx]->getWord() == trgEosId || last) { // if this is a final hyp do
+          float pathScore = (beam[beamIdx]->getPathScore() - wordPenalty(history_.size())) / lengthPenalty(history_.size()); // get and normalize path score
+          topHyps_.push({history_.size(), beamIdx, pathScore}); // push final hyp on queue of scored hyps
         }
     }
     history_.push_back(beam);
@@ -45,11 +42,9 @@ public:
     for (auto topHypsCopy = topHyps_; nbest.size() < n && !topHypsCopy.empty(); topHypsCopy.pop()) {
       auto bestHypCoord = topHypsCopy.top();
 
-      const size_t start = bestHypCoord.i; // last time step of this hypothesis
-      const size_t j     = bestHypCoord.j; // which beam entry
-      Hypothesis::PtrType bestHyp = history_[start][j];
-      // float c = bestHypCoord.normalizedPathScore;
-      // std::cerr << "h: " << start << " " << j << " " << c << std::endl;
+      const size_t timeStepIdx = bestHypCoord.timeStepIdx; // last time step of this hypothesis
+      const size_t beamIdx     = bestHypCoord.beamIdx;     // which beam entry
+      Hypothesis::PtrType bestHyp = history_[timeStepIdx][beamIdx];
 
       // trace back best path
       Words targetWords = bestHyp->tracebackWords();
@@ -65,7 +60,7 @@ public:
   size_t getLineNum() const { return lineNo_; }
 
 private:
-  std::vector<Beam> history_; // [time step][index into beam] search grid
+  std::vector<Beam> history_; // [time step][index into beam] search grid @TODO: simplify as this is currently an expensive length count
   std::priority_queue<SentenceHypothesisCoord> topHyps_; // all sentence hypotheses (those that reached eos), sorted by score
   size_t lineNo_;
   float alpha_;

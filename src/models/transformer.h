@@ -282,7 +282,12 @@ public:
     // Caching transformation of the encoder that should not be created again.
     // @TODO: set this automatically by memoizing encoder context and
     // memoization propagation (short-term)
-    if (!cache || (cache && cache_.count(prefix + "_keys") == 0)) {
+    if (cache                                                                          // if caching
+        && cache_.count(prefix + "_keys") > 0                                          // and the keys expression has been seen
+        && cache_[prefix + "_keys"]->shape().elements() == keys->shape().elements()) { // and the underlying element size did not change
+      kh = cache_[prefix + "_keys"];                                                   // then return cached tensor
+    }
+    else {
       auto Wk = graph_->param(prefix + "_Wk", {dimModel, dimModel}, inits::glorotUniform());
       auto bk = graph_->param(prefix + "_bk", {1,        dimModel}, inits::zeros());
 
@@ -290,20 +295,19 @@ public:
       kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       cache_[prefix + "_keys"] = kh;
     }
-    else {
-      kh = cache_[prefix + "_keys"];
-    }
 
     Expr vh;
-    if (!cache || (cache && cache_.count(prefix + "_values") == 0)) {
+    if (cache 
+        && cache_.count(prefix + "_values") > 0 
+        && cache_[prefix + "_values"]->shape().elements() == values->shape().elements()) {
+      vh = cache_[prefix + "_values"];
+    } else {
       auto Wv = graph_->param(prefix + "_Wv", {dimModel, dimModel}, inits::glorotUniform());
       auto bv = graph_->param(prefix + "_bv", {1,        dimModel}, inits::zeros());
 
       vh = affine(values, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       vh = SplitHeads(vh, dimHeads);
       cache_[prefix + "_values"] = vh;
-    } else {
-      vh = cache_[prefix + "_values"];
     }
 
     int dimBeam = q->shape()[-4];
@@ -573,10 +577,19 @@ public:
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<IndexType>& hypIndices,   // [beamIndex * activeBatchSize + batchIndex]
+                                   const std::vector<IndexType>& batchIndices, // [batchIndex]
                                    int beamSize) const override {
+
+    // @TODO: code duplication with DecoderState only because of isBatchMajor=true, should rather be a contructor argument of DecoderState?
+    
+    std::vector<Ptr<EncoderState>> newEncStates;
+    for(auto& es : encStates_) 
+      // If the size of the batch dimension of the encoder state context changed, subselect the correct batch entries    
+      newEncStates.push_back(es->getContext()->shape()[-2] == batchIndices.size() ? es : es->select(batchIndices));
+
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), logProbs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(hypIndices, beamSize, /*isBatchMajor=*/true), logProbs_, newEncStates, batch_); 
 
     // Set the same target token position as the current state
     // @TODO: This is the same as in base function.
@@ -691,10 +704,14 @@ public:
       auto encoderMask = encoderState->getMask();
 
       encoderContext = transposeTimeBatch(encoderContext); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-
       int dimSrcWords = encoderContext->shape()[-2];
 
-      //int dims = encoderMask->shape().size();
+      // This would happen if something goes wrong during batch pruning.
+      ABORT_IF(encoderContext->shape()[-3] != dimBatch,
+               "Context and query batch dimension do not match {} != {}", 
+               encoderContext->shape()[-3], 
+               dimBatch);
+
       encoderMask = atleast_nd(encoderMask, 4);
       encoderMask = reshape(transposeTimeBatch(encoderMask),
                             {1, dimBatch, 1, dimSrcWords});

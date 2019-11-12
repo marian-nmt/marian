@@ -35,7 +35,7 @@ public:
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
                                 const Words&,
-                                int dimBatch,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize)
       = 0;
 
@@ -111,11 +111,11 @@ public:
                                 Ptr<ScorerState> state,
                                 const std::vector<IndexType>& hypIndices,
                                 const Words& words,
-                                int dimBatch,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
-    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, dimBatch, beamSize);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, batchIndices, beamSize);
     return New<ScorerWrapperState>(newState);
   }
 

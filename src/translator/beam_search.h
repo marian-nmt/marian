@@ -19,6 +19,7 @@ private:
   Ptr<Vocab> trgVocab_;
 
   static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
+  static constexpr auto PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -26,28 +27,41 @@ public:
              Ptr<Vocab> trgVocab)
       : options_(options),
         scorers_(scorers),
-        beamSize_(options_->has("beam-size")
-                      ? options_->get<size_t>("beam-size")
-                      : 3),
+        beamSize_(options_->get<size_t>("beam-size")),
         trgVocab_(trgVocab) {}
 
   // combine new expandedPathScores and previous beams into new set of beams
-  Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [dimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
-               const std::vector<float>& nBestPathScores,  // [dimBatch, beamSize] flattened
+  Beams toHyps(const std::vector<unsigned int>& nBestKeys, // [currentDimBatch, beamSize] flattened -> ((batchIdx, beamHypIdx) flattened, word idx) flattened
+               const std::vector<float>& nBestPathScores,  // [currentDimBatch, beamSize] flattened
                const size_t nBestBeamSize, // for interpretation of nBestKeys
                const size_t vocabSize,     // ditto.
                const Beams& beams,
                const std::vector<Ptr<ScorerState /*const*/>>& states,
                Ptr<data::CorpusBatch /*const*/> batch, // for alignments only
-               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup) const {
-    std::vector<float> align;
-    if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
-      align = scorers_[0]->getAlignment(); // [beam depth * max src length * batch size] -> P(s|t); use alignments from the first scorer, even if ensemble
+               Ptr<FactoredVocab/*const*/> factoredVocab, size_t factorGroup,
+               const std::vector<IndexType>& batchIdxMap) const { // [origBatchIdx -> currentBatchIdx]
+    std::vector<float> align; // collects alignment information from the last executed time step
+    if(options_->hasAndNotEmpty("alignment") && factorGroup == 0) 
+      align = scorers_[0]->getAlignment(); // [beam depth * max src length * current batch size] -> P(s|t); use alignments from the first scorer, even if ensemble, 
 
-    const auto dimBatch = beams.size();
-    Beams newBeams(dimBatch);   // return value of this function goes here
+    const auto origDimBatch = beams.size(); // see function search for definition of origDimBatch and currentDimBatch etc.
+    Beams newBeams(origDimBatch);           // return value of this function goes here. There are always origDimBatch beams.
 
-    for(size_t i = 0; i < nBestKeys.size(); ++i) { // [dimBatch, beamSize] flattened
+    // create a reverse batchMap to obtain original batchIdx in the starting batch size
+    // and calculate the current batch size based on non-empty beams
+    std::vector<IndexType> reverseBatchIdxMap(batchIdxMap.size());
+    size_t currentDimBatch = beams.size();
+    if(PURGE_BATCH) {
+      currentDimBatch = 0;
+      for(int i = 0; i < batchIdxMap.size(); ++i) {
+        reverseBatchIdxMap[batchIdxMap[i]] = i; // reverse batch index mapping, multiple occurences get overwritten with the last one, 
+                                                // which is expected due to down-shifting
+        if(!beams[i].empty())
+          currentDimBatch++;
+      }
+    }
+
+    for(size_t i = 0; i < nBestKeys.size(); ++i) { // [currentDimBatch, beamSize] flattened
       // Keys encode batchIdx, beamHypIdx, and word index in the entire beam.
       // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
       // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
@@ -55,12 +69,16 @@ public:
       const float pathScore = nBestPathScores[i]; // expanded path score for (batchIdx, beamHypIdx, word)
 
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
-      const auto wordIdx    = (WordIndex)(key % vocabSize);
-      const auto beamHypIdx =            (key / vocabSize) % nBestBeamSize;
-      const auto batchIdx   =            (key / vocabSize) / nBestBeamSize;
+      const auto wordIdx         = (WordIndex)(key % vocabSize);
+      const auto beamHypIdx      =            (key / vocabSize) % nBestBeamSize;
+      const auto currentBatchIdx =            (key / vocabSize) / nBestBeamSize;
 
-      const auto& beam = beams[batchIdx];
-      auto& newBeam = newBeams[batchIdx];
+      auto origBatchIdx          = currentBatchIdx;
+      if(PURGE_BATCH)
+        origBatchIdx = reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
+
+      const auto& beam = beams[origBatchIdx];
+      auto& newBeam = newBeams[origBatchIdx]; // extended hypotheses are going to be placed in this new beam
 
       if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
@@ -109,12 +127,15 @@ public:
                  "A word without this factor snuck through to here??");
         breakDown.resize(states.size(), 0); // at start, this is empty, so this will set the initial score to 0
         for(size_t j = 0; j < states.size(); ++j) {
-          auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [localBeamSize, 1, dimBatch, dimFactorVocab]
-          size_t flattenedLogitIndex = (beamHypIdx * dimBatch + batchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
+          auto lval = states[j]->getLogProbs().getFactoredLogitsTensor(factorGroup); // [maxBeamSize, 1, currentDimBatch, dimFactorVocab]
+          // The flatting happens based on actual (current) batch size and batch index computed with batch-pruning as we are looking into the pruned tensor
+          size_t flattenedLogitIndex = (beamHypIdx * currentDimBatch + currentBatchIdx) * vocabSize + wordIdx;  // (beam idx, batch idx, word idx); note: beam and batch are transposed, compared to 'key'
+          
           // @TODO: use a function on shape() to index, or new method val->at({i1, i2, i3, i4}) with broadcasting
-          ABORT_IF(lval->shape() != Shape({(int)nBestBeamSize, 1, (int)dimBatch, (int)vocabSize}) &&
-                   (beamHypIdx == 0 && lval->shape() != Shape({1, 1, (int)dimBatch, (int)vocabSize})),
-                   "Unexpected shape of logits?? {} != {}", lval->shape(), Shape({(int)nBestBeamSize, 1, (int)dimBatch, (int)vocabSize}));
+          ABORT_IF(lval->shape() != Shape({(int)nBestBeamSize, 1, (int)currentDimBatch, (int)vocabSize}) &&
+                   (beamHypIdx == 0 && lval->shape() != Shape({1, 1, (int)currentDimBatch, (int)vocabSize})),
+                   "Unexpected shape of logits?? {} != {}", lval->shape(), Shape({(int)nBestBeamSize, 1, (int)currentDimBatch, (int)vocabSize}));
+          
           breakDown[j] += lval->get(flattenedLogitIndex);
         }
         hyp->setScoreBreakdown(breakDown);
@@ -122,13 +143,13 @@ public:
 
       // Set alignments
       if(!align.empty())
-        hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)batchIdx));
+        hyp->setAlignment(getAlignmentsForHypothesis(align, batch, (int)beamHypIdx, (int)currentBatchIdx, (int)origBatchIdx, (int)currentDimBatch));
       else // not first factor: just copy
         hyp->setAlignment(beam[beamHypIdx]->getAlignment());
 
       newBeam.push_back(hyp);
     }
-
+    
     // if factored vocab and this is not the first factor, we need to
     // also propagate factored hypotheses that do not get expanded in this step because they don't have this factor
     if (factorGroup > 0) {
@@ -157,10 +178,12 @@ public:
   }
 
   std::vector<float> getAlignmentsForHypothesis( // -> P(s|t) for current t and given beam and batch dim
-      const std::vector<float> alignAll, // [beam depth, max src length, batch size, 1], flattened
+      const std::vector<float> alignAll, // [beam depth, max src length, batch size, 1], flattened vector of all attention probablities
       Ptr<data::CorpusBatch> batch,
       int beamHypIdx,
-      int batchIdx) const {
+      int currentBatchIdx,
+      int origBatchIdx,
+      int currentDimBatch) const {
     // Let's B be the beam size, N be the number of batched sentences,
     // and L the number of words in the longest sentence in the batch.
     // The alignment vector:
@@ -178,33 +201,46 @@ public:
     // in a single beam, i.e.:
     //   * [word1-batch1, word1-batch2, ..., word2-batch1, ...]
     //
-    size_t batchSize  = batch->size();               // number of sentences in batch
-    size_t batchWidth = batch->width();              // max src length
-    size_t batchWidthXSize = batchWidth * batchSize; // total number of words in the batch incl. padding = product of last 3 tensor dimensions
+    
+    size_t origDimBatch = batch->size();  // number of sentences in batch
+    size_t batchWidth   = batch->width(); // max src length
 
-    // loop over words of batch entry 'batchIdx' and beam entry 'beamHypIdx'
+    // loop over words of batch entry 'currentBatchIdx' and beam entry 'beamHypIdx'
     std::vector<float> align;
     for(size_t srcPos = 0; srcPos < batchWidth; ++srcPos) { // loop over source positions
-      size_t a = ((batchWidthXSize * beamHypIdx) + batchIdx) + (batchSize * srcPos); // = flatten [beam index, s, batch index, 0]
-      size_t m = a % batchWidthXSize; // == batchIdx + (batchSize * srcPos) = flatten [0, s, batch index, 0]
-      if(batch->front()->mask()[m] != 0)
-        align.emplace_back(alignAll[a]);
+      // We are looking into the probabilites from an actual tensor, hence we need to use currentDimBatch and currentBatchIdx.
+      size_t currentAttIdx = (batchWidth * beamHypIdx + srcPos) * currentDimBatch + currentBatchIdx; // = flatten [beam index, s, batch index, 0]
+
+      // We are looking into the mask from the orginal batch, hence we need to use origDmBatch and origBatchIdx.
+      size_t origAttIdx  = (batchWidth * beamHypIdx + srcPos) * origDimBatch + origBatchIdx;; // = flatten [beam index, s, batch index, 0]
+      size_t origMaskIdx = origAttIdx % (batchWidth * origDimBatch); // == batchIdx + (batchSize * srcPos) = flatten [0, s, batch index, 0]
+
+      // If the original position is not masked out used the corresponding current attention score.
+      if(batch->front()->mask()[origMaskIdx] != 0)
+        align.emplace_back(alignAll[currentAttIdx]);
     }
     return align;
   }
 
   // remove all beam entries that have reached EOS
-  Beams purgeBeams(const Beams& beams) {
+  Beams purgeBeams(const Beams& beams, /*in/out=*/std::vector<IndexType>& batchIdxMap) {
     const auto trgEosId = trgVocab_->getEosId();
     Beams newBeams;
+    size_t beamIdx = 0; // beam index
     for(auto beam : beams) {
-      Beam newBeam;
-      for(auto hyp : beam) {
-        if(hyp->getWord() != trgEosId) {
-          newBeam.push_back(hyp);
-        }
+      Beam newBeam; // a beam of surviving hyps
+      for(auto hyp : beam)
+        if(hyp->getWord() != trgEosId) // if this hyp is not finished, 
+          newBeam.push_back(hyp);      // move over to beam of surviving hyps
+
+      if(PURGE_BATCH)
+        if(newBeam.empty() && !beam.empty()) {      // previous beam had hyps, but all were finished in this step, newBeam will now stay empty
+          for(int i = beamIdx + 1; i < beams.size(); ++i) // for all entries above this beam
+            batchIdxMap[i] = batchIdxMap[i] - 1;  // make them look at one batch index below, as the current entry will be removed from the batch.
       }
+
       newBeams.push_back(newBeam);
+      beamIdx++; // move to next beam index
     }
     return newBeams;
   }
@@ -220,18 +256,20 @@ public:
     if (numFactorGroups == 1) // if no factors then we didn't need this object in the first place
       factoredVocab.reset();
 
-    const int dimBatch = (int)batch->size();
+    // We will use the prefix "origBatch..." whenever we refer to batch dimensions of the original batch. These do not change during search.
+    // We will use the prefix "currentBatch.." whenever we refer to batch dimension that can change due to batch-pruning.
+    const int origDimBatch = (int)batch->size();
     const auto trgEosId = trgVocab_->getEosId();
     const auto trgUnkId = trgVocab_->getUnkId();
 
-    auto getNBestList = createGetNBestListFn(beamSize_, dimBatch, graph->getDeviceId());
+    auto getNBestList = createGetNBestListFn(beamSize_, origDimBatch, graph->getDeviceId());
 
     for(auto scorer : scorers_) {
       scorer->clear(graph);
     }
 
-    Histories histories(dimBatch);
-    for(int i = 0; i < dimBatch; ++i) {
+    Histories histories(origDimBatch);
+    for(int i = 0; i < origDimBatch; ++i) {
       size_t sentId = batch->getSentenceIds()[i];
       histories[i] = New<History>(sentId,
                                   options_->get<float>("normalize"),
@@ -244,24 +282,30 @@ public:
       states.push_back(scorer->startState(graph, batch));
     }
 
-    // create one beam per batch entry with sentence-start hypothesis
-    Beams beams(dimBatch, Beam(beamSize_, Hypothesis::New())); // array [dimBatch] of array [localBeamSize] of Hypothesis
-
     const auto srcEosId = batch->front()->vocab()->getEosId();
-    for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
-      auto& beam = beams[batchIdx];
-      histories[batchIdx]->add(beam, trgEosId); // add beams with start-hypotheses to traceback grid
+    
+    // create one beam per batch entry with sentence-start hypothesis
+    Beams beams(origDimBatch, Beam(beamSize_, Hypothesis::New())); // array [origDimBatch] of array [maxBeamSize] of Hypothesis, keeps full size through search.
+                                                                   // batch purging is determined from an empty sub-beam.
+    std::vector<IndexType> batchIdxMap(origDimBatch); // Record at which batch entry a beam is looking. 
+                                                      // By default that corresponds to position in array, 
+                                                      // but shifts in the course of removing batch entries when they are finished.
+    for(int origBatchIdx = 0; origBatchIdx < origDimBatch; ++origBatchIdx) {
+      batchIdxMap[origBatchIdx] = origBatchIdx; // map to same position on initialization
+      auto& beam = beams[origBatchIdx];
+      histories[origBatchIdx]->add(beam, trgEosId); // add beams with start-hypotheses to traceback grid
 
       // Handle batch entries that consist only of source <EOS> i.e. these are empty lines
-      if(batch->front()->data()[batchIdx] == srcEosId) {
+      if(batch->front()->data()[origBatchIdx] == srcEosId) {
         // create a target <EOS> hypothesis that extends the start-hypothesis
         auto eosHyp = Hypothesis::New(/*prevHyp=*/    beam[0], 
                                       /*currWord=*/   trgEosId, 
                                       /*prevHypIdx=*/ 0, 
                                       /*pathScore=*/  0.f);
         auto eosBeam = Beam(beamSize_, eosHyp);      // create a dummy beam filled with <EOS>-hyps
-        histories[batchIdx]->add(eosBeam, trgEosId); // push dummy <EOS>-beam to traceback grid
-        beam.clear(); // zero out current beam, so it does not get used for further symbols as empty beams get omitted/dummy-filled everywhere
+        histories[origBatchIdx]->add(eosBeam, trgEosId); // push dummy <EOS>-beam to traceback grid
+        beam.clear(); // Zero out current beam, so it does not get used for further symbols as empty beams get omitted everywhere.
+                      // The corresponding neural states will be purged further down.
       }
     }
 
@@ -275,29 +319,30 @@ public:
     }
 
     // the decoding process updates the following state information in each output time step:
-    //  - beams: array [dimBatch] of array [localBeamSize] of Hypothesis
+    //  - beams: array [origDimBatch] of array [maxBeamSize] of Hypothesis
     //     - current output time step's set of active hypotheses, aka active search space
     //  - states[.]: ScorerState
     //     - NN state; one per scorer, e.g. 2 for ensemble of 2
     // and it forms the following return value
-    //  - histories: array [dimBatch] of History
-    //    with History: vector [t] of array [localBeamSize] of Hypothesis
+    //  - histories: array [origDimBatch] of History
+    //    with History: vector [t] of array [maxBeamSize] of Hypothesis
     //    with Hypothesis: (last word, aggregate score, prev Hypothesis)
 
+    IndexType currentDimBatch = origDimBatch;
+    auto prevBatchIdxMap = batchIdxMap; // [origBatchIdx -> currentBatchIdx] but shifted by one time step
     // main loop over output time steps
     for (size_t t = 0; ; t++) {
-      ABORT_IF(dimBatch != beams.size(), "Lost a batch entry??");
-
+      ABORT_IF(origDimBatch != beams.size(), "Lost a batch entry??");
       // determine beam size for next output time step, as max over still-active sentences
       // E.g. if all batch entries are down from beam 5 to no more than 4 surviving hyps, then
       // switch to beam of 4 for all. If all are done, then beam ends up being 0, and we are done.
-      size_t localBeamSize = 0; // @TODO: is there some std::algorithm for this?
+      size_t maxBeamSize = 0; // @TODO: is there some std::algorithm for this?
       for(auto& beam : beams)
-        if(beam.size() > localBeamSize)
-          localBeamSize = beam.size();
+        if(beam.size() > maxBeamSize)
+          maxBeamSize = beam.size();
 
       // done if all batch entries have reached EOS on all beam entries
-      if (localBeamSize == 0)
+      if (maxBeamSize == 0)
         break;
 
       for (size_t factorGroup = 0; factorGroup < numFactorGroups; factorGroup++) {
@@ -306,42 +351,70 @@ public:
         //**********************************************************************
         // create constant containing previous path scores for current beam
         // Also create mapping of hyp indices, for reordering the decoder-state tensors.
-        std::vector<IndexType> hypIndices; // [localBeamsize, 1, dimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
-        std::vector<Word> prevWords;       // [localBeamsize, 1, dimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
-        Expr prevPathScores;               // [localBeamSize, 1, dimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
+        std::vector<IndexType> batchIndices;    // [1,           1, currentDimBatch, 1] indices of currently used batch indices with regard to current, actual tensors
+        std::vector<IndexType> hypIndices;      // [maxBeamSize, 1, currentDimBatch, 1] (flattened) tensor index ((beamHypIdx, batchIdx), flattened) of prev hyp that a hyp originated from
+        std::vector<Word> prevWords;            // [maxBeamSize, 1, currentDimBatch, 1] (flattened) word that a hyp ended in, for advancing the decoder-model's history
+        Expr prevPathScores;                    // [maxBeamSize, 1, currentDimBatch, 1], path score that a hyp ended in (last axis will broadcast into vocab size when adding expandedPathScores)
+        
         bool anyCanExpand = false; // stays false if all hyps are invalid factor expansions
         if(t == 0 && factorGroup == 0) { // no scores yet
           prevPathScores = graph->constant({1, 1, 1, 1}, inits::fromValue(0));
           anyCanExpand = true;
+
+          // at the beginning all batch entries are used
+          batchIndices.resize(origDimBatch);
+          std::iota(batchIndices.begin(), batchIndices.end(), 0);
         } else {
+          if(factorGroup == 0)                                                              // only factorGroup==0 can subselect neural state
+            for(int currentBatchIdx = 0; currentBatchIdx < beams.size(); ++currentBatchIdx) // loop over batch entries (active sentences)
+              if(!beams[currentBatchIdx].empty() || !PURGE_BATCH)                           // for each beam check
+                batchIndices.push_back(prevBatchIdxMap[currentBatchIdx]);                   // which batch entries were active in previous step
+            
           std::vector<float> prevScores;
-          for(size_t beamHypIdx = 0; beamHypIdx < localBeamSize; ++beamHypIdx) {
-            for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) { // loop over batch entries (active sentences)
-              auto& beam = beams[batchIdx];
+          for(size_t beamHypIdx = 0; beamHypIdx < maxBeamSize; ++beamHypIdx) { // loop over globally maximal beam-size (maxBeamSize)
+            for(int origBatchIdx = 0; origBatchIdx < origDimBatch; ++origBatchIdx) { // loop over all batch entries (active and inactive)
+              auto& beam = beams[origBatchIdx];
               if(beamHypIdx < beam.size()) {
                 auto hyp = beam[beamHypIdx];
                 auto word = hyp->getWord();
                 auto canExpand = (!factoredVocab || factoredVocab->canExpandFactoredWord(hyp->getWord(), factorGroup));
                 //LOG(info, "[{}, {}] Can expand {} with {} -> {}", batchIdx, beamHypIdx, (*batch->back()->vocab())[hyp->getWord()], factorGroup, canExpand);
                 anyCanExpand |= canExpand;
-                hypIndices.push_back((IndexType)(hyp->getPrevStateIndex() * dimBatch + batchIdx)); // (beamHypIdx, batchIdx), flattened, for index_select() operation
+
+                auto currentBatchIdx = origBatchIdx;
+                if(PURGE_BATCH) {
+                  if(factorGroup == 0)
+                    currentBatchIdx = prevBatchIdxMap[origBatchIdx]; // subselection may happen for factorGroup == 0
+                  else
+                    currentBatchIdx = batchIdxMap[origBatchIdx];     // no subselection happens for factorGroup > 0, 
+                                                                     // but we treat it like a next step, since a step 
+                                                                     // happened for factorGroup == 0
+                }
+                  
+                auto hypIndex = (IndexType)(hyp->getPrevStateIndex() * currentDimBatch + currentBatchIdx); // (beamHypIdx, batchIdx), flattened, for index_select() operation
+
+                hypIndices.push_back(hypIndex); // (beamHypIdx, batchIdx), flattened as said above.
                 prevWords .push_back(word);
                 prevScores.push_back(canExpand ? hyp->getPathScore() : INVALID_PATH_SCORE);
-              } else {  // pad to localBeamSize (dummy hypothesis)
-                hypIndices.push_back(0);
-                prevWords.push_back(trgEosId);  // (unused, but must be valid)
-                prevScores.push_back((float)INVALID_PATH_SCORE);
+              } else {  // pad to maxBeamSize (dummy hypothesis)
+                if(!PURGE_BATCH || !beam.empty()) { // but only if we are not pruning and the beam is not deactivated yet
+                  hypIndices.push_back(0);
+                  prevWords.push_back(trgEosId);  // (unused, but must be valid)
+                  prevScores.push_back((float)INVALID_PATH_SCORE);
+                }
               }
             }
           }
-          prevPathScores = graph->constant({(int)localBeamSize, 1, dimBatch, 1}, inits::fromVector(prevScores));
+          if(factorGroup == 0) 
+            currentDimBatch = batchIndices.size(); // keep batch size constant for all factor groups in a time step
+          prevPathScores = graph->constant({(int)maxBeamSize, 1, (int)currentDimBatch, 1}, inits::fromVector(prevScores));
         }
         if (!anyCanExpand) // all words cannot expand this factor: skip
           continue;
 
         //**********************************************************************
         // compute expanded path scores with word prediction probs from all scorers
-        auto expandedPathScores = prevPathScores; // will become [localBeamSize, 1, dimBatch, dimVocab]
+        auto expandedPathScores = prevPathScores; // will become [maxBeamSize, 1, currDimBatch, dimVocab]
         Expr logProbs;
         for(size_t i = 0; i < scorers_.size(); ++i) {
           if (factorGroup == 0) {
@@ -356,15 +429,14 @@ public:
             //  LOG(info, "prevWords[{},{}]={} -> {}", t/numFactorGroups, factorGroup,
             //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
             //      prevScores[kk]);
-            states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, dimBatch, (int)localBeamSize);
+            states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, batchIndices, (int)maxBeamSize);
             if (numFactorGroups == 1) // @TODO: this branch can go away
-              logProbs = states[i]->getLogProbs().getLogits(); // [localBeamSize, 1, dimBatch, dimVocab]
+              logProbs = states[i]->getLogProbs().getLogits(); // [maxBeamSize, 1, currentDimBatch, dimVocab]
             else
             {
               auto shortlist = scorers_[i]->getShortlist();
-              logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, shortlist); // [localBeamSize, 1, dimBatch, dimVocab]
+              logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, shortlist); // [maxBeamSize, 1, currentDimBatch, dimVocab]
             }
-            //logProbs->debug("logProbs");
           }
           else {
             // add secondary factors
@@ -376,14 +448,14 @@ public:
             // and push out other hypotheses. Hence, we exclude those here by setting the path score to
             // INVALID_PATH_SCORE. Instead, toHyps() explicitly propagates those hyps by simply copying the
             // previous hypothesis.
-            logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, /*shortlist=*/ nullptr, hypIndices, localBeamSize); // [localBeamSize, 1, dimBatch, dimVocab]
+            logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, /*shortlist=*/ nullptr, hypIndices, maxBeamSize); // [maxBeamSize, 1, currentDimBatch, dimVocab]
           }
-          // expand all hypotheses, [localBeamSize, 1, dimBatch, 1] -> [localBeamSize, 1, dimBatch, dimVocab]
+          // expand all hypotheses, [maxBeamSize, 1, currentDimBatch, 1] -> [maxBeamSize, 1, currentDimBatch, dimVocab]
           expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
         }
 
         // make beams continuous
-        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [dimBatch, 1, localBeamSize, dimVocab]
+        expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [currentDimBatch, 1, maxBeamSize, dimVocab]
 
         // perform NN computation
         if(t == 0 && factorGroup == 0)
@@ -393,7 +465,6 @@ public:
 
         //**********************************************************************
         // suppress specific symbols if not at right positions
-
         if(unkColId != -1 && factorGroup == 0)
           suppressWord(expandedPathScores, unkColId);
         for(auto state : states)
@@ -402,11 +473,11 @@ public:
         //**********************************************************************
         // perform beam search
 
-        // find N best amongst the (localBeamSize * dimVocab) hypotheses
-        std::vector<unsigned int> nBestKeys; // [dimBatch, localBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
-        std::vector<float> nBestPathScores;  // [dimBatch, localBeamSize] flattened
-        getNBestList(/*in*/ expandedPathScores->val(), // [dimBatch, 1, localBeamSize, dimVocab or dimShortlist]
-                    /*N=*/localBeamSize,              // desired beam size
+        // find N best amongst the (maxBeamSize * dimVocab) hypotheses
+        std::vector<unsigned int> nBestKeys; // [currentDimBatch, maxBeamSize] flattened -> (batchIdx, beamHypIdx, word idx) flattened
+        std::vector<float> nBestPathScores;  // [currentDimBatch, maxBeamSize] flattened
+        getNBestList(/*in*/ expandedPathScores->val(), // [currentDimBatch, 1, maxBeamSize, dimVocab or dimShortlist]
+                    /*N=*/ maxBeamSize,              // desired beam size
                     /*out*/ nBestPathScores, /*out*/ nBestKeys,
                     /*first=*/t == 0 && factorGroup == 0); // @TODO: this is only used for checking presently, and should be removed altogether
         // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
@@ -414,26 +485,30 @@ public:
 
         // combine N-best sets with existing search space (beams) to updated search space
         beams = toHyps(nBestKeys, nBestPathScores,
-                      /*nBestBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
-                      /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
-                      beams,
-                      states,    // used for keeping track of per-ensemble-member path score
-                      batch,     // only used for propagating alignment info
-                      factoredVocab, factorGroup);
+                       /*nBestBeamSize*/expandedPathScores->shape()[-2], // used for interpretation of keys
+                       /*vocabSize=*/expandedPathScores->shape()[-1],    // used for interpretation of keys
+                       beams,
+                       states,    // used for keeping track of per-ensemble-member path score
+                       batch,     // only used for propagating alignment info
+                       factoredVocab, factorGroup, 
+                       batchIdxMap); // used to create a reverse batch index map to recover original batch indices for this step
       } // END FOR factorGroup = 0 .. numFactorGroups-1
+
+      prevBatchIdxMap = batchIdxMap; // save current batchIdx map to be used in next step; we are then going to look one step back
 
       // remove all hyps that end in EOS
       // The position of a hyp in the beam may change.
-      const auto purgedNewBeams = purgeBeams(beams);
+      // in/out = shifts the batch index map if a beam gets fully purged
+      const auto purgedNewBeams = purgeBeams(beams, /*in/out=*/batchIdxMap);
 
       // add updated search space (beams) to our return value
       bool maxLengthReached = false;
-      for(int i = 0; i < dimBatch; ++i) {
+      for(int batchIdx = 0; batchIdx < origDimBatch; ++batchIdx) {
         // if this batch entry has surviving hyps then add them to the traceback grid
-        if(!beams[i].empty()) {
-          if (histories[i]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
+        if(!beams[batchIdx].empty()) { // if the beam is not empty expand the history object associated with the beam
+          if (histories[batchIdx]->size() >= options_->get<float>("max-length-factor") * batch->front()->batchWidth())
             maxLengthReached = true;
-          histories[i]->add(beams[i], trgEosId, purgedNewBeams[i].empty() || maxLengthReached);
+          histories[batchIdx]->add(beams[batchIdx], trgEosId, purgedNewBeams[batchIdx].empty() || maxLengthReached);
         }
       }
       if (maxLengthReached) // early exit if max length limit was reached
@@ -443,7 +518,7 @@ public:
       beams = purgedNewBeams;
     } // end of main loop over output time steps
 
-    return histories; // [dimBatch][t][N best hyps]
+    return histories; // [origDimBatch][t][N best hyps]
   }
 };
 }  // namespace marian
