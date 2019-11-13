@@ -531,7 +531,7 @@ public:
       auto defaultParams = std::dynamic_pointer_cast<MappedParameters>(it->second);
       if(!defaultParams) {
         // but it's not mapped, so delete it and replace it with a mapped version
-        auto defaultParams = New<MappedParameters>(defaultElementType_);
+        defaultParams = New<MappedParameters>(defaultElementType_);
         defaultParams->init(backend_);
         paramsByElementType_[defaultElementType_] = defaultParams;
       }
@@ -540,8 +540,8 @@ public:
 
     // pre-populate parameters by type
     for(auto& item : items) {
-      auto it = paramsByElementType_.find(item.type);
-      if(it == paramsByElementType_.end()) {
+      auto it1 = paramsByElementType_.find(item.type);
+      if(it1 == paramsByElementType_.end()) {
         auto params = New<MappedParameters>(item.type);
         params->init(backend_);
         paramsByElementType_.insert({item.type, params});

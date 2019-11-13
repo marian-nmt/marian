@@ -586,6 +586,10 @@
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ifstream.cpp" />
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ofstream.cpp" />
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\temp.cpp" />
+    <ClCompile Include="..\src\3rd_party\phf\phf.cc">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model.cc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -962,6 +966,7 @@
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ifstream.hpp" />
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ofstream.hpp" />
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\temp.hpp" />
+    <ClInclude Include="..\src\3rd_party\phf\phf.h" />
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1094,6 +1099,7 @@
     <ClCompile Include="..\src\common\cli_helper.cpp" />
     <ClCompile Include="..\src\common\cli_wrapper.cpp" />
     <ClCompile Include="..\src\common\config_validator.cpp" />
+    <ClCompile Include="..\src\common\fastopt.cpp" />
     <ClCompile Include="..\src\common\filesystem.cpp" />
     <ClCompile Include="..\src\common\file_stream.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
@@ -1251,6 +1257,7 @@
     <ClInclude Include="..\src\common\cli_helper.h" />
     <ClInclude Include="..\src\common\cli_wrapper.h" />
     <ClInclude Include="..\src\common\config_validator.h" />
+    <ClInclude Include="..\src\common\fastopt.h" />
     <ClInclude Include="..\src\common\filesystem.h" />
     <ClInclude Include="..\src\common\hash.h" />
     <ClInclude Include="..\src\common\io.h" />

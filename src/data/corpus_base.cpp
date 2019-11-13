@@ -84,19 +84,19 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
                 "Vocabularies will be built separately for each file.");
 
       std::vector<int> vocabDims(paths_.size(), 0);
-      std::vector<std::string> vocabPaths(paths_.size());
+      std::vector<std::string> vocabPaths1(paths_.size());
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
         std::vector<std::string> trainPaths = { paths_[i] };
-        vocabDims[i] = vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
-        vocabPaths[i] = paths_[i] + ".yml";
+        vocabDims[i] = (int) vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
+        vocabPaths1[i] = paths_[i] + ".yml";
         vocabs_.emplace_back(vocab);
       }
       // TODO: this is not nice as it modifies the option object and needs to expose the changes
       // outside the corpus as models need to know about the vocabulary size; extract the vocab
       // creation functionality from the class.
-      options_->set("dim-vocabs", vocabDims, "vocabs", vocabPaths);
+      options_->set("dim-vocabs", vocabDims, "vocabs", vocabPaths1);
     } else {
       // Load all vocabs
       size_t numVocs = vocabPaths.size();
@@ -128,7 +128,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         // it wild not be created again, but just correctly loaded.
         auto pathsAndSize = groupVocab[vocabPaths[i]];
         std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
-        vocabDims[i] = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
+        vocabDims[i] = (int) vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
         vocabs_.emplace_back(vocab);
       }
       // TODO: this is not nice as it modifies the option object and needs to expose the changes
@@ -150,7 +150,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     vocabDims.resize(numVocs, 0);
     for(size_t i = 0; i + 1 < numVocs; ++i) {
       Ptr<Vocab> vocab = New<Vocab>(options_, i);
-      vocabDims[i] = vocab->load(vocabPaths[i], maxVocabs[i]);
+      vocabDims[i] = (int) vocab->load(vocabPaths[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
     }
     // TODO: As above, this is not nice as it modifies the option object and needs to expose the changes
