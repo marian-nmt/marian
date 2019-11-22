@@ -74,7 +74,7 @@ public:
         shared_(shared)
         { }
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override {
     auto srcBatch = (*batch)[srcIdx_];
     auto trgBatch = (*batch)[trgIdx_];
 
@@ -93,8 +93,10 @@ public:
         indexSet.insert(i.toWordIndex());
 
     std::uniform_int_distribution<> dis((int)firstNum_, (int)maxVocab_);
+    if (gen_ == NULL)
+      gen_.reset(new std::mt19937(std::random_device{}()));
     while(indexSet.size() < total_ && indexSet.size() < maxVocab_)
-      indexSet.insert(dis(gen_));
+      indexSet.insert(dis(*gen_));
 
     // turn into vector and sort (selected indices)
     std::vector<WordIndex> idx(indexSet.begin(), indexSet.end());
