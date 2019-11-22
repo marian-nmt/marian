@@ -117,7 +117,7 @@ private:
   size_t width_;
   size_t words_;
 
-  Ptr<Vocab> vocab_;
+  Ptr<const Vocab> vocab_;
   // ... TODO: add the length information (remember it)
 
 public:
@@ -127,7 +127,7 @@ public:
    * @param size Number of sentences
    * @param width Number of words in the longest sentence
    */
-  SubBatch(size_t size, size_t width, const Ptr<Vocab>& vocab)
+  SubBatch(size_t size, size_t width, const Ptr<const Vocab>& vocab)
       : indices_(size * width, vocab ? vocab->getEosId() : Word::ZERO), // note: for gaps, we must use a valid index
         mask_(size * width, 0),
         size_(size),
@@ -153,7 +153,7 @@ public:
   /**
    * @brief Accessors to the vocab_ field.
    */
-  const Ptr<Vocab>& vocab() const { return vocab_; }
+  const Ptr<const Vocab>& vocab() const { return vocab_; }
 
   /**
    * @brief The number of sentences in the batch.
@@ -461,7 +461,7 @@ public:
   /**
    * @brief Prints the batch in a readable form on stderr for debugging.
    */
-  void debug(bool printIndices = false) override { // prints word string if subbatch has vocab and 
+  void debug(bool printIndices = false) override { // prints word string if subbatch has vocab and
                                                    // printIndices == false otherwise only numeric indices
     std::cerr << "batches: " << sets() << std::endl;
 

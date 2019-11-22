@@ -23,7 +23,7 @@ public:
 
   const std::vector<WordIndex>& indices() const { return indices_; }
   WordIndex reverseMap(int idx) { return indices_[idx]; }
-  
+
   int tryForwardMap(WordIndex wIdx) {
     auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
     if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
@@ -36,11 +36,11 @@ public:
 
 class ShortlistGenerator {
 public:
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) = 0;
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const = 0;
 
   // Writes text version of (possibly) pruned short list to file
   // with given prefix and implementation-specific suffixes.
-  virtual void dump(const std::string& /*prefix*/) {
+  virtual void dump(const std::string& /*prefix*/) const {
     ABORT("Not implemented");
   }
 };
@@ -60,8 +60,8 @@ private:
   size_t trgIdx_;
   bool shared_{false};
 
-  std::random_device rd_;
-  std::mt19937 gen_;
+  // static thread_local std::random_device rd_;
+  static thread_local std::unique_ptr<std::mt19937> gen_;
 
 public:
   SampledShortlistGenerator(Ptr<Options> options,
@@ -71,8 +71,8 @@ public:
       : options_(options),
         srcIdx_(srcIdx),
         trgIdx_(trgIdx),
-        shared_(shared),
-        gen_(rd_()) {}
+        shared_(shared)
+        { }
 
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
     auto srcBatch = (*batch)[srcIdx_];
@@ -123,8 +123,8 @@ public:
 class LexicalShortlistGenerator : public ShortlistGenerator {
 private:
   Ptr<Options> options_;
-  Ptr<Vocab> srcVocab_;
-  Ptr<Vocab> trgVocab_;
+  Ptr<const Vocab> srcVocab_;
+  Ptr<const Vocab> trgVocab_;
 
   size_t srcIdx_;
   size_t trgIdx_;
@@ -178,8 +178,8 @@ private:
 
 public:
   LexicalShortlistGenerator(Ptr<Options> options,
-                            Ptr<Vocab> srcVocab,
-                            Ptr<Vocab> trgVocab,
+                            Ptr<const Vocab> srcVocab,
+                            Ptr<const Vocab> trgVocab,
                             size_t srcIdx = 0,
                             size_t trgIdx = 1,
                             bool shared = false)
@@ -206,6 +206,7 @@ public:
         bestNum_,
         threshold);
 
+    // @TODO: Load and prune in one go.
     load(fname);
     prune(threshold);
 
@@ -213,7 +214,7 @@ public:
       dump(dumpPath);
   }
 
-  virtual void dump(const std::string& prefix) override {
+  virtual void dump(const std::string& prefix) const override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
@@ -230,7 +231,7 @@ public:
     }
   }
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override {
     auto srcBatch = (*batch)[srcIdx_];
     // auto trgBatch = (*batch)[trgIdx_];
 
@@ -274,7 +275,7 @@ public:
     std::sort(indices_.begin(), indices_.end());
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) const override {
     return New<Shortlist>(indices_);
   }
 };

@@ -13,7 +13,7 @@ namespace marian {
 
 class OutputPrinter {
 public:
-  OutputPrinter(Ptr<Options> options, Ptr<Vocab> vocab)
+  OutputPrinter(Ptr<const Options> options, Ptr<const Vocab> vocab)
       : vocab_(vocab),
         reverse_(options->get<bool>("right-left")),
         nbest_(options->get<bool>("n-best", false)
@@ -23,7 +23,7 @@ public:
         alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
 
   template <class OStream>
-  void print(Ptr<History> history, OStream& best1, OStream& bestn) {
+  void print(Ptr<const History> history, OStream& best1, OStream& bestn) {
     const auto& nbl = history->nBest(nbest_);
 
     for(size_t i = 0; i < nbl.size(); ++i) {
@@ -76,7 +76,7 @@ public:
   }
 
 private:
-  Ptr<Vocab> vocab_;
+  Ptr<Vocab const> vocab_;
   bool reverse_{false};
   size_t nbest_{0};
   std::string alignment_;

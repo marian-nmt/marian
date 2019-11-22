@@ -41,7 +41,7 @@ public:
 
   virtual void init(Ptr<ExpressionGraph>) {}
 
-  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> /*shortlistGenerator*/){};
+  virtual void setShortlistGenerator(Ptr<const data::ShortlistGenerator> /*shortlistGenerator*/){};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
 
   virtual std::vector<float> getAlignment() { return {}; };
@@ -120,7 +120,7 @@ public:
   }
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator) override {
+      Ptr<const data::ShortlistGenerator> shortlistGenerator) override {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 
