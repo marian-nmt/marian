@@ -33,7 +33,7 @@ private:
 
   Ptr<data::Corpus> corpus_;
   Ptr<Vocab> trgVocab_;
-  Ptr<data::ShortlistGenerator> shortlistGenerator_;
+  Ptr<const data::ShortlistGenerator> shortlistGenerator_;
 
   size_t numDevices_;
 
@@ -42,12 +42,12 @@ private:
 #endif
 
 public:
-  Translate(Ptr<Options> options) 
+  Translate(Ptr<Options> options)
     : options_(New<Options>(options->clone())) { // @TODO: clone should return Ptr<Options> same as "with"?
     // This is currently safe as the translator is either created stand-alone or
     // or config is created anew from Options in the validator
 
-    options_->set("inference", true, 
+    options_->set("inference", true,
                   "shuffle", "none");
 
     corpus_ = New<data::Corpus>(options_, true);
@@ -72,7 +72,7 @@ public:
     auto models = options->get<std::vector<std::string>>("models");
     for(auto model : models) {
       marian::filesystem::Path modelPath(model);
-      ABORT_IF(modelPath.extension() != marian::filesystem::Path(".bin"), 
+      ABORT_IF(modelPath.extension() != marian::filesystem::Path(".bin"),
               "Non-binarized models cannot be mmapped");
       mmaps_.push_back(std::move(mio::mmap_source(model)));
     }
@@ -94,7 +94,7 @@ public:
 
 #if MMAP
         auto scorers = createScorers(options_, mmaps_);
-#else 
+#else
         auto scorers = createScorers(options_);
 #endif
         for(auto scorer : scorers) {
@@ -181,7 +181,7 @@ private:
 public:
   virtual ~TranslateService() {}
 
-  TranslateService(Ptr<Options> options) 
+  TranslateService(Ptr<Options> options)
     : options_(New<Options>(options->clone())) {
     // initialize vocabs
     options_->set("inference", true);
@@ -206,7 +206,7 @@ public:
     // initialize scorers
     for(auto device : devices) {
       auto graph = New<ExpressionGraph>(true);
-      
+
       auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
       graph->setDefaultElementType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
       graph->setDevice(device);

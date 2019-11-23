@@ -50,7 +50,7 @@ public:
   virtual Ptr<Options> getOptions() = 0;
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator)
+      Ptr<const data::ShortlistGenerator> shortlistGenerator)
       = 0;
 
   virtual Ptr<data::Shortlist> getShortlist() = 0;
@@ -60,7 +60,7 @@ public:
 
 class EncoderDecoder : public IEncoderDecoder, public LayerBase {
 protected:
-  Ptr<data::ShortlistGenerator> shortlistGenerator_;
+  Ptr<const data::ShortlistGenerator> shortlistGenerator_;
 
   const std::string prefix_;
   const bool inference_{ false };
@@ -120,7 +120,7 @@ public:
   }
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator) override {
+      Ptr<const data::ShortlistGenerator> shortlistGenerator) override {
     shortlistGenerator_ = shortlistGenerator;
   };
 
