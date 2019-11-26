@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Fixed multiple reduction kernels on GPU
 - Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
   due to thread-non-safty of reference counting.
 - Make sure that items are 256-byte aligned during saving
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Dropped support for CUDA 8.0, CUDA 9.0 is now minimal requirement
 - Removed autotuner for now, will be switched back on later
 - Boost depdendency is now optional and only required for marian_server 
 - Dropped support for g++-4.9
