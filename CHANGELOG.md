@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fixed multiple reduction kernels on GPU
+- Fixed guided-alignment training with cross-entropy
 - Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
   due to thread-non-safty of reference counting.
 - Make sure that items are 256-byte aligned during saving
