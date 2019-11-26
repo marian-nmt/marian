@@ -794,7 +794,7 @@ TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]")
 #ifdef CUDA_FOUND
 
 TEST_CASE("Compare aggregate operator", "[graph]") {
-  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y).epsilon(0.001); };
+  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y).epsilon(0.01); };
   
   Config::seed = 1234;
 
