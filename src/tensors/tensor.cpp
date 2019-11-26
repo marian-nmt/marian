@@ -28,17 +28,19 @@ std::string TensorBase::debug(int precision, int dispCols) {
   else
     strm << std::fixed << std::setprecision(0) << std::setfill(' ');
 
-  // double maxv = std::numeric_limits<double>::lowest();
-  // double minv = std::numeric_limits<double>::max();
-  // double l2Norm = 0.0;
+  double maxv = std::numeric_limits<double>::lowest();
+  double minv = std::numeric_limits<double>::max();
+  double l2Sum = 0.0;
+  for(int i = 0; i < values.size(); ++i) {
+    if((double)values[i] > maxv) maxv = values[i];
+    if((double)values[i] < minv) minv = values[i];
+    l2Sum += (double)values[i] * (double)values[i];
+  }
+  strm << "min: " << minv << " max: " << maxv << " l2-norm: " << sqrt(l2Sum) << std::endl;
 
   for(int i = 0; i < values.size(); ++i) {
     std::vector<int> dims;
     shape().dims(i, dims);
-
-    // if((double)values[i] > maxv) maxv = values[i];
-    // if((double)values[i] < minv) minv = values[i];
-    // l2Norm += (double)values[i] * (double)values[i];
 
     bool disp = true;
     for(int j = 0; j < dims.size(); ++j)
@@ -95,8 +97,6 @@ std::string TensorBase::debug(int precision, int dispCols) {
     }
   }
   strm << std::endl;
-  //strm << "min: " << minv << " max: " << maxv << " l2-norm: " << sqrt(l2Norm);
-
   return strm.str();
 }
 

@@ -355,35 +355,51 @@ Expr slice(Expr a, int axis, Slice slice) { // numpy __getslice__ semantics, but
 }
 
 Expr sum(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, sum of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::sum);
 }
 
 Expr mean(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, mean of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::mean);
 }
 
 Expr std(Expr a, int ax) {
-  return Expression<ReduceNodeOp>(a - mean(a,ax), ax, ReduceNodeOpCode::rms);
+  if(a->shape()[ax] == 1) // nothing to reduce, std(a) = 0
+    return a - a;
+  return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::rms);
 }
 
-Expr var(Expr a, int ax) {
+Expr var(Expr a, int ax) { 
+  if(a->shape()[ax] == 1) // nothing to reduce, var(a) = 0
+    return a - a;
   return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::meanSqr);
 }
 
 Expr max(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, max of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::max);
 }
 
 Expr min(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, min of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::min);
 }
 
 Expr prod(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, prod of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::prod);
 }
 
 // log(sum(exp(a)))
 Expr logsumexp(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, log(sum(exp(a))) = log(exp(a)) = a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::logSumExp);
 }
 

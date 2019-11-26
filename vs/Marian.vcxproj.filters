@@ -733,6 +733,12 @@
     <ClCompile Include="..\src\common\types.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\fastopt.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\phf\phf.cc">
+      <Filter>3rd_party\phf</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2050,6 +2056,12 @@
     <ClInclude Include="..\src\graph\expression_graph_packable.h">
       <Filter>graph</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common\fastopt.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\phf\phf.h">
+      <Filter>3rd_party\phf</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2282,6 +2294,9 @@
     </Filter>
     <Filter Include="3rd_party\half_float">
       <UniqueIdentifier>{defd3aec-3c56-4d70-a4bb-90ba9003d98d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\phf">
+      <UniqueIdentifier>{352ac0e9-daed-437a-bc36-fb85ecd037eb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

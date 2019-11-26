@@ -1,5 +1,3 @@
-//#include <thrust/transform_reduce.h>
-
 #include "common/types.h"
 #include "tensors/tensor_operators.h"
 
@@ -9,7 +7,7 @@
 #include "tensors/gpu/backend.h"
 #include "tensors/gpu/cuda_helpers.h"
 
-#include "3rd_party/reduce_all.h"
+#include "tensors/gpu/add_all.h"
 
 namespace marian {
 
@@ -588,6 +586,8 @@ __global__ void gSoftmax(T* out,
 
       // determine max (used below to improve numeric stability)
       T* _max = _share;
+      
+      // @TODO: what's going on here with fp16?
       _max[threadIdx.x] = -CUDA_FLT_MAX;  // mask
       // find max over column indices that have the same relative column index (=threadIdx.x) across all blocks of columns
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -1661,53 +1661,27 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) 
   }
 }
 
-float L2Norm(Tensor in, Ptr<Allocator> allocator) {
+// computes the L2Norm of tensor and returns value as flaot on the CPU, 
+// this is mostly used for diagnostic purposes and gradient clipping
+float L2Norm(Tensor in, Ptr<Allocator> allocator) { // @TODO: reverse order of arguments
   cudaSetDevice(in->getDeviceId().no);
 
   int size = in->shape().elements();
   int threads = std::min(MAX_THREADS, size);
-  int blocks = std::min(MAX_BLOCKS, size / threads + (size % threads != 0));
+  int blocks  = std::min(MAX_BLOCKS, size / threads + (size % threads != 0));
 
-  if(allocator) {
-    auto memoryPiece = allocator->alloc<float>(blocks);
-    auto blockMem = TensorBase::New(memoryPiece, Shape({1, blocks}), Type::float32, in->getBackend());
-
-    using namespace functional;
-    if(in->type() == Type::float32) {
-      ReduceAll<float, float>(_1 * _1, blockMem, in);
+  using namespace functional;
+  float l2Norm;
+  if(in->type() == Type::float32) {
+    l2Norm = std::sqrt(AggregateAllAndReturn</*ElementType=*/float, /*AccType=*/float>(allocator, /*functor=*/_1 * _1, /*aggInit=*/0.f, /*aggFunctor=*/_1 + _2, /*scale=*/1.f, in));
 #if COMPILE_FP16
-    } else if(in->type() == Type::float16) {
-      ReduceAll<half, float>(_1 * _1, blockMem, in);
+  } else if(in->type() == Type::float16) {
+    l2Norm = std::sqrt(AggregateAllAndReturn</*ElementType=*/half, /*AccType=*/float>(allocator, /*functor=*/_1 * _1, /*aggInit=*/0.f, /*aggFunctor=*/_1 + _2, /*scale=*/1.f, in));
 #endif
-    } else {
-      ABORT("L2Norm not implemented for type {}", in->type());
-    }
-    float dataCpu = sqrtf(blockMem->get<float>(0));
-    allocator->free(memoryPiece);
-    return dataCpu;
-  } else { // @TODO: this branch is to be removed with next PR, old version
-    uint8_t* data;
-    cudaMalloc(&data, blocks * sizeof(float));
-    Tensor out(TensorBase::New(MemoryPiece::New(data, blocks * sizeof(float)),
-                               Shape({1, blocks}),
-                               Type::float32,
-                               in->getBackend()));
- 
-    using namespace functional;
-    if(in->type() == Type::float32) {
-      ReduceAll<float, float>(_1 * _1, out, in);
-#if COMPILE_FP16
-    } else if(in->type() == Type::float16) {
-      ReduceAll<half, float>(_1 * _1, out, in);
-#endif
-    } else {
-      ABORT("L2Norm not implemented for type {}", in->type());
-    }
-    float dataCpu = sqrtf(out->get<float>(0));
-    out.reset();
-    cudaFree(data);
-    return dataCpu;
+  } else {
+    ABORT("L2Norm not implemented for type {}", in->type());
   }
+  return l2Norm;
 }
 
 template <typename T, typename AccType = float>
@@ -1761,22 +1735,22 @@ __global__ void gAtt(T* out,
 void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   cudaSetDevice(out->getDeviceId().no);
 
-  size_t m = out->shape().elements() / out->shape().back();
-  size_t k = context->shape()[-1];
-  size_t b = context->shape()[-2];
-  size_t t = context->shape()[-3];
+  size_t totalRows       = out->shape().elements() / out->shape().back(); // number of rows
+  size_t modelDim        = context->shape()[-1];                          // number of cols
+  size_t batchDim        = context->shape()[-2];
+  size_t contextWordsDim = context->shape()[-3];
 
-  int blocks = std::min(MAX_BLOCKS, (int)m);
-  int threads = std::min(MAX_THREADS, (int)k);
+  int blocks = std::min(MAX_BLOCKS, (int)totalRows);   
+  int threads = std::min(MAX_THREADS, (int)modelDim);
   int shared = sizeof(float) * threads;
 
   if(out->type() == Type::float32) {
     gAtt<float, float><<<blocks, threads, shared>>>(
-      out->data<float>(), va->data<float>(), context->data<float>(), state->data<float>(), m, k, b, t);
+      out->data<float>(), va->data<float>(), context->data<float>(), state->data<float>(), totalRows, modelDim, batchDim, contextWordsDim);
 #if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gAtt<half, float><<<blocks, threads, shared>>>(
-      out->data<half>(), va->data<half>(), context->data<half>(), state->data<half>(), m, k, b, t);
+      out->data<half>(), va->data<half>(), context->data<half>(), state->data<half>(), totalRows, modelDim, batchDim, contextWordsDim);
 #endif
   } else {
     ABORT("gAtt not implemented for type {}", out->type());
@@ -2005,10 +1979,10 @@ __global__ void gLayerNormalizationGrad(T* gradX,
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      AccType* sum_adj   = shared;
-      AccType* sum_adj_x = shared +     blockDim.x;
-      AccType* sum_x     = shared + 2 * blockDim.x;
-      AccType* sum_sqr   = shared + 3 * blockDim.x;
+      AccType* sum_adj   = shared;                   // sum of gradient coming in
+      AccType* sum_adj_l = shared +     blockDim.x;  // sum of gradient coming in times layerNorm from value
+      AccType* sum_x     = shared + 2 * blockDim.x;  // sum of input value x
+      AccType* sum_sqr   = shared + 3 * blockDim.x;  // sum of (x - mean)^2
 
       const T* xRow   =   x + j * cols;
       const T* yRow   =   y + j * cols;
@@ -2016,7 +1990,7 @@ __global__ void gLayerNormalizationGrad(T* gradX,
 
       sum_x[threadIdx.x]     = (AccType)0.0f;
       sum_adj[threadIdx.x]   = (AccType)0.0f;
-      sum_adj_x[threadIdx.x] = (AccType)0.0f;
+      sum_adj_l[threadIdx.x] = (AccType)0.0f;
       sum_sqr[threadIdx.x]   = (AccType)0.0f;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -2030,7 +2004,7 @@ __global__ void gLayerNormalizationGrad(T* gradX,
           AccType lv     = (yv - betav) / (gammav + eps); // go back to LN(x) from scaled and shifted version for accumulation
 
           sum_x[threadIdx.x]     += xv;
-          sum_adj_x[threadIdx.x] += adjv * lv;
+          sum_adj_l[threadIdx.x] += adjv * lv;
           sum_adj[threadIdx.x]   += adjv;
         }
       }
@@ -2042,7 +2016,7 @@ __global__ void gLayerNormalizationGrad(T* gradX,
         if(threadIdx.x < (len >> 1)) {
           sum_x[threadIdx.x]     += sum_x[threadIdx.x     + skip]; // Accumulates in AccType
           sum_adj[threadIdx.x]   += sum_adj[threadIdx.x   + skip]; // Accumulates in AccType
-          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip]; // Accumulates in AccType
+          sum_adj_l[threadIdx.x] += sum_adj_l[threadIdx.x + skip]; // Accumulates in AccType
         }
         len = (len + 1) >> 1;
       }
@@ -2074,28 +2048,27 @@ __global__ void gLayerNormalizationGrad(T* gradX,
 
       // Jacobian of layer norm
       // J = [ \frac{1}{N\sigma} (N\delta_{ij} - l_i l_j - 1) ]_{ij}
-      // J * a = dC/dx_i = ( N v_i - l_i \sum_j l_j a_j - \sum_j a_j ) / (N \sigma)
+      // J * a = dC/dx_i = ( N a_i - l_i \sum_j l_j a_j - \sum_j a_j ) / (N \sigma)
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
 
           AccType xv     = xRow[id];
-          //AccType yv     = yRow[id];
-          //AccType betav  = beta ? (AccType)beta[id] : (AccType)0.f;
           AccType gammav = (AccType)gamma[id];
           AccType adjv   = adjRow[id];
           AccType lv     = (xv - mean) / (sigma + eps);
 
-          AccType gradLv = N * adjv - lv * sum_adj_x[0] - sum_adj[0];
+          AccType gradLv = N * adjv - lv * sum_adj_l[0] - sum_adj[0];
           gradLv        /= N * (sigma + eps); // eps has to be inside parentheses for correct gradient
 
           AccType gradXv = gammav * gradLv;
 
-          // Keep LN gradient between [-10, 10]
-          // AccType sign = functional::Ops<AccType>::sgn(gradXv);
-          // AccType cutoff = (AccType)10.f;
-          // gradXv = functional::Ops<AccType>::abs(gradXv) > cutoff ? sign * cutoff : gradXv;
+          // Keep LN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. @TODO: to be fixed and removed.
+          AccType sign = functional::Ops<AccType>::sgn(gradXv);
+          AccType cutoff = (AccType)1000.f; // @TODO: expose this somehow as an option?
+                                            // or better: make obsolete.
+          gradXv = functional::Ops<AccType>::abs(gradXv) > cutoff ? sign * cutoff : gradXv;
 
           T* gradXRow      = gradX     + j * cols;
           gradXRow[id]    += (T)(gradXv);

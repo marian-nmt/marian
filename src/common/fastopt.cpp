@@ -23,7 +23,7 @@ struct Convert {
 // specialization for translating from string, @TODO check if this is required at all, mostly for compilation now.
 template <typename To>
 struct Convert<To, std::string> { 
-  static inline To apply(const std::string& from) { 
+  static inline To apply(const std::string& /* from */) { 
     ABORT("Not implemented");
   }
 };
@@ -84,7 +84,10 @@ std::vector<T> As<std::vector<T>>::apply(const FastOpt& node) {
 // specializations for simple vector types
 template struct As<std::vector<bool>>;
 template struct As<std::vector<int>>;
-template struct As<std::vector<unsigned long>>;
+// Windows and Unix based OS have different type definitions for 'unsigned long'.
+// So, we need an explicit definition for uint64_t. Otherwise, there's a linking error on windows.
+// https://software.intel.com/en-us/articles/size-of-long-integer-type-on-different-architecture-and-os/
+template struct As<std::vector<uint64_t>>;
 template struct As<std::vector<float>>;
 template struct As<std::vector<double>>;
 template struct As<std::vector<std::string>>;

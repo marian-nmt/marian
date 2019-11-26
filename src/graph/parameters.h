@@ -130,8 +130,8 @@ private:
   Ptr<Backend> backend_;
 
 public:
-  MappedParameters(Type acceptedElementType_) : Parameters(acceptedElementType_) {
-    LOG(debug, "Created mapped parameter object of type {}", acceptedElementType_);
+  MappedParameters(Type acceptedElementType) : Parameters(acceptedElementType) {
+    LOG(debug, "Created mapped parameter object of type {}", acceptedElementType);
   }
 
   virtual void init(Ptr<Backend> backend) override { backend_ = backend; }

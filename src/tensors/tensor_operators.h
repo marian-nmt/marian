@@ -54,12 +54,12 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     gpu::Add(functor, scale, out, tensors...);
   else
 #endif
-    cpu::Aggregate(functor, 0.0f, functional::_1 + functional::_2, scale, out, tensors...);
+    cpu::Aggregate(functor, /*aggInit=*/0.0f, functional::_1 + functional::_2, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Add(Functor functor, marian::Tensor out, Tensors... tensors) {
-  Add(functor, 1, out, tensors...);
+  Add(functor, /*scale=*/1.f, out, tensors...);
 }
 
 template <class Functor, class AggFunctor, class... Tensors>

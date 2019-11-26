@@ -196,7 +196,7 @@ if(USE_STATIC_LIBS)
   endif()
 endif()
 
-find_package(CUDA "8.0") # TODO: only enable FP16-related options for compute_70 and higher.
+find_package(CUDA "9.0") # TODO: only enable FP16-related options for compute_70 and higher.
 if(CUDA_FOUND)
   # CUDA >= 10.0 requires CMake >= 3.12.2
   if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))

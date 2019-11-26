@@ -235,7 +235,7 @@ public:
 
       if(PURGE_BATCH)
         if(newBeam.empty() && !beam.empty()) {      // previous beam had hyps, but all were finished in this step, newBeam will now stay empty
-          for(int i = beamIdx + 1; i < beams.size(); ++i) // for all entries above this beam
+          for(size_t i = beamIdx + 1; i < beams.size(); ++i) // for all entries above this beam
             batchIdxMap[i] = batchIdxMap[i] - 1;  // make them look at one batch index below, as the current entry will be removed from the batch.
       }
 
@@ -406,7 +406,7 @@ public:
             }
           }
           if(factorGroup == 0) 
-            currentDimBatch = batchIndices.size(); // keep batch size constant for all factor groups in a time step
+            currentDimBatch = (IndexType) batchIndices.size(); // keep batch size constant for all factor groups in a time step
           prevPathScores = graph->constant({(int)maxBeamSize, 1, (int)currentDimBatch, 1}, inits::fromVector(prevScores));
         }
         if (!anyCanExpand) // all words cannot expand this factor: skip
