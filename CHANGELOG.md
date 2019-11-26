@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- CMakeLists.txt now looks for SSE 4.2
 - Purging of finished hypotheses during beam-search. A lot faster for large batches.
 - Faster option look-up, up to 20-30% faster translation
 - Added --cite and --authors flag
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Return error signal on SIGTERM
 - Dropped support for CUDA 8.0, CUDA 9.0 is now minimal requirement
 - Removed autotuner for now, will be switched back on later
 - Boost depdendency is now optional and only required for marian_server 
