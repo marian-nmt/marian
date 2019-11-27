@@ -154,6 +154,13 @@ private:
   void makeScalar(const YAML::Node& v) {
     elements_ = 0;
     try {
+      // Cast node to text first, that works for any scalar node and test that it does not contain single characters
+      // that according to YAML could be boolean values. Unfortunately, we do not have any type information at this point. 
+      // This means we are disabling support for boolean values in YAML that are expressed with these characters. 
+      auto asText = v.as<std::string>();
+      if(asText.size() == 1 && asText.find_first_of("nyNYtfTF") == 0) // @TODO: should we disallow other strings too?
+        throw YAML::BadConversion(YAML::Mark()); // get's picked up by next catch block
+
       value_ = v.as<bool>();
       type_ = NodeType::Bool;
     } catch(const YAML::BadConversion& /*e*/) {
