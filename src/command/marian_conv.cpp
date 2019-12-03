@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-#include "graph/expression_graph_packable.h"
+#include "tensors/cpu/fbgemm/expression_graph_packable.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
         "  ./marian-conv -f model.npz -t model.bin --gemm-type fp16packed");
     cli->add<std::string>("--from,-f", "Input model", "model.npz");
     cli->add<std::string>("--to,-t", "Output model", "model.bin");
-    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used with this weights", "mklfp32");
+    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used with this weights - float16, float32, int8packed, fp16packed", "float32");
     cli->parse(argc, argv);
     options->merge(config);
   }

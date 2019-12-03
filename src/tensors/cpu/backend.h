@@ -12,7 +12,6 @@ namespace cpu {
 class Backend : public marian::Backend {
 protected:
   bool optimized_{false};
-  GemmType gemmType_{GemmType::Auto};
 
 public:
   Backend(DeviceId deviceId, size_t seed) : marian::Backend(deviceId, seed) {}

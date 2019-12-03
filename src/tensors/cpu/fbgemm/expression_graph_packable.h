@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graph/expression_graph.h"
-#include "tensors/cpu/sharp/packed_gemm.h"
+#include "packed_gemm.h"
 
 namespace marian {
 
@@ -34,16 +34,60 @@ public:
 
       Tensor val = p.second->val();
 
+#if USE_FBGEMM
       // save as packed format
-      // @TODO Hardcoded to find packable weights - all the weights used for affine op
-      if (saveGemmType == "fp16packed" && pName.find("_W") == pName.length() - 3) {
+      // @TODO Hardcoded to find packable weights - all the weights used for affine op (fp16), all the weights used for affine op and dot op (int8)
+      if (saveGemmType == "int8packed" && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2))
+      {
+        using namespace marian::cpu::variant;
+
+        // packing information - size
+        int nrow;
+        int ncol;
+        uint64_t packsize;
+
+        fbgemmPacked8PackInfo(val->shape(),
+          pName.find("Wemb") != std::string::npos,
+          nrow,
+          ncol,
+          packsize);
+
+        auto allocator = New<TensorAllocator>(getBackend());
+
+        // buffer tensor to save packed matrix
+        Tensor packedTensor;
+        allocator->allocate(packedTensor, { 1, (int32_t)packsize }, Type::uint8);
+
+        //Pack B matrix into int8
+        fbgemmPacked8Pack(packedTensor,
+          val->data(),
+          pName.find("Wemb") != std::string::npos,
+          nrow,
+          ncol,
+          packsize);
+        io::Item item;
+        item.name = pName;
+        item.shape = val->shape();
+        item.type = Type::packed8;
+
+        // Use the actual memory as this will be aligned and padded.
+        // When memory mapping this is required. Shape keeps track of
+        // tensor size. Saving to *.npz will cut to size.
+        auto mem = packedTensor->memory();
+        item.bytes.resize(mem->size());
+        copy(backend_, mem->data<char>(), mem->data<char>() + mem->size(), item.bytes.data());
+
+        ioItems.emplace_back(std::move(item));
+
+      } else if (saveGemmType == "fp16packed" && pName.find("_W") == pName.length() - 3)
+      {
         using namespace marian::cpu::variant;
 
         // packing information
         int nrow, ncol, kernel_ncol_blocks, brow, bcol, last_brow, nbrow, nbcol;
         uint64_t packsize;
 
-        PackInfoFp32(val->shape(),
+        fbgemmPacked16PackInfo(val->shape(),
           false,
           nrow,
           ncol,
@@ -60,8 +104,8 @@ public:
         Tensor packedTensor;
         allocator->allocate(packedTensor, { 1, (int32_t)packsize }, Type::uint8);
 
-        // PackFp32
-        PackFp32(packedTensor,
+        // fbgemmPacked16Pack
+        fbgemmPacked16Pack(packedTensor,
           val->data(),
           false,
           nrow,
@@ -86,7 +130,9 @@ public:
         copy(backend_, mem->data<char>(), mem->data<char>() + mem->size(), item.bytes.data());
 
         ioItems.emplace_back(std::move(item));
-      } else {
+      } else
+#endif  // USE_FBGEMM
+      {
         io::Item item;
         val->get(item, pName);
         item.convert(saveElementType);
