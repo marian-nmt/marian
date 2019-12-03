@@ -32,8 +32,8 @@ std::string TensorBase::debug(int precision, int dispCols) {
   double minv = std::numeric_limits<double>::max();
   double l2Sum = 0.0;
   for(int i = 0; i < values.size(); ++i) {
-    if((double)values[i] > maxv) maxv = values[i];
-    if((double)values[i] < minv) minv = values[i];
+    if((double)values[i] > maxv) maxv = (double)values[i];
+    if((double)values[i] < minv) minv = (double)values[i];
     l2Sum += (double)values[i] * (double)values[i];
   }
   strm << "min: " << minv << " max: " << maxv << " l2-norm: " << sqrt(l2Sum) << std::endl;
