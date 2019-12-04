@@ -7,7 +7,7 @@
 
 #include "graph/auto_tuner.h"
 #include "tensors/cpu/int16.h"
-#include "tensors/cpu/expanded_gemm.h"
+#include "tensors/cpu/fbgemm/expanded_gemm.h"
 
 #if USE_FBGEMM
 #include "fbgemm/Utils.h"
@@ -416,17 +416,50 @@ Expr weighted_average(Expr in, Expr weights, int ax) {
 Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDeviceId().type;
   float clipValue = a->graph()->getBackend()->getClip();
+  // added support for packed GEMM API (fp16, int8)
+  Type aElementType = a->value_type();
+  Type bElementType = b->value_type();
 
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
-  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()) {
-    // dotInt16 computes A * B.T, hence the transpose for B to get A * B
-    // if transA = false and transB = false.
+  if(device == DeviceType::cpu) {
+    if(isFloat(aElementType) && isFloat(bElementType)) {
+      if(a->graph()->getBackend()->isOptimized()) {
+        // dotInt16 computes A * B.T, hence the transpose for B to get A * B
+        // if transA = false and transB = false.
 
-    return cpu::int16::dot(
-        cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-        cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-        scale);
+        return cpu::int16::dot(
+          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          scale);
+      } else {
+        return Expression<DotNodeOp>(
+          clip(a, clipValue), clip(b, clipValue), transA, transB, scale);
+      }
+    } else if(isFloat(aElementType) && isPacked(bElementType)) {
+#if USE_FBGEMM
+      // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+      // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+      // It looks at the cpu register
+      // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+      // and this cpu lookup is executed only once and the state is kept in FBGEMM.
+      if(fbgemm::fbgemmHasAvx2Support()) {
+        // This variant of dot product can handle matrix multiplications with packed8 and packed16 weight matrix (B).
+        return cpu::variant::dot(clip(a, clipValue),
+                                 b,
+                                 b->shape(),
+                                 transA,
+                                 transB,
+                                 scale);
+      } else {
+        ABORT("AVX2 is not available. At least, AVX2 is needed to use fbgemm-based packed GEMM");
+      }
+#else
+      ABORT("Packed GEMM is not available in this build");
+#endif  // USE_FBGEMM
+    } else {
+      ABORT("Combination of types A: {} B: {} not supported", aElementType, bElementType);
+    }
   } else {
     return Expression<DotNodeOp>(
         clip(a, clipValue), clip(b, clipValue), transA, transB, scale);
@@ -485,6 +518,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
       // and this cpu lookup is executed only once and the state is kept in FBGEMM.
       if(fbgemm::fbgemmHasAvx2Support()) {
+        // This variant of affine product can handle matrix multiplications with packed8 and packed16 weight matrix (B).
         return cpu::variant::affine(clip(a, clipValue),
                                     b,
                                     b->shape(),
@@ -493,7 +527,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
                                     transB,
                                     scale);
       } else {
-        ABORT("No on-the-fly packing at the moment");
+        ABORT("AVX2 is not available. At least, AVX2 is needed to use fbgemm-based packed GEMM");
       }
 #else
       ABORT("Packed GEMM is not available in this build");

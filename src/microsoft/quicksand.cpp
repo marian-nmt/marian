@@ -10,7 +10,7 @@
 #include "translator/scorers.h"
 #include "data/alignment.h"
 #include "data/vocab_base.h"
-#include "graph/expression_graph_packable.h"
+#include "tensors/cpu/fbgemm/expression_graph_packable.h"
 
 #if USE_FBGEMM
 #include "fbgemm/Utils.h"
