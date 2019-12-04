@@ -13,6 +13,11 @@ if(USE_FBGEMM)
     set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
   endif()
 
+  if(NOT MSVC)
+    # only locally disabled for the 3rd_party folder
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function")
+  endif()
+
   set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "Disable fbgemm tests")
   set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "Disable fbgemm benchmark")
   add_subdirectory(./fbgemm)
