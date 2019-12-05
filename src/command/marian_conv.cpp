@@ -22,14 +22,14 @@ int main(int argc, char** argv) {
         "  ./marian-conv -f model.npz -t model.bin --gemm-type packed16");
     cli->add<std::string>("--from,-f", "Input model", "model.npz");
     cli->add<std::string>("--to,-t", "Output model", "model.bin");
-    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used with this weights - float32, packed16, packed8", "float32");
+    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used: float32, packed16, packed8", "float32");
     cli->parse(argc, argv);
     options->merge(config);
   }
   auto modelFrom = options->get<std::string>("from");
   auto modelTo = options->get<std::string>("to");
   
-  auto saveGemmTypeStr = options->get<std::string>("gemm-type");
+  auto saveGemmTypeStr = options->get<std::string>("gemm-type", "float32");
   Type saveGemmType;
   if(saveGemmTypeStr == "float32") {
     saveGemmType = Type::float32;
@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
   } else {
     ABORT("Unknown gemm-type: {}", saveGemmTypeStr);
   }
-
 
   LOG(info, "Outputting {}", modelTo);
 
