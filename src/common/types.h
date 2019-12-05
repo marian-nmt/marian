@@ -31,7 +31,7 @@
 #include <cuda.h> // required to see CUDA_VERSION
 #if (CUDA_VERSION > 9000)
 #define COMPILE_FP16 1
-#else 
+#else
 #define COMPILE_FP16 0
 #endif
 #else
@@ -174,6 +174,7 @@ public:
 };
 
 // @TODO: consider how code can be shared via templating
+#ifndef NO_AVX
 struct float32x8 {
 private:
   __m256 f_;
@@ -199,6 +200,11 @@ public:
     return out;
   }
 };
+#else
+//Dummy version to get things to compile on older CPUs
+struct float32x8 {
+};
+#endif
 #endif
 
 // Internal to types.h, don't use. Use test functions below.
@@ -207,7 +213,7 @@ enum class TypeClass : size_t {
   unsigned_type = 0x200,
   float_type    = 0x400,
   packed_type   = 0x800, // special packed (CPU cache friendly) type class, used in FBGEMM, not meant to be used anywhere else
-            
+
   size_mask     = 0x0FF
 };
 
