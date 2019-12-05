@@ -260,7 +260,7 @@ public:
     return {NodeOp(0)};
   }
 
-  const std::string type() override { return "fp16packed"; }
+  const std::string type() override { return "gemmPacked16"; }
 };
 
 // Affine transform (matrix multiplication) using packed B matrix
@@ -353,7 +353,7 @@ public:
     return {NodeOp(0)};
   }
 
-  const std::string type() override { return "int8packed"; }
+  const std::string type() override { return "gemmPacked8"; }
 };
 
 static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, bool transB, float scalar) {
