@@ -258,14 +258,14 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
 
   graph->load(inputFile);
   graph->forward();
-  std::string saveGemmType = "fp32default";
+  auto saveGemmType = Type::float32;
   if (targetPrec == 16)
-    saveGemmType = "fp16packed";
+    saveGemmType = Type::packed16;
   else if (targetPrec == 8)
-    saveGemmType = "int8packed";
+    saveGemmType = Type::packed8;
 
   // added a flag if the weights needs to be packed or not
-  graph->packAndSave(outputFile, configStr.str(), saveGemmType); // @TODO: this should just be type-based
+  graph->packAndSave(outputFile, configStr.str(), saveGemmType);
 
   std::cout << "Conversion Finished." << std::endl;
 
