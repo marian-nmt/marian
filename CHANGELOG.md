@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Fixed compilation on CPUs without support for AVX
 - FastOpt now reads "n" and "y" values as strings, not as boolean values
 - Fixed multiple reduction kernels on GPU
 - Fixed guided-alignment training with cross-entropy
