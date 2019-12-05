@@ -174,7 +174,7 @@ public:
 };
 
 // @TODO: consider how code can be shared via templating
-#ifndef NO_AVX
+#ifdef __AVX__
 struct float32x8 {
 private:
   __m256 f_;

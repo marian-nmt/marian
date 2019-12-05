@@ -31,7 +31,7 @@ inline marian::Shape adapt<float32x4>(const marian::Shape& shape) {
   x4Shape.set(-1, shape[-1] / 4);
   return x4Shape;
 }
-#ifndef NO_AVX
+#ifdef __AVX__
 template <>
 inline marian::Shape adapt<float32x8>(const marian::Shape& shape) {
   ABORT_IF(shape[-1] % 8 != 0,
