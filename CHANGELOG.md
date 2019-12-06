@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Support for lexical shortlists in marian-server
 - Support for 8-bit matrix multiplication with FBGEMM
 - CMakeLists.txt now looks for SSE 4.2
 - Purging of finished hypotheses during beam-search. A lot faster for large batches.
