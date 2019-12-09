@@ -254,7 +254,7 @@ public:
     seedCorpus = config["seed-corpus"].as<std::string>();
   }
 
-  void save(const std::string& name) {
+  void save(const std::string& name) const {
     std::ofstream fout(name);
     YAML::Node config;
 
@@ -289,6 +289,16 @@ public:
     config["seed-corpus"] = seedCorpus;
 
     fout << config;
+  }
+
+  std::string fillTemplate(const std::string& templ) const {
+    // The formatting below uses fmtlib, which is included with spdlog
+    // and is included via the logger.
+    return fmt::format(templ.c_str(),
+                       fmt::arg("E", epochs),
+                       fmt::arg("U", batches),
+                       fmt::arg("B", batchesEpoch),
+                       fmt::arg("T", labelsTotal));
   }
 
 private:

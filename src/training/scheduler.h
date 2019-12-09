@@ -9,7 +9,7 @@
 namespace marian {
 
 bool getSigtermFlag();
-void installSignalHandlers(); 
+void installSignalHandlers();
 
 class Scheduler : public TrainingObserver {
 private:
@@ -229,7 +229,7 @@ public:
         continue;
 
       size_t stalledPrev = validator->stalled();
-      float value = validator->validate(graphs);
+      float value = validator->validate(graphs, state_);
       if(validator->stalled() > 0) {
         LOG_VALID(info,
                   "Ep. {} : Up. {} : {} : {} : stalled {} times (last best: {})",

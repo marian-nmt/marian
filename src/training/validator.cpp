@@ -303,7 +303,8 @@ ScriptValidator::ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> op
            "valid-script metric but no script given");
 }
 
-float ScriptValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+float ScriptValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                                Ptr<const TrainingState> /*ignored*/) {
   using namespace data;
   auto model = options_->get<std::string>("model");
   std::string suffix = model.substr(model.size() - 4);
@@ -331,7 +332,8 @@ TranslationValidator::TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<O
   createBatchGenerator(/*isTranslating=*/true);
 }
 
-float TranslationValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+float TranslationValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                                     Ptr<const TrainingState> state) {
   using namespace data;
 
   // Generate batches
@@ -353,6 +355,8 @@ float TranslationValidator::validate(const std::vector<Ptr<ExpressionGraph>>& gr
 
   if(options_->hasAndNotEmpty("valid-translation-output")) {
     fileName = options_->get<std::string>("valid-translation-output");
+    // fileName can be a template with fields for training state parameters:
+    fileName = state->fillTemplate(fileName);
   } else {
     tempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
     fileName = tempFile->getFileName();
@@ -455,7 +459,8 @@ BleuValidator::BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> option
   createBatchGenerator(/*isTranslating=*/true);
 }
 
-float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
+float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                              Ptr<const TrainingState> state) {
   using namespace data;
 
   // Generate batches
@@ -495,6 +500,8 @@ float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     Ptr<OutputCollector> collector;
     if(options_->hasAndNotEmpty("valid-translation-output")) {
       auto fileName = options_->get<std::string>("valid-translation-output");
+      // fileName can be a template with fields for training state parameters:
+      fileName = state->fillTemplate(fileName);
       collector = New<OutputCollector>(fileName);  // for debugging
     } else {
       collector = New<OutputCollector>(/* null */);  // don't print, but log

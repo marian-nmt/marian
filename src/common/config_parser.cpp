@@ -562,8 +562,10 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Additional args passed to --valid-script-path. These are inserted"
       " between the script path and the output translation-file path");
   cli.add<std::string>("--valid-translation-output",
-     "Path to store the translation");
-
+     "(Template for) path to store the translation. "
+     "E.g., validation-output-after-{U}-updates-{T}-tokens.txt. Template "
+     "parameters: {E} for epoch; {B} for No. of batches within epoch; "
+     "{U} for total No. of updates; {T} for total No. of tokens seen.");
   cli.add<bool>("--keep-best",
       "Keep best model for each validation metric");
   cli.add<std::string>("--valid-log",
@@ -612,7 +614,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Optimize speed aggressively sacrificing memory or precision");
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
-  cli.add<bool>("--fp16", 
+  cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
