@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
 
 ### Added
+- Allow file name templated valid-translation-output files
 - Support for lexical shortlists in marian-server
 - Support for 8-bit matrix multiplication with FBGEMM
 - CMakeLists.txt now looks for SSE 4.2
@@ -27,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Fix word weighting with max length cropping
 - Fixed compilation on CPUs without support for AVX
 - FastOpt now reads "n" and "y" values as strings, not as boolean values
 - Fixed multiple reduction kernels on GPU
