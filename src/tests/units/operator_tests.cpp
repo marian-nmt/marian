@@ -670,16 +670,16 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     values.clear();
 
     std::vector<T> vA({  1, -2,   3,
-                            -4,  5,  -6,
-                             7, -8,   9,
-                           -10, 11, -12});
+                        -4,  5,  -6,
+                         7, -8,   9,
+                       -10, 11, -12});
     std::vector<T> vC({ 1,  -2, // C = np.array([1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12]).reshape((2, 3, 2))
-                            3,  -4,
-                            5,  -6,
+                        3,  -4,
+                        5,  -6,
 
-                            7,  -8,
-                            9, -10,
-                           11, -12 });
+                        7,  -8,
+                        9, -10,
+                        11, -12 });
     std::vector<T> vB1({1, -2, 3});
     std::vector<T> vB2({1, -4, 7, -10});
     std::vector<T> vB3({-2, 5, -8, 11});
@@ -687,7 +687,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     std::vector<T> vD1(vB4);
     std::vector<T> vD2({5, -6, 11, -12});
     std::vector<T> vD3({1, -2, 5, -6, 7, -8, 11, -12}); // C[:,(0,2),:]
-    //std::vector<float> vD4({5, -6, 3, -4, 7, -8, 11, -12}); // [C[0,(2,1),:],C[1,(0,2),:]]
+    std::vector<T> vD4({5, -6, 3, -4, 7, -8, 11, -12}); // [C[0,(2,1),:],C[1,(0,2),:]]
     std::vector<T> vS1({7, -8, 9});
     std::vector<T> vS2({-4, 5, -6, 7, -8, 9});
     std::vector<T> vS3({7, -8, 9, -10, 11, -12});
@@ -714,11 +714,11 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(D1->type() == "sliceView");
     CHECK(D2->type() == "gather");
     // enable this once gather() supports batched indices:
-    //auto D4 = gather(C, 1, graph->constant({2, 2, 1}, // [C[0,(2,1),:],C[1,(0,2),:]]
-    //                                       inits::fromVector(std::vector<IndexType>{
-    //                                         2, 1,
-    //                                         0, 2 }),
-    //                                       Type::uint32));
+    auto D4 = gather(C, 1, graph->constant({2, 2, 1}, // [C[0,(2,1),:],C[1,(0,2),:]]
+                                          inits::fromVector(std::vector<IndexType>{
+                                            2, 1,
+                                            0, 2 }),
+                                          Type::uint32));
 
     auto S1 = slice(A, 0, 2);
     auto S2 = narrow(A, 0, 1, 2);
@@ -736,7 +736,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(D1->shape() == Shape({1, 3, 2})); D1->val()->get(values); CHECK( values == vD1 );
     CHECK(D2->shape() == Shape({2, 1, 2})); D2->val()->get(values); CHECK( values == vD2 );
     CHECK(D3->shape() == Shape({2, 2, 2})); D3->val()->get(values); CHECK( values == vD3 );
-    //CHECK(D4->shape() == Shape({2, 2, 2})); D4->val()->get(values); CHECK( values == vD4 );
+    CHECK(D4->shape() == Shape({2, 2, 2})); D4->val()->get(values); CHECK( values == vD4 );
 
     CHECK(S1->shape() == Shape({1,3})); S1->val()->get(values); CHECK(values == vS1);
     CHECK(S2->shape() == Shape({2,3})); S2->val()->get(values); CHECK(values == vS2);

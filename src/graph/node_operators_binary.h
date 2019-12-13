@@ -569,8 +569,6 @@ struct RowsNodeOp : public NaryNodeOp {
 //  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
 //  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
 // 'a' and 'indices' must have the same rank.
-// @TODO: The current implementation does not support batched indices (third scenario above).
-//        I.e. all axes of 'indices' except 'axis' must have dimension 1.
 struct GatherNodeOp : public NaryNodeOp {
   GatherNodeOp(Expr a, int axis, Expr indices)
       : NaryNodeOp({a, indices}, newShape(a, axis, indices), a->value_type()),
@@ -599,10 +597,6 @@ struct GatherNodeOp : public NaryNodeOp {
       if (i != axis) {
         ABORT_IF(indices->shape()[i] != shape[i] && indices->shape()[i] != 1,
             "Dimensions must match or broadcast for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
-#if 1 // presently, this implementation does not support batched indices
-        ABORT_IF(indices->shape()[i] != 1,
-            "Presently, gather() does not implement batched indices");
-#endif
       }
     }
     return shape;

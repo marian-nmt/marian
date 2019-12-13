@@ -686,20 +686,22 @@ void Select(Tensor out,
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
-  functional::Shape inShape = in->shape();
+  functional::Shape inShape  = in->shape();
+  functional::Shape idxShape = indices->shape();
   int length = outShape.elements();
 
   functional::Array<int, functional::Shape::size()> dims;
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
 
-  if(axisCPU == 2) // specialization for axis==2, assuming N=4
+  if(axisCPU == 2 && outShape == idxShape) // specialization for axis==2 when there is no broadcasting, @TODO to be removed once we have a faster implementation below
     return SelectAxis2(out, in, indices);
 
   for(int index = 0; index < length; ++index) {
-    outShape.dims(index, dims);
-    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
-    int inIndex = inShape.index(dims);
-    out->data()[index] = in->data()[inIndex];
+    outShape.dims(index, dims);                                // compute dimension-based indices from global index;
+    int idxIndex = idxShape.bindex(dims);                      // return global index for indices based on dimension-specific indices from out, take broadcasting into account;
+    dims[axisCPU] = (int)indices->data<IndexType>()[idxIndex]; // substitute index of out-tensor with corresponding axis-local position from in-tensor;
+    int inIndex = inShape.index(dims);                         // compute global index from dimension-specific indices, no broadcasting as out and in match in all dimensions apart from axis
+    out->data()[index] = in->data()[inIndex];                  // assign corresponding values.
   }
 }
 
@@ -712,7 +714,8 @@ void Insert(Tensor out,
 
   // @TODO: make this efficient
   functional::Shape outShape = out->shape();
-  functional::Shape inShape = in->shape();
+  functional::Shape inShape  = in->shape();
+  functional::Shape idxShape = indices->shape();
 
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
@@ -720,7 +723,8 @@ void Insert(Tensor out,
 
   for(int index = 0; index < length; ++index) {
     inShape.dims(index, dims);
-    dims[axisCPU] = (int)indices->data<IndexType>()[dims[axisCPU]];
+    int idxIndex = idxShape.bindex(dims); // broadcast index into indices tensor
+    dims[axisCPU] = (int)indices->data<IndexType>()[idxIndex];
     int outIndex = outShape.index(dims);
     out->data()[outIndex] += in->data()[index];
   }
@@ -887,7 +891,7 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices) {
     // Groundtruth label index
     IndexType i = labelIndices->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
-    out->data()[j] = std::log(sum) - sp[i] + max;
+    out->data()[j] = std::log(sum) - sp[i] + max;    // -log(p_i) = - logsoftmax(x_i - max) = - (x_i - max) - log(sum_j exp(x_j - max))
   }
 }
 
@@ -920,7 +924,8 @@ void CrossEntropyPickBackward(Tensor out,
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
       float sub = (float)(i == (int)labelIndices->data<IndexType>()[j]); // delta, true if label index and column index match
-      so[i] += adj->data()[j] * (std::exp(sp[i] - max) / sum - sub);
+      auto softmax = std::exp(sp[i] - max) / sum;
+      so[i] += adj->data()[j] * (softmax - sub);
     }
   }
 }

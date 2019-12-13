@@ -198,8 +198,6 @@ public:
               subWidth = j + 1;
         }
       }
-      //if (subWidth < width_)
-      //  LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / targetSize, width_, subWidth);
 
       // create sub-batch
       auto sb = New<SubBatch>(subSize, subWidth, vocab_);
@@ -369,7 +367,7 @@ public:
     // split each stream separately
     for(auto batchStream : subBatches_) {
       size_t i = 0; // index into split batch
-      for(auto splitSubBatch : batchStream->split(n, sizeLimit)) {
+      for(auto splitSubBatch : batchStream->split(n, sizeLimit)) { // splits a batch into pieces, can also change width
         if(subs.size() <= i)
           subs.resize(i + 1);
         subs[i++].push_back(splitSubBatch); // this forms tuples across streams
@@ -424,12 +422,11 @@ public:
     if(!dataWeights_.empty()) {
       size_t oldSize = size();
 
-      size_t width = 1;
-      // There are more weights than sentences, i.e. these are word weights.
-      if(dataWeights_.size() != oldSize)
-        width = subBatches_.back()->batchWidth();
-
       for(auto split : splits) {
+        auto cb = std::static_pointer_cast<CorpusBatch>(split);
+        size_t width = 1;                   // One weight per sentence in case of sentence-level weights
+        if(dataWeights_.size() != oldSize)  // if number of weights does not correspond to number of sentences we have word-level weights
+          width = cb->back()->batchWidth(); // splitting also affects width, hence we need to accomodate this here
         std::vector<float> ws(width * split->size(), 1.0f);
 
         // this needs to be split along the batch dimension

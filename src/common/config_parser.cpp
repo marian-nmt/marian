@@ -328,6 +328,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
   cli.add<std::string>("--multi-loss-type",
       "How to accumulate multi-objective losses: sum, scaled, mean", "sum");
+  cli.add<bool>("--unlikelihood-loss",
+      "Use word-level weights as indicators for sequence-level unlikelihood training");
   cli.add<bool>("--overwrite",
       "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
       "Reduces disk usage");

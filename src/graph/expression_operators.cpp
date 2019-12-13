@@ -317,6 +317,7 @@ Expr index_select(Expr a, int axis, Expr indices) {
   indices = reshape(indices, shape); // move index to axis
   return gather(a, axis, indices);
 }
+
 Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices) {
   auto indexExpr = a->graph()->indices(indices);
   return index_select(a, axis, indexExpr);
@@ -612,8 +613,20 @@ Expr cast(Expr a, Type type) {
   }
 }
 
-Expr cross_entropy(Expr a, Expr indices) {
-  return Expression<CrossEntropyNodeOp>(a, indices);
+Expr cross_entropy(Expr logits, Expr indices) {
+  return Expression<CrossEntropyNodeOp>(logits, indices);
+}
+
+// Unlikelihood loss based on https://arxiv.org/abs/1908.04319
+Expr unlikelihood(Expr logits, Expr indices) {
+  int dimBatch = logits->shape()[-2];
+  int dimTime  = logits->shape()[-3];
+
+  // @TODO: fix the outside of this function in decoder.h etc. 
+  auto indicesWithLayout = reshape(indices, {1, dimTime, dimBatch, 1});
+
+  // This is currently implemented with mutliple ops, might be worth doing a special operation like for cross_entropy
+  return -log(gather(1.f - softmax(logits), /*axis=*/-1, indicesWithLayout));
 }
 
 Expr plus(const std::vector<Expr>& nodes) {

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Sequence-level unliklihood training
 - Allow file name templated valid-translation-output files
 - Support for lexical shortlists in marian-server
 - Support for 8-bit matrix multiplication with FBGEMM
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Gather-operation for all index sizes
 - Fix word weighting with max length cropping
 - Fixed compilation on CPUs without support for AVX
 - FastOpt now reads "n" and "y" values as strings, not as boolean values

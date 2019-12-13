@@ -200,6 +200,8 @@ Expr logsoftmax(Expr a);
 
 Expr cross_entropy(Expr a, Expr b);
 
+Expr unlikelihood(Expr a, Expr b);
+
 Expr scalar_product(Expr a, Expr b, int ax = 0);
 
 Expr weighted_average(Expr in, Expr weights, int ax = 0);

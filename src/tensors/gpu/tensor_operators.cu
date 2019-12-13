@@ -1132,7 +1132,8 @@ __global__ void gSelect(T* out,
                         const T* in,
                         const functional::Shape inShape,
                         int axis,
-                        IndexType* d_indices) {
+                        const IndexType* d_indices,
+                        const functional::Shape idxShape) {
   int length = outShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -1140,7 +1141,8 @@ __global__ void gSelect(T* out,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       outShape.dims(index, dims);
-      dims[axis] = d_indices[dims[axis]];
+      int idxIndex = idxShape.bindex(dims); // broadcast index into indices tensor
+      dims[axis] = (int)d_indices[idxIndex];    
       int inIndex = inShape.index(dims);
       out[index] = in[inIndex];
     }
@@ -1153,7 +1155,8 @@ __global__ void gInsert(T* out,
                         const T* in,
                         const functional::Shape inShape,
                         int axis,
-                        IndexType* d_indices) {
+                        const IndexType* d_indices,
+                        const functional::Shape idxShape) {
   int length = inShape.elements();
   functional::Array<int, functional::Shape::size()> dims;
 
@@ -1161,7 +1164,8 @@ __global__ void gInsert(T* out,
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
       inShape.dims(index, dims);
-      dims[axis] = d_indices[dims[axis]];
+      int idxIndex = idxShape.bindex(dims); // broadcast index into indices tensor
+      dims[axis] = (int)d_indices[idxIndex];    
       int outIndex = outShape.index(dims);
       out[outIndex] += in[index]; // this is probably wrong, atomicAdd?
     }
@@ -1189,7 +1193,8 @@ void Select(Tensor out,
                                 in->data<float>(),
                                 in->shape(),
                                 axisGPU,
-                                indices->data<IndexType>());
+                                indices->data<IndexType>(), 
+                                indices->shape());
 #if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gSelect<<<blocks, threads>>>(out->data<half>(),
@@ -1197,7 +1202,8 @@ void Select(Tensor out,
                                 in->data<half>(),
                                 in->shape(),
                                 axisGPU,
-                                indices->data<IndexType>());
+                                indices->data<IndexType>(),
+                                indices->shape());
 #endif
   } else {
     ABORT("Select not implemented for type {}", out->type());
@@ -1224,7 +1230,8 @@ void Insert(Tensor out,
                                 in->data<float>(),
                                 in->shape(),
                                 axisGPU,
-                                indices->data<IndexType>());
+                                indices->data<IndexType>(),
+                                indices->shape());
 #if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gInsert<<<blocks, threads>>>(out->data<half>(),
@@ -1232,7 +1239,8 @@ void Insert(Tensor out,
                                 in->data<half>(),
                                 in->shape(),
                                 axisGPU,
-                                indices->data<IndexType>());
+                                indices->data<IndexType>(),
+                                indices->shape());
 #endif
   } else {
     ABORT("Insert not implemented for type {}", out->type());
@@ -1522,11 +1530,11 @@ __global__ void gCrossEntropyPick(T* out,
       __syncthreads();
 
       // cross-entropy
+      auto sum = _sum[0];
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id == (int)pick[j]) {
-          out[j] = (T)functional::Ops<AccType>::log(_sum[0]) - sp[id] + max;
-        }
+        if(id == (int)pick[j])
+          out[j] = (T)functional::Ops<AccType>::log(sum) - sp[id] + max;
       }
     }
     __syncthreads();
@@ -1628,7 +1636,8 @@ __global__ void gCrossEntropyPickBackward(T* out,
         int id = tid + threadIdx.x;
         if(id < cols) {
           AccType sub = (AccType)(id == (int)pick[j]);
-          so[id] += (AccType)adj[j] * (functional::Ops<AccType>::exp(sp[id] - max) / _sum[0] - sub);
+          auto softmax = functional::Ops<AccType>::exp(sp[id] - max) / _sum[0];
+          so[id] += (AccType)adj[j] * (softmax - sub);
         }
       }
     }
