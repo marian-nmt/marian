@@ -143,6 +143,8 @@ Ptr<NodeInitializer> gumbel(float eps = 1e-5f);
 // @TODO: add documentation
 template <typename T>
 Ptr<NodeInitializer> fromVector(const std::vector<T>& v);
+template <typename T>
+Ptr<NodeInitializer> fromVector(std::vector<T>&& v);
 
 // @TODO: add documentation
 Ptr<NodeInitializer> fromSparseVector(std::pair<std::vector<size_t>, std::vector<float>>& v);

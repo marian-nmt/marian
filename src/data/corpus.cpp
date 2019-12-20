@@ -235,11 +235,12 @@ CorpusBase::batch_ptr Corpus::toBatch(const std::vector<Sample>& batchVector) {
   }
 
   std::vector<size_t> words(maxDims.size(), 0);
-  for(size_t i = 0; i < batchSize; ++i) {
-    for(size_t j = 0; j < maxDims.size(); ++j) {
-      for(size_t k = 0; k < batchVector[i][j].size(); ++k) {
-        subBatches[j]->data()[k * batchSize + i] = batchVector[i][j][k];
-        subBatches[j]->mask()[k * batchSize + i] = 1.f;
+  for(size_t b = 0; b < batchSize; ++b) {                    // loop over batch entries
+    for(size_t j = 0; j < maxDims.size(); ++j) {             // loop over streams
+      auto subBatch = subBatches[j];
+      for(size_t s = 0; s < batchVector[b][j].size(); ++s) { // loop over word positions
+        subBatch->data()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = batchVector[b][j][s];
+        subBatch->mask()[subBatch->locate(/*batchIdx=*/b, /*wordPos=*/s)/*s * batchSize + b*/] = 1.f;
         words[j]++;
       }
     }

@@ -99,12 +99,17 @@ public:
         // starting with the lemma, then adding factors one by one.
         if (factorGroup == 0) {
           word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
-          //std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
-          //LOG(info, "new lemma {},{}={} -> {}->{}", word.toWordIndex(), factorIndices[0], factoredVocab->word2string(word), prevHyp->getPathScore(), pathScore);
+          std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
+          //LOG(info, "{} + {} ({}) -> {} -> {}",
+          //    factoredVocab->decode(prevHyp->tracebackWords()),
+          //    factoredVocab->word2string(word), factorIndices[0], prevHyp->getPathScore(), pathScore);
         }
         else {
-          //LOG(info, "expand word {}={} with factor[{}] {} -> {}->{}", beam[beamHypIdx]->getWord().toWordIndex(),
-          //    factoredVocab->word2string(beam[beamHypIdx]->getWord()), factorGroup, wordIdx, prevHyp->getPathScore(), pathScore);
+          //LOG(info, "{} |{} ({}) = {} ({}) -> {} -> {}",
+          //    factoredVocab->decodeForDiagnostics(beam[beamHypIdx]->tracebackWords()),
+          //    factoredVocab->getFactorGroupPrefix(factorGroup), factorGroup,
+          //    factoredVocab->getFactorName(factorGroup, wordIdx), wordIdx,
+          //    prevHyp->getPathScore(), pathScore);
           word = beam[beamHypIdx]->getWord();
           ABORT_IF(!factoredVocab->canExpandFactoredWord(word, factorGroup),
                    "A word without this factor snuck through to here??");

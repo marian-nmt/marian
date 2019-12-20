@@ -400,7 +400,7 @@ std::string FactoredVocab::word2string(Word word) const {
         res.append("?");
     }
     else
-      res.append(factorVocab_[(WordIndex)(index + groupRanges_[g].first)]);
+      res.append(getFactorName(g, index));
   }
   return res;
 }
@@ -429,6 +429,21 @@ Word FactoredVocab::string2word(const std::string& w) const {
   }
   auto word = factors2word(factorIndices);
   return word;
+}
+
+// does a specific factor exist in the vocabulary
+// Factor name must be given without separator. This function cannot be used for lemmas.
+bool FactoredVocab::tryGetFactor(const std::string& factorName, size_t& groupIndex, size_t& factorIndex) const {
+  WordIndex u;
+  if (factorVocab_.tryFind(factorSeparator_ + factorName, u))
+  {
+      groupIndex = factorGroups_[u];
+      ABORT_IF(u < groupRanges_[groupIndex].first || u >= groupRanges_[groupIndex].second, "Invalid factorGroups_ entry??");
+      factorIndex = u - groupRanges_[groupIndex].first;
+      return true;
+  }
+  else
+      return false;
 }
 
 // extract the factor index of a given factor type from the 'Word' representation
@@ -565,12 +580,18 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 
 // decode a 'Word' array into the external string representation of that token sequence, as written to output files
 /*virtual*/ std::string FactoredVocab::decode(const Words& sentence, bool ignoreEOS /*= true*/) const /*override final*/ {
-  std::vector<std::string> decoded;
-  decoded.reserve(sentence.size());
-  for(auto w : sentence) {
+  std::vector<std::string> decoded; decoded.reserve(sentence.size());
+  for(auto w : sentence)
     if((w != getEosId() || !ignoreEOS))
       decoded.push_back((*this)[w]);
-  }
+  return utils::join(decoded, " ");
+}
+
+// diagnostics version of decode() that will not fail on partial words, will print EOS, and is a little slower
+std::string FactoredVocab::decodeForDiagnostics(const Words& sentence) const {
+  std::vector<std::string> decoded; decoded.reserve(sentence.size());
+  for (auto w : sentence)
+    decoded.push_back(word2string(w));
   return utils::join(decoded, " ");
 }
 
@@ -740,7 +761,7 @@ Ptr<IVocab> createFactoredVocab(const std::string& vocabPath) {
     static std::map<std::string, Ptr<IVocab>> s_cache;
     auto iter = s_cache.find(vocabPath);
     if (iter != s_cache.end()) {
-      LOG(info, "[vocab] Reusing existing vocabulary object in memory (vocab size {})", iter->second->size());
+      LOG_ONCE(info, "[vocab] Reusing existing vocabulary object in memory (vocab size {})", iter->second->size());
       return iter->second;
     }
     auto vocab = New<FactoredVocab>();

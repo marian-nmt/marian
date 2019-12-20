@@ -141,7 +141,17 @@ Expr atleast_4d(Expr a);
 Expr atleast_nd(Expr a, size_t dims);
 
 // create a constant of shape a->shape() and initialize with init
-Expr constant_like(Expr a, const Ptr<inits::NodeInitializer>& init);
+// @TODO: add a && version, to avoid a ref count. NodeInitializers are typically temps.
+// @TODO: and/or make this a template on init
+static inline Expr constant_like(Expr a, const Ptr<inits::NodeInitializer>& init) {
+  return a->graph()->constant(a->shape(), init, a->value_type());
+}
+
+// short-cut to init from std::vector, since we do this so often
+template<typename ElementType>
+Expr constant_like(Expr a, const std::vector<ElementType>& v) { return constant_like(a, inits::fromVector(std::move(v))); }
+template<typename ElementType>
+Expr constant_like(Expr a, std::vector<ElementType>&& v) { return constant_like(a, inits::fromVector(v)); }
 
 Expr flatten(Expr a);
 Expr flatten_2d(Expr a);

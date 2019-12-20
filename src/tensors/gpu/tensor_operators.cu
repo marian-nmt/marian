@@ -980,7 +980,7 @@ __global__ void gPasteRows(T* out,
                            const IndexType* targetRowIdx,
                            size_t rows) {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
+    int j = bid + blockIdx.x; // index into 'indices' vector
     if(j < rows) {
       size_t dstId = targetRowIdx[j];
       size_t srcId = j;
@@ -988,11 +988,15 @@ __global__ void gPasteRows(T* out,
       T* rowOut = out + dstId * cols;
       const T* rowIn = in + srcId * cols;
 
+      // aggregate the entire row
       for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
+        int i = tid + threadIdx.x; // column index   --@TODO: column index should be called 'j'
         if(i < cols) {
-          // @TODO: Do we need to get rid of this atomic add? It seems slow for fp16
-          atomics::atomicAdd(rowOut + i, rowIn[i]);
+          // Note: atomicAdd() not needed if number of blocks is 1. Avoid it because it is slow for fp16.
+          if (gridDim.x == 1)
+            rowOut[i] += rowIn[i];
+          else
+            atomics::atomicAdd(rowOut + i, rowIn[i]);
         }
       }
     }
@@ -1011,7 +1015,15 @@ void PasteRows(Tensor out,
   size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
+#if 1   // @TODO: make this configurable with a 'deterministic' flag
+  // If we only use one block, then each core operates on a different column,
+  // hence the summation becomes deterministic.
+  // However, we only use e.g. 512 cores out of possibly 3000+, so this will be
+  // 6 x slower in this example.
+  int blocks = 1;
+#else
   int blocks = std::min(MAX_BLOCKS, (int)rowsToCopy);
+#endif
 
   if(out->type() == Type::float32) {
     gPasteRows<<<blocks, threads>>>(

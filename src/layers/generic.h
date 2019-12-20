@@ -412,4 +412,32 @@ public:
     ABORT("not implemented"); // @TODO: implement me
   }
 };
+
+// --- a few layers with built-in parameters created on the fly, without proper object
+// @TODO: change to a proper layer object
+
+// like affine() but with built-in parameters, activation, and dropout
+static inline
+Expr denseInline(Expr x, std::string prefix, std::string suffix, int outDim, const std::function<Expr(Expr)>& actFn = nullptr, float dropProb = 0.0f)
+{
+  auto graph = x->graph();
+
+  auto W = graph->param(prefix + "_W" + suffix, { x->shape()[-1], outDim }, inits::glorotUniform());
+  auto b = graph->param(prefix + "_b" + suffix, { 1,              outDim }, inits::zeros());
+
+  x = affine(x, W, b);
+  if (actFn)
+    x = actFn(x);
+  x = dropout(x, dropProb);
+  return x;
+}
+
+static inline
+Expr layerNorm(Expr x, std::string prefix, std::string suffix = std::string()) {
+  int dimModel = x->shape()[-1];
+  auto scale = x->graph()->param(prefix + "_ln_scale" + suffix, { 1, dimModel }, inits::ones());
+  auto bias  = x->graph()->param(prefix + "_ln_bias"  + suffix, { 1, dimModel }, inits::zeros());
+  return marian::layerNorm(x, scale, bias, 1e-6f);
+}
+
 }  // namespace marian

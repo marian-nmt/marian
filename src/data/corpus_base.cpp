@@ -1,6 +1,7 @@
 #include <random>
 
 #include "data/corpus.h"
+#include "data/factored_vocab.h"
 
 namespace marian {
 namespace data {
@@ -328,6 +329,55 @@ void CorpusBase::initEOS(bool training = true) {
       // No input type specified, assuming "sequence"
       addEOS_[i] = true;
     }
+}
+
+// experimental: hide inline-fix source tokens from cross attention
+std::vector<float> SubBatch::crossMaskWithInlineFixSourceSuppressed() const
+{
+  const auto& srcVocab = *vocab();
+
+  auto factoredVocab = vocab()->tryAs<FactoredVocab>();
+  size_t inlineFixGroupIndex = 0, inlineFixSrc = 0;
+  auto hasInlineFixFactors = factoredVocab && factoredVocab->tryGetFactor(FactoredVocab_INLINE_FIX_WHAT_serialized, /*out*/ inlineFixGroupIndex, /*out*/ inlineFixSrc);
+
+  auto fixSrcId = srcVocab[FactoredVocab_FIX_SRC_ID_TAG];
+  auto fixTgtId = srcVocab[FactoredVocab_FIX_TGT_ID_TAG];
+  auto fixEndId = srcVocab[FactoredVocab_FIX_END_ID_TAG];
+  auto unkId = srcVocab.getUnkId();
+  auto hasInlineFixTags = fixSrcId != unkId && fixTgtId != unkId && fixEndId != unkId;
+
+  auto m = mask(); // default return value, which we will modify in-place below in case we need to
+  if (hasInlineFixFactors || hasInlineFixTags) {
+    LOG_ONCE(info, "[data] Suppressing cross-attention into inline-fix source tokens");
+
+    // example: force French translation of name "frank" to always be "franck"
+    //  - hasInlineFixFactors: "frank|is franck|it", "frank|is" cannot be cross-attended to
+    //  - hasInlineFixTags:    "<IOPEN> frank <IDELIM> franck <ICLOSE>", "frank" and all tags cannot be cross-attended to
+    auto dimBatch = batchSize();  // number of sentences in the batch
+    auto dimWidth = batchWidth(); // number of words in the longest sentence in the batch
+    const auto& d = data();
+    size_t numWords = 0;
+    for (size_t b = 0; b < dimBatch; b++) {     // loop over batch entries
+      bool inside = false;
+      for (size_t s = 0; s < dimWidth; s++) {  // loop over source positions
+        auto i = locate(/*batchIdx=*/b, /*wordPos=*/s);
+        if (!m[i])
+          break;
+        numWords++;
+        // keep track of entering/exiting the inline-fix source tags
+        auto w = d[i];
+        if (w == fixSrcId)
+          inside = true;
+        else if (w == fixTgtId)
+          inside = false;
+        bool wHasSrcIdFactor = hasInlineFixFactors && factoredVocab->getFactor(w, inlineFixGroupIndex) == inlineFixSrc;
+        if (inside || w == fixSrcId || w == fixTgtId || w == fixEndId || wHasSrcIdFactor)
+          m[i] = 0.0f; // decoder must not look at embedded source, nor the markup tokens
+      }
+    }
+    ABORT_IF(batchWords() != 0/*n/a*/ && numWords != batchWords(), "batchWords() inconsistency??");
+  }
+  return m;
 }
 
 }  // namespace data

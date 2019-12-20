@@ -401,14 +401,19 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
           paramsAvg_[idx], curParam, scheduler_->numberOfBatches(), updateTrgWords);
   };
 
-  comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
-  comm_->foreach(update);              // per-shard model-update
-  comm_->allGatherParams();            // distribute param value shards back
-
   // cost across all local devices (scheduler will aggregate cross-process)
   StaticLoss localLoss;
   for(auto& l : localDeviceLosses) // localDeviceLosses is already summed up over delay steps
     localLoss += l;
+
+  // model update
+  if (std::isfinite(localLoss.loss) || mpi_->numMPIProcesses() > 1) { // guard against NaN (except with MPI, as this simple way could hang it)
+    comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices and MPI nodes into shards
+    comm_->foreach(update);              // per-shard model-update
+    comm_->allGatherParams();            // distribute param value shards back
+  }
+  else
+    LOG(info, "[training] skipping {}-th update due to loss being {}", scheduler_->numberOfBatches(), localLoss.loss);
 
   if(scheduler_) {
     // track and log localLoss

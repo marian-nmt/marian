@@ -859,7 +859,9 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
 
 struct CmpNodeOp : public ElementBinaryNodeOp {
   CmpNodeOp(Expr a, Expr b, int cmp_, bool not_) : ElementBinaryNodeOp(a, b), cmp_(cmp_), not_(not_) {
-    setTrainable(false); // has no gradient
+    //setTrainable(false); // has no gradient
+    // Note: ^^ Disabled because it currently causing Marian to choke, for unknown reasons.
+    //       Not setting this will not change the result since the vector of gradient functions is empty.
   }
 
   NodeOps forwardOps() override {

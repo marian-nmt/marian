@@ -206,7 +206,7 @@ private:
   virtual Expr accumulateLoss(const RationalLoss& current) override {
     if(loss_) {
       const auto& first = partialLosses_.front();
-      return loss_ + first.count() * (current.loss() / current.count()); // scale up/down to match scale of first loss
+      return loss_ + current.loss() * first.count() / current.count(); // scale up/down to match scale of first loss
     } else {
       return current.loss(); // first reference loss, keeps to scale with this one
     }
@@ -344,8 +344,8 @@ protected:
       // for bert training or classification the time dimension is lot.
       // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
       Expr ce = cast(cross_entropy(logits, indices), Type::float32);
-      if (inFactor) {
-        LOG_ONCE("scaling factor losses with weight {}", factorWeight_);
+      if (inFactor && factorWeight_ != 1.0f) {
+        LOG_ONCE(info, "scaling factor losses with weight {}", factorWeight_);
         ce = ce * factorWeight_;
       }
       if (labelSmoothing_ > 0) {

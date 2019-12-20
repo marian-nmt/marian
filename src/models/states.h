@@ -9,7 +9,7 @@ namespace marian {
 class EncoderState {
 private:
   Expr context_;
-  Expr mask_;
+  Expr mask_;       // [beam depth=1, max length, batch size, vector dim=1] source mask
   Ptr<data::CorpusBatch> batch_;
 
 public:
@@ -18,9 +18,9 @@ public:
 
   EncoderState() {}
 
-  virtual Expr getContext() { return context_; }
-  virtual Expr getAttended() { return context_; }
-  virtual Expr getMask() { return mask_; }
+  virtual Expr getContext()   const { return context_;   }
+  virtual Expr getAttended()  const { return context_;   }
+  virtual Expr getMask()      const { return mask_;      } // source batch mask; may have additional positions suppressed
 
   virtual const Words& getSourceWords() {
     return batch_->front()->data();
