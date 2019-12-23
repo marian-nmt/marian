@@ -46,11 +46,13 @@ void fbgemmPacked16PackInfo(const marian::Shape& shape,
 // Returns the byte size of packed matrix in int8. It's calculated by fbgemm's internal logic due to the paddings and different layouts.
 // See '3rd_party/fbgemm/src/PackBMatrix.cc'.
 // shape: shape of the tensor to be packed
+// packType: Type to be packed - packed8avx2 or packed8avx512
 // transpose: the matrix is transposed
 // nrow (out): the number of rows
 // ncol (out): the number of columns
 // packsize (out): the size of the packed matrix in byte
 void fbgemmPacked8PackInfo(const marian::Shape& shape,
+                           const marian::Type packType,
                            const bool transpose,
                            /*out*/int& nrow,
                            /*out*/int& ncol,
@@ -86,6 +88,7 @@ void fbgemmPacked16Pack(marian::Tensor out,
 // Pack a matrix (int8) into cache utilization efficient way (block format) together with quantization into int8
 // out: output tensor - packed format and quantized into int8
 // inData: input tensor data - pointer of float data
+// packType: Type to be packed - packed8avx2 or packed8avx512
 // transpose: the matrix is transposed
 // nrow: the number of rows
 // ncol: the number of columns
@@ -93,6 +96,7 @@ void fbgemmPacked16Pack(marian::Tensor out,
 //          (the size of int8 packed B from fbgemm:PackAWithQuantRowOffset + quantization scale, offset and zero point)
 void fbgemmPacked8Pack(marian::Tensor out,
                        const float* inData,
+                       const marian::Type packType,
                        const bool transpose,
                        const int nrow,
                        const int ncol,

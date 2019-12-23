@@ -135,13 +135,19 @@ do { \
 namespace marian {
 
 // small struct to enable templating based on types use for packing
-struct packed8 {
+struct packed16 {
+  uint16_t x;
+};
+
+// small struct to enable templating based on types use for packing. This is a memory holder.
+// There's no difference between packed8avx2 and packed8avx512. But, they are separately defined to be distinguished.
+struct packed8avx2 {
   uint8_t x;
 };
 
-// small struct to enable templating based on types use for packing
-struct packed16 {
-  uint16_t x;
+// small struct to enable templating based on types use for packing. This is a memory holder.
+struct packed8avx512 {
+  uint8_t x;
 };
 
 #ifndef __CUDACC__ // vectorized types not available from .cu files
@@ -209,16 +215,23 @@ struct float32x8 {
 
 // Internal to types.h, don't use. Use test functions below.
 enum class TypeClass : size_t {
-  signed_type   = 0x100,
-  unsigned_type = 0x200,
-  float_type    = 0x400,
-  packed_type   = 0x800, // special packed (CPU cache friendly) type class, used in FBGEMM, not meant to be used anywhere else
+  signed_type   = 0x0100,
+  unsigned_type = 0x0200,
+  float_type    = 0x0400,
 
-  size_mask     = 0x0FF
+  packed_type   = 0x0800, // special packed (CPU cache friendly) type class, used in FBGEMM, not meant to be used anywhere else
+  avx2_type     = 0x1000, // processor-specific layout for avx2, currently used for FBGEMM only
+  avx512_type   = 0x2000, // processor-specific layout for avx512, currently used for FBGEMM only
+
+  size_mask     = 0x00FF
 };
 
 constexpr inline size_t operator+(TypeClass typeClass, size_t val) {
   return (size_t)typeClass + val;
+}
+
+constexpr inline size_t operator+(size_t val, TypeClass typeClass) {
+  return val + (size_t)typeClass;
 }
 
 // @TODO: rename to ElementType when things become stable, so it's easier to review
@@ -237,8 +250,10 @@ enum class Type : size_t {
   float32  = TypeClass::float_type + 4u,
   float64  = TypeClass::float_type + 8u,
 
-  packed8  = TypeClass::packed_type + 1u, // special type for FBGEMM, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint8) is meaningless.
-  packed16 = TypeClass::packed_type + 2u  // special type for FBGEMM, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint16) is meaningless.
+  packed16      = TypeClass::packed_type + 2u,                          // special type for FBGEMM, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint16) is meaningless.
+  packed8avx2   = TypeClass::packed_type + 1u + TypeClass::avx2_type,   // special type for FBGEMM with AVX2, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint8) is meaningless.
+  packed8avx512 = TypeClass::packed_type + 1u + TypeClass::avx512_type, // special type for FBGEMM with AVX512, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint8) is meaningless.
+  
 };
 
 static inline size_t operator&(TypeClass typeClass, Type type) {
@@ -269,6 +284,14 @@ static inline bool isPacked(Type type) {
   return (TypeClass::packed_type & type) != 0;
 }
 
+static inline bool isAvx2(Type type) {
+  return (TypeClass::avx2_type & type) != 0;
+}
+
+static inline bool isAvx512(Type type) {
+  return (TypeClass::avx512_type & type) != 0;
+}
+
 size_t requiredBytes(const Shape& shape, Type type); // towards Frank's vision of joint Shape/Type
 
 template <typename T>
@@ -290,8 +313,9 @@ template <> inline bool matchType<float16>(Type type)  { return type == Type::fl
 template <> inline bool matchType<float>(Type type)    { return type == Type::float32;  }
 template <> inline bool matchType<double>(Type type)   { return type == Type::float64;  }
 
-template <> inline bool matchType<packed8>(Type type)  { return type == Type::packed8;  }
-template <> inline bool matchType<packed16>(Type type) { return type == Type::packed16; }
+template <> inline bool matchType<packed16>(Type type)       { return type == Type::packed16;       }
+template <> inline bool matchType<packed8avx2>(Type type)    { return type == Type::packed8avx2;    }
+template <> inline bool matchType<packed8avx512>(Type type)  { return type == Type::packed8avx512;  }
 // clang-format on
 
 static inline std::ostream& operator<<(std::ostream& out, Type type) {
@@ -310,8 +334,9 @@ static inline std::ostream& operator<<(std::ostream& out, Type type) {
     case Type::float32 : out << "float32"; break;
     case Type::float64 : out << "float64"; break;
 
-    case Type::packed8 : out << "packed8"; break;
-    case Type::packed16: out << "packed16"; break;
+    case Type::packed16      : out << "packed16"; break;
+    case Type::packed8avx2   : out << "packed8avx2"; break;
+    case Type::packed8avx512 : out << "packed8avx512"; break;
   }
   return out;
 }
@@ -334,8 +359,9 @@ template <> inline std::string request<float16>()  { return "float16"; }
 template <> inline std::string request<float>()    { return "float32"; }
 template <> inline std::string request<double>()   { return "float64"; }
 
-template <> inline std::string request<packed8>()  { return "packed8"; }
 template <> inline std::string request<packed16>() { return "packed16"; }
+template <> inline std::string request<packed8avx2>()  { return "packed8avx2"; }
+template <> inline std::string request<packed8avx512>()  { return "packed8avx512"; }
 // clang-format on
 
 static Type inline typeFromString(const std::string& str) {
@@ -363,6 +389,13 @@ static Type inline typeFromString(const std::string& str) {
     return Type::float32;
   if(str == "float64")
     return Type::float64;
+  
+  if(str == "packed16")
+    return Type::packed16;
+  if(str == "packed8avx2")
+    return Type::packed8avx2;
+  if(str == "packed8avx512")
+    return Type::packed8avx512;
 
   ABORT("Unknown type {}", str);
 }
@@ -383,6 +416,10 @@ template <> inline Type typeId<uint64_t>() { return Type::uint64; }
 template <> inline Type typeId<float16>()  { return Type::float16; }
 template <> inline Type typeId<float>()    { return Type::float32; }
 template <> inline Type typeId<double>()   { return Type::float64; }
+
+template <> inline Type typeId<packed16>()      { return Type::packed16; }
+template <> inline Type typeId<packed8avx2>()   { return Type::packed8avx2; }
+template <> inline Type typeId<packed8avx512>() { return Type::packed8avx512; }
 
 // Abort if given C++ does not correspond to runtime type
 template <typename T>

@@ -126,6 +126,7 @@ struct FbgemmPacked16PackNodeOp : public UnaryNodeOp {
 
 // Pack a matrix (int8) into cache utilization efficient way (block format) together with quantization into int8
 // PackMatrix packMat_: the type of packed matrix - A or B matrix
+// marian::Type packType_: the type the input matrix is packed - packed8avx2 or packed8avx512
 // bool transpose_: transpose
 // int nrow_: the number of rows
 // int ncol_: the number of columns
@@ -133,14 +134,20 @@ struct FbgemmPacked16PackNodeOp : public UnaryNodeOp {
 //                    (the size of int8 packed B from fbgemm:PackAWithQuantRowOffset + quantization scale, offset and zero point)
 struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
   PackMatrix packMat_;
+  marian::Type packType_;
   bool transpose_;
   int nrow_;
   int ncol_;
   uint64_t packsize_;
 
-  FbgemmPacked8PackNodeOp(Expr a, PackMatrix packMat, bool transpose, float clipValue)
+  FbgemmPacked8PackNodeOp(Expr a,
+                          PackMatrix packMat,
+                          marian::Type packType,
+                          bool transpose,
+                          float clipValue)
       : UnaryNodeOp(a, newShape(a, transpose), Type::uint8),
         packMat_(packMat),
+        packType_(packType),
         transpose_(transpose) {
     if(packMat != PackMatrix::B)
       ABORT("Only prepacking of B (weight matrix) is supported");
@@ -154,6 +161,7 @@ struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
 #if USE_FBGEMM
     return {NodeOp(fbgemmPacked8Pack(val_,
                                      child(0)->val()->data(),
+                                     packType_,
                                      transpose_,
                                      nrow_,
                                      ncol_,
@@ -174,7 +182,7 @@ struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
 
   Shape newShape(Expr a, bool transpose) {
 #if USE_FBGEMM
-    fbgemmPacked8PackInfo(a->shape(), transpose, nrow_, ncol_, packsize_);
+    fbgemmPacked8PackInfo(a->shape(), packType_, transpose, nrow_, ncol_, packsize_);
     Shape outShape({(int)packsize_});
 
     return outShape;
@@ -362,7 +370,7 @@ static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, boo
 
   if (elementType == Type::packed16)
     return Expression<cpu::variant::FbgemmPacked16AffineNodeOp>(nodes, bShape, transA, transB, scalar);
-  else if (elementType == Type::packed8)
+  else if (isPacked(elementType) && sizeOf(elementType) == 1)
     return Expression<cpu::variant::FbgemmPacked8AffineNodeOp>(nodes, bShape, transA, transB, scalar);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);
@@ -373,8 +381,8 @@ static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, boo
 static inline Expr pack(Type elementType, Expr a, PackMatrix packMat, bool transpose, float clipValue) {
   if (elementType == Type::packed16)
     return Expression<cpu::variant::FbgemmPacked16PackNodeOp>(a, packMat, transpose, clipValue);
-  else if (elementType == Type::packed8)
-    return Expression<cpu::variant::FbgemmPacked8PackNodeOp>(a, packMat, transpose, clipValue);
+  else if (isPacked(elementType) && sizeOf(elementType) == 1)
+    return Expression<cpu::variant::FbgemmPacked8PackNodeOp>(a, packMat, elementType, transpose, clipValue);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);
     return nullptr;
@@ -387,7 +395,7 @@ static inline Expr dot(Expr a, Expr b, Shape bShape, bool transA, bool transB, f
 
   if (elementType == Type::packed16)
     return Expression<cpu::variant::FbgemmPacked16AffineNodeOp>(nodes, bShape, transA, transB, scalar);
-  else if (elementType == Type::packed8)
+  else if (isPacked(elementType) && sizeOf(elementType) == 1)
     return Expression<cpu::variant::FbgemmPacked8AffineNodeOp>(nodes, bShape, transA, transB, scalar);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);

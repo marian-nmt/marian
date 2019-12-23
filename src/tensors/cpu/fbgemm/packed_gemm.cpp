@@ -113,6 +113,39 @@ inline uint64_t addr(const int r_,
   return index;
 }
 
+// Memory blocking factors (parameters) for packing into AVX2 int8
+static const fbgemm::BlockingFactors Packed8Avx2BlockingFactors = {
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::MR,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::NR,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::NR_MIN,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::ROW_INTERLEAVE,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::MCB,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::KCB,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx2>::NCB
+};
+
+// Memory blocking factors (parameters) for packing into AVX512 int8
+static const fbgemm::BlockingFactors Packed8Avx512BlockingFactors = {
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::MR,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::NR,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::NR_MIN,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::ROW_INTERLEAVE,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::MCB,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::KCB,
+    PackingTraits<int8_t, int32_t, inst_set_t::avx512>::NCB
+};
+
+// This function returns the correct blocking factors structure for given packing type.
+inline const fbgemm::BlockingFactors* getBlockingFactors(marian::Type packType) {
+  if(packType == Type::packed8avx2) {
+    return &Packed8Avx2BlockingFactors;
+  } else if(packType == Type::packed8avx512) {
+    return &Packed8Avx512BlockingFactors;
+  } else {
+    ABORT("Only avx2 and avx512 instruction sets are supported for int8. {}", packType);
+  }
+}
+
 void fbgemmPacked16PackInfo(const marian::Shape& shape,
                             const bool transpose,
                             uint64_t& packsize) {
@@ -145,6 +178,7 @@ void fbgemmPacked16PackInfo(const marian::Shape& shape,
 }
 
 void fbgemmPacked8PackInfo(const marian::Shape& shape,
+                           const marian::Type packType,
                            const bool transpose,
                            int& nrow,
                            int& ncol,
@@ -154,9 +188,12 @@ void fbgemmPacked8PackInfo(const marian::Shape& shape,
             "Weight Matrix should be 2D");
     nrow = transpose ? shape[1] : shape[0];
     ncol = transpose ? shape[0] : shape[1];
+
+    const fbgemm::BlockingFactors* params = getBlockingFactors(packType);
+
     packsize = fbgemm::PackMatrix<fbgemm::PackBMatrix<int8_t>, int8_t>::packedBufferSize(
         transpose ? shape[1] : shape[0],
-        transpose ? shape[0] : shape[1]);
+        transpose ? shape[0] : shape[1], params);
     // add extra space for storing some other variables specific to B matrix
     // quantization sacles: 1 per column and float
     // quantization offset: 1 per column and int32
@@ -229,6 +266,7 @@ void fbgemmPacked16Pack(marian::Tensor out,
 
 void fbgemmPacked8Pack(marian::Tensor out,
                        const float* inData,
+                       const marian::Type packType,
                        const bool transpose,
                        const int nrow,
                        const int ncol,
@@ -318,9 +356,11 @@ void fbgemmPacked8Pack(marian::Tensor out,
   }
 
   // 4. packing
+  const fbgemm::BlockingFactors* params = getBlockingFactors(packType);
+  
   PackBMatrix<int8_t> packedBN(
       transpose ? matrix_op_t::Transpose : matrix_op_t::NoTranspose,
-      nrow, ncol, quantized, transpose ? nrow : ncol, packedbuf, 1);
+      nrow, ncol, quantized, transpose ? nrow : ncol, packedbuf, 1, params);
 
   // copy quantization scale
   memcpy(packedbuf + (packsize - n * (sizeof(float) + sizeof(int32_t) + sizeof(int32_t))), bqScale, n * sizeof(float));
@@ -428,6 +468,18 @@ void fbgemmPacked8Gemm(marian::Tensor C,
                        const size_t k,
                        const int transA,
                        const int transB) {
+  // pack type
+  marian::Type packType = B->type();
+
+  const fbgemm::BlockingFactors* params = getBlockingFactors(packType);
+
+  if((packType == Type::packed8avx2 && fbgemmHasAvx512Support())
+     || (packType == Type::packed8avx512 && !fbgemmHasAvx512Support())) {
+    ABORT("FBGEMM doesn't allow to use {} packing order on {} CPUs",
+          packType == Type::packed8avx2 ? "AVX2" : "AVX512",
+          fbgemmHasAvx512Support() ? "AVX512" : "AVX2");
+  }
+
   // compute range to quantize A (activations) - (min/max quantization)
   float min_est = std::numeric_limits<float>::max(), max_est = std::numeric_limits<float>::min();
 
@@ -442,15 +494,16 @@ void fbgemmPacked8Gemm(marian::Tensor C,
   std::vector<int32_t> row_offset_buf(PackAWithQuantRowOffset<uint8_t>::rowOffsetBufferSize());
   PackAWithQuantRowOffset<uint8_t> packAN(
       transA ? matrix_op_t::Transpose : matrix_op_t::NoTranspose,
-      (int32_t) (transA ? k : m),
-      (int32_t) (transA ? m : k),
+      (int32_t)(transA ? k : m),
+      (int32_t)(transA ? m : k),
       A->data(),
-      (int32_t) (transA ? m : k),
+      (int32_t)(transA ? m : k),
       nullptr, /*buffer for packed matrix*/
       ascale,
       azeropoint,
       1, /*groups*/
-      row_offset_buf.data());
+      row_offset_buf.data(),
+      params);
 
   // packed matrix size of B
   int bPackSize = PackMatrix<PackBMatrix<int8_t>, int8_t>::packedBufferSize((int32_t)k, (int32_t)n);
@@ -479,10 +532,10 @@ void fbgemmPacked8Gemm(marian::Tensor C,
       (std::uint32_t) n);
 
   PackBMatrix<int8_t> repackedBN(
-    transB ? matrix_op_t::Transpose : matrix_op_t::NoTranspose, (int32_t) k, (int32_t) n, bdata, (int32_t) (transB ? k : n, 1));
+    transB ? matrix_op_t::Transpose : matrix_op_t::NoTranspose, (int32_t) k, (int32_t) n, bdata, (int32_t) (transB ? k : n), 1, params);
 
   // gemm computation
-  fbgemmPacked(packAN, repackedBN, C->data(), (int32_t*)C->data(), (int32_t) n, outputProcObj, 0, 1);
+  fbgemmPacked(packAN, repackedBN, C->data(), (int32_t*)C->data(), (int32_t) n, outputProcObj, 0, 1, params);
 
   delete[] col_offsets;
   delete[] bqZeropoint;

@@ -262,7 +262,7 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
   if (targetPrec == 16)
     saveGemmType = Type::packed16;
   else if (targetPrec == 8)
-    saveGemmType = Type::packed8;
+    saveGemmType = Type::packed8avx2; // We currently use avx2 by default.
 
   // added a flag if the weights needs to be packed or not
   graph->packAndSave(outputFile, configStr.str(), saveGemmType);

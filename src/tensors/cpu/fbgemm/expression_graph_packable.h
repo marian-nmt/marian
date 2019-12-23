@@ -36,7 +36,8 @@ public:
 
       // save as packed format
       // @TODO Hardcoded to find packable weights - all the weights used for affine op (fp16), all the weights used for affine op and dot op (int8)
-      if (gemmElementType == Type::packed8 && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2)) {
+      if ((gemmElementType == Type::packed8avx2 || gemmElementType == Type::packed8avx512)
+        && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2)) {
   #if USE_FBGEMM
         using namespace marian::cpu::variant;
         // packing information - size
@@ -45,10 +46,11 @@ public:
         uint64_t packsize;
 
         fbgemmPacked8PackInfo(val->shape(),
-          pName.find("Wemb") != std::string::npos,
-          nrow,
-          ncol,
-          packsize);
+                              gemmElementType,
+                              pName.find("Wemb") != std::string::npos,
+                              nrow,
+                              ncol,
+                              packsize);
 
         auto allocator = New<TensorAllocator>(getBackend());
 
@@ -58,11 +60,12 @@ public:
 
         //Pack B matrix into int8
         fbgemmPacked8Pack(packedTensor,
-          val->data(),
-          pName.find("Wemb") != std::string::npos,
-          nrow,
-          ncol,
-          packsize);
+                          val->data(),
+                          gemmElementType,
+                          pName.find("Wemb") != std::string::npos,
+                          nrow,
+                          ncol,
+                          packsize);
         io::Item item;
         item.name = pName;
         item.shape = val->shape();
