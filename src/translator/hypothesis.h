@@ -42,33 +42,44 @@ public:
   float getPathScore() const { return pathScore_; }
 
   const std::vector<float>& getScoreBreakdown() { return scoreBreakdown_; }
-  void setScoreBreakdown(const std::vector<float>& scoreBreaddown) { scoreBreakdown_ = scoreBreaddown; }
+  void setScoreBreakdown(const std::vector<float>& scoreBreakdown) { scoreBreakdown_ = scoreBreakdown; }
 
   const std::vector<float>& getAlignment() { return alignment_; }
   void setAlignment(const std::vector<float>& align) { alignment_ = align; };
 
-  // helpers to trace back paths referenced from this hypothesis
-  Words tracebackWords()
-  {
-      Words targetWords;
-      for (auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
-        targetWords.push_back(hyp->getWord());
-        // std::cerr << hyp->getWord() << " " << hyp << std::endl;
-      }
-      std::reverse(targetWords.begin(), targetWords.end());
-      return targetWords;
+  // trace back paths referenced from this hypothesis
+  Words tracebackWords() {
+    Words targetWords;
+    for(auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
+      targetWords.push_back(hyp->getWord());
+    }
+    std::reverse(targetWords.begin(), targetWords.end());
+    return targetWords;
+  }
+
+  // calculate word-level scores for each target word by de-aggregating the path score
+  std::vector<float> tracebackWordScores() {
+    std::vector<float> scores;
+    // traverse hypotheses backward
+    for(auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
+      // a path score is a cumulative score including scores from all preceding hypotheses (words),
+      // so calculate a word-level score by subtracting the previous path score from the current path score
+      auto prevPathScore = hyp->getPrevHyp() ? hyp->getPrevHyp().get()->pathScore_ : 0.f;
+      scores.push_back(hyp->pathScore_ - prevPathScore);
+    }
+    std::reverse(scores.begin(), scores.end());
+    return scores;
   }
 
   // get soft alignments [t][s] -> P(s|t) for each target word starting from the hyp one
   typedef data::SoftAlignment SoftAlignment;
-  SoftAlignment tracebackAlignment()
-  {
-      SoftAlignment align;
-      for (auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
-          align.push_back(hyp->getAlignment());
-      }
-      std::reverse(align.begin(), align.end());
-      return align; // [t][s] -> P(s|t)
+  SoftAlignment tracebackAlignment() {
+    SoftAlignment align;
+    for(auto hyp = this; hyp->getPrevHyp(); hyp = hyp->getPrevHyp().get()) {
+      align.push_back(hyp->getAlignment());
+    }
+    std::reverse(align.begin(), align.end());
+    return align;  // [t][s] -> P(s|t)
   }
 
 private:

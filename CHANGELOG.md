@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- An option to print word-level translation scores
+- An option to turn off automatic detokenization from SentencePiece
 - Separate quantization types for 8-bit FBGEMM for AVX2 and AVX512
 - Sequence-level unliklihood training
 - Allow file name templated valid-translation-output files
