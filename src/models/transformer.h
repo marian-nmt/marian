@@ -534,6 +534,7 @@ public:
                              layer, // values
                              layerMask); // [batch size, num heads broadcast=1, max length broadcast=1, max length]
       layer = LayerFFN(prefix_ + "_l" + std::to_string(i) + "_ffn", layer);
+      checkpoint(layer); // sets a manually specified checkpoint if gradient checkpointing is enabled, does nothing otherwise.
     }
 
     // restore organization of batch and time steps. This is currently required
@@ -700,6 +701,9 @@ public:
 
       encoderContexts.push_back(encoderContext);
       encoderMasks.push_back(encoderMask);
+
+      checkpoint(encoderContext);
+      checkpoint(encoderMask);
     }
 
     rnn::States prevDecoderStates = state->getStates();
@@ -734,6 +738,8 @@ public:
       else
         ABORT("Unknown auto-regressive layer type in transformer decoder {}",
               layerType);
+
+      checkpoint(query);
 
       // source-target attention
       // Iterate over multiple encoders and simply stack the attention blocks
@@ -771,10 +777,14 @@ public:
         }
       }
 
+      checkpoint(query);
+
       // remember decoder state
       decoderStates.push_back(decoderState);
 
       query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+
+      checkpoint(query);
     }
 
     auto decoderContext = transposeTimeBatch(query); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]

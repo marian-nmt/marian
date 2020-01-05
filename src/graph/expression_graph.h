@@ -354,7 +354,7 @@ public:
              const Ptr<inits::NodeInitializer>& init,
              const Type elementType,
              bool fixed = false) {
-    // since this param is called with out a specified type, we assume defaultElementType but allow to check for a different type
+    // this param is called with a specified type
     return param(pname, shape, init, elementType, fixed, /*typeSpecified=*/true);
   }
 
@@ -362,7 +362,7 @@ public:
              const Shape& shape,
              const Ptr<inits::NodeInitializer>& init,
              bool fixed = false) {
-    // since this param is called with out a specified type, we assume defaultElementType but allow to check for a different type
+    // since this param is called without a specified type, we assume defaultElementType but allow to check for a different type
     return param(pname, shape, init, defaultElementType_, fixed, /*typeSpecified=*/false);
   }
 
@@ -497,7 +497,12 @@ public:
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-      param(pName, item.shape, inits::fromItem(item), item.type, /*fixed=*/false);
+      
+      // if during loading the loaded type is of the same type class as the default element type, allow conversion;
+      // otherwise keep the loaded type. This is used when e.g. loading a float32 model as a float16 model as both
+      // have type class TypeClass::float_type.
+      auto loadElementType = isSameTypeClass(item.type, defaultElementType_) ? defaultElementType_ : item.type;
+      param(pName, item.shape, inits::fromItem(item), loadElementType, /*fixed=*/false);
     }
     if(markReloaded)
       setReloaded(true);

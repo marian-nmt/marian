@@ -34,6 +34,7 @@ public:
     // Initialize graph
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
+    graph_->setCheckpointing(options_->get<bool>("gradient-checkpointing"));
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);

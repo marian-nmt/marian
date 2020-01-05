@@ -13,17 +13,17 @@ namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
     : CorpusBase(options, translate),
-        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
-        allCapsEvery_(options_->get<size_t>("all-caps-every")),
-        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
+        allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options)
     : CorpusBase(paths, vocabs, options),
-        shuffleInRAM_(options_->get<bool>("shuffle-in-ram")),
-        allCapsEvery_(options_->get<size_t>("all-caps-every")),
-        titleCaseEvery_(options_->get<size_t>("english-title-case-every")) {}
+        shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
+        allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
+        titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
 
 void Corpus::preprocessLine(std::string& line, size_t streamId) {
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {

@@ -617,10 +617,10 @@ Expr unlikelihood(Expr logits, Expr indices) {
   int dimBatch = logits->shape()[-2];
   int dimTime  = logits->shape()[-3];
 
-  // @TODO: fix the outside of this function in decoder.h etc. 
+  // @TODO: fix this outside of this function in decoder.h etc. 
   auto indicesWithLayout = reshape(indices, {1, dimTime, dimBatch, 1});
 
-  // This is currently implemented with mutliple ops, might be worth doing a special operation like for cross_entropy
+  // This is currently implemented with multiple ops, might be worth doing a special operation like for cross_entropy
   return -log(gather(1.f - softmax(logits), /*axis=*/-1, indicesWithLayout));
 }
 

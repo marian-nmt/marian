@@ -24,7 +24,11 @@ namespace marian {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
 
     auto firstLogits = logits_.front()->loss();
-    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), "Labels not matching logits shape??");
+    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), 
+             "Labels not matching logits shape ({} != {}, {})??",
+             labels.size() * firstLogits->shape()[-1],
+             firstLogits->shape().elements(),
+             firstLogits->shape());
 
     // base case (no factors)
     if (!factoredVocab_) {

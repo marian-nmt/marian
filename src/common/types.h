@@ -223,7 +223,8 @@ enum class TypeClass : size_t {
   avx2_type     = 0x1000, // processor-specific layout for avx2, currently used for FBGEMM only
   avx512_type   = 0x2000, // processor-specific layout for avx512, currently used for FBGEMM only
 
-  size_mask     = 0x00FF
+  size_mask     = 0x00FF,
+  class_mask    = 0xFF00
 };
 
 constexpr inline size_t operator+(TypeClass typeClass, size_t val) {
@@ -258,6 +259,10 @@ enum class Type : size_t {
 
 static inline size_t operator&(TypeClass typeClass, Type type) {
   return (size_t)typeClass & (size_t)type;
+}
+
+static inline bool isSameTypeClass(Type type1, Type type2) {
+  return (TypeClass::class_mask & type1) == (TypeClass::class_mask & type2);
 }
 
 static inline size_t sizeOf(Type type) {

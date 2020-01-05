@@ -10,6 +10,7 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
   for(auto device : devices_) {
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
+    graph->setCheckpointing(options_->get<bool>("gradient-checkpointing"));
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
 
@@ -57,19 +58,6 @@ void SyncGraphGroup::initialize(const Ptr<data::Batch>& exampleBatch) {
     if (i > 0)
       graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
   });
-  //ThreadPool pool(graphs_.size() - 1, graphs_.size() - 1);
-  //for(size_t i = 1; i < graphs_.size(); ++i) {
-  //  auto init = [&](size_t i) {
-  //    // initialize i-th graph and weights
-  //    builders_[i]->build(graphs_[i], exampleBatch);
-  //    graphs_[i]->forward();
-  //    // overwrite weights of i-th graph with weights from 0-th graph
-  //    graphs_[i]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
-  //  };
-  //  pool.enqueue(init, i);
-  //}
-  //// ThreadPool destructor waits until completion of all tasks.
-  //// @TODO: can we use comm_->foreach()?
 }
 
 void SyncGraphGroup::initializeAvg() {
