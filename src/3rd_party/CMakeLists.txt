@@ -71,8 +71,23 @@ set(INSTALLS "") # this will contain a list of 3rd part dependencies that we ins
 if(CUDA_FOUND)
   if(USE_NCCL)
 
-    # disables compilation for sm_30 to avoid ptxas warning... that's general Kepler support. But K80s are supported for instance by sm_35
-    set(GENCODE "-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
+    # disables compilation for sm_30 to avoid ptxas warning... that is general Kepler support. But K80s are supported for instance by sm_35
+
+    set(GENCODE "")
+    if(COMPILE_CUDA_SM35)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_35,code=sm_35")
+    endif(COMPILE_CUDA_SM35)
+    if(COMPILE_CUDA_SM50)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_50,code=sm_50")
+    endif(COMPILE_CUDA_SM50)
+    if(COMPILE_CUDA_SM60)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
+    endif(COMPILE_CUDA_SM60)
+    if(COMPILE_CUDA_SM70)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_70,code=sm_70")
+    endif(COMPILE_CUDA_SM70)
+
+    message(${GENCODE})
 
     # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
     ExternalProject_Add(nccl_install

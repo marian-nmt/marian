@@ -138,7 +138,8 @@ cuda_add_library(marian_cuda
   tensors/gpu/algorithm.cu
   tensors/gpu/prod.cpp
   tensors/gpu/element.cu
-  tensors/gpu/add.cu
+  tensors/gpu/add.cu  
+  tensors/gpu/add_all.cu
   tensors/gpu/tensor_operators.cu
   tensors/gpu/cudnn_wrappers.cu
   translator/nth_element.cu
