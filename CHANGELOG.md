@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Clear RNN chache in transformer model, add correct hash functions to nodes
 - Gather-operation for all index sizes
 - Fix word weighting with max length cropping
 - Fixed compilation on CPUs without support for AVX
@@ -54,6 +55,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Revert LayerNorm eps to old position, i.e. sigma' = sqrt(sigma^2 + eps)
 - Downgrade NCCL to 2.3.7 as 2.4.2 is buggy (hangs with larger models)
 - Return error signal on SIGTERM
 - Dropped support for CUDA 8.0, CUDA 9.0 is now minimal requirement
