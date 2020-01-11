@@ -17,6 +17,7 @@
 #pragma warning(disable: 4251) // 'fbgemm::CompressedSparseColumn::colptr_': class 'std::vector<int,std::allocator<_Ty>>' needs to have dll-interface to be used by clients of class 'fbgemm::CompressedSparseColumn'
 #pragma warning(disable: 4661) // 'fbgemm::PackMatrix<fbgemm::PackBMatrix<int8_t,int32_t>,int8_t,int32_t>::PackMatrix(int32_t,int32_t,inpType *,int,const fbgemm::BlockingFactors *)': no suitable definition provided for explicit template instantiation request
 #pragma warning(disable: 4244) // fbgemm\quantutils.h(51): warning C4244: 'return': conversion from 'const _Ty' to 'T2', possible loss of data
+#pragma warning(disable: 4717) // 'fbgemm::PackMatrix<fbgemm::PackAWithQuantRowOffset<unsigned char,int>,unsigned char,int>::isThisLastKBlock': recursive on all control paths, function will cause runtime stack overflow
 // the following does not work; need to manually disable them in Linker options
 //#pragma comment(linker, "/ignore:4049") // locally defined symbol ...asmjit... imported
 //#pragma comment(linker, "/ignore:4217") // locally defined symbol ...asmjit... imported
