@@ -459,7 +459,7 @@ public:
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
-    if(!perLayerRnn[prefix]) // lazily created and cache RNNs in the docoder to avoid costly recreation @TODO: turn this into class members
+    if(!perLayerRnn[prefix]) // lazily create and cache RNNs in the decoder to avoid costly recreation @TODO: turn this into class members
       perLayerRnn[prefix] = rnn::rnn(
           "type", opt<std::string>("dec-cell"),
           "prefix", prefix,
@@ -820,6 +820,10 @@ public:
       output_->clear();
     cache_.clear();
     alignments_.clear();
+    perLayerRnn_.clear(); // this needs to be cleared between batches. 
+    // @TODO: figure out how to detect stale nodes i.e. nodes that are referenced, 
+    // but where underlying memory has been deallocated by dropping all tensors 
+    // from a TensorAllocator object. This can happen during ExpressionGraph::clear()
   }
 };
 

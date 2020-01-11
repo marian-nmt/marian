@@ -1050,7 +1050,7 @@ void LayerNormalization(Tensor out_,
       sqSum += ex * ex;
     }
 
-    float sigma = std::sqrt(eps + sqSum / cols);
+    float sigma = std::sqrt(sqSum / cols + eps);
 
 #pragma omp simd
     for(int i = 0; i < cols; ++i) {
@@ -1112,7 +1112,7 @@ void LayerNormalizationGrad(Tensor gradX_,
         sum_sqr += ex * ex;
       }
 
-      float sigma = std::sqrt(eps + sum_sqr / cols);
+      float sigma = std::sqrt(sum_sqr / cols + eps);
 #pragma omp simd
       for(size_t i = 0; i < cols; ++i) {
         float grad_x = 0.f;
@@ -1154,7 +1154,7 @@ void LayerNormalizationGrad(Tensor gradX_,
         sum_sqr += ex * ex;
       }
 
-      float sigma = std::sqrt(eps + sum_sqr / cols);
+      float sigma = std::sqrt(sum_sqr / cols + eps);
 #pragma omp simd
       for(size_t i = 0; i < cols; ++i) {
         float grad_x = 0.f;

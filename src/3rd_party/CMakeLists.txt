@@ -87,8 +87,6 @@ if(CUDA_FOUND)
       set(GENCODE "${GENCODE} -gencode=arch=compute_70,code=sm_70")
     endif(COMPILE_CUDA_SM70)
 
-    message(${GENCODE})
-
     # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
     ExternalProject_Add(nccl_install
       SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nccl

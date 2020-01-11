@@ -109,6 +109,8 @@ public:
         auto cost = model->build(graph, batch);
         fits = graph->fits();
 
+        LOG(debug, "[batching] length: {} - size: {} - fits: {}", lengths[0], current, fits);
+
         if(fits) {
           stats->add(batch, multiplier);
           start = current + 1;

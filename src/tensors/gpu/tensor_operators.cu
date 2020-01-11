@@ -1925,7 +1925,7 @@ __global__ void gLNormalization(T* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      AccType sigma = functional::Ops<AccType>::sqrt(_sqSum[0] / N); // all AccType
+      AccType sigma = functional::Ops<AccType>::sqrt(_sqSum[0] / N + eps); // all AccType
       __syncthreads();
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
@@ -1934,7 +1934,7 @@ __global__ void gLNormalization(T* out,
           AccType gammav = (AccType)gamma[id];
           AccType xv     = (AccType)xRow[id];
           AccType betav  = beta ? (AccType)beta[id] : (AccType)0.f;
-          AccType lv     = (xv - mean) / (sigma + eps);
+          AccType lv     = (xv - mean) / sigma;
           AccType y      = gammav * lv + betav;
           yRow[id]       = (T)y;
         }
@@ -2022,7 +2022,7 @@ __global__ void gLayerNormalizationGrad(T* gradX,
           AccType betav  = beta ? (AccType)beta[id] : (AccType)0.f;
           AccType gammav = (AccType)gamma[id];
           AccType adjv   = adjRow[id];
-          AccType lv     = (yv - betav) / (gammav + eps); // go back to LN(x) from scaled and shifted version for accumulation
+          AccType lv     = (yv - betav) / gammav; // go back to LN(x) from scaled and shifted version for accumulation
 
           sum_x[threadIdx.x]     += xv;
           sum_adj_l[threadIdx.x] += adjv * lv;
@@ -2064,7 +2064,7 @@ __global__ void gLayerNormalizationGrad(T* gradX,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      AccType sigma = functional::Ops<AccType>::sqrt(sum_sqr[0] / N);
+      AccType sigma = functional::Ops<AccType>::sqrt(sum_sqr[0] / N + eps);
       __syncthreads();
 
       // Jacobian of layer norm
@@ -2078,10 +2078,10 @@ __global__ void gLayerNormalizationGrad(T* gradX,
           AccType xv     = xRow[id];
           AccType gammav = (AccType)gamma[id];
           AccType adjv   = adjRow[id];
-          AccType lv     = (xv - mean) / (sigma + eps);
+          AccType lv     = (xv - mean) / sigma;
 
           AccType gradLv = N * adjv - lv * sum_adj_l[0] - sum_adj[0];
-          gradLv        /= N * (sigma + eps); // eps has to be inside parentheses for correct gradient
+          gradLv        /= N * sigma; 
 
           AccType gradXv = gammav * gradLv;
 
