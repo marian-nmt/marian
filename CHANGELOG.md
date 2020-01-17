@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Fix empty source batch entries with batch purging
 - Clear RNN chache in transformer model, add correct hash functions to nodes
 - Gather-operation for all index sizes
 - Fix word weighting with max length cropping
