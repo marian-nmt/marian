@@ -553,7 +553,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Size of mini-batch used during validation",
       32);
   cli.add<size_t>("--valid-max-length",
-      "Maximum length of a sentence in a validating sentence pair",
+      "Maximum length of a sentence in a validating sentence pair. "
+      "Sentences longer than valid-max-length are cropped to valid-max-length",
       1000);
 
   // options for validation script
