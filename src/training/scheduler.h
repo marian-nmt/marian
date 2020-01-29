@@ -380,6 +380,14 @@ public:
       state_->wordsDisp    = 0;
     }
 
+    if(options_->get<bool>("valid-reset-stalled")) {
+      state_->stalled      = 0;
+      state_->maxStalled   = 0;
+      for(const auto& validator : validators_) {
+        state_->validators[validator->type()]["stalled"] = 0;
+      }
+    }
+
     state_->newLoad();
   }
 
