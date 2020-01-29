@@ -319,7 +319,7 @@ struct Ops<float32x4> {
 
 } // end namespace functional
 } // end namespace marian
-
+#ifdef __AVX__
 #include "3rd_party/avx_mathfun.h"
 
 namespace marian {
@@ -438,7 +438,7 @@ struct Ops<float32x8> {
 
 } // end namespace functional
 } // end namespace marian
-
+#endif
 #endif // of "#ifndef __CUDACC__"
 
 #ifdef __CUDACC__

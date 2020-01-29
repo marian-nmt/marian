@@ -10,7 +10,7 @@
 #include "translator/scorers.h"
 #include "data/alignment.h"
 #include "data/vocab_base.h"
-#include "graph/expression_graph_packable.h"
+#include "tensors/cpu/fbgemm/expression_graph_packable.h"
 
 #if USE_FBGEMM
 #include "fbgemm/Utils.h"
@@ -258,14 +258,14 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
 
   graph->load(inputFile);
   graph->forward();
-  std::string saveGemmType = "fp32default";
+  auto saveGemmType = Type::float32;
   if (targetPrec == 16)
-    saveGemmType = "fp16packed";
+    saveGemmType = Type::packed16;
   else if (targetPrec == 8)
-    saveGemmType = "int8packed";
+    saveGemmType = Type::packed8avx2; // We currently use avx2 by default.
 
   // added a flag if the weights needs to be packed or not
-  graph->packAndSave(outputFile, configStr.str(), saveGemmType); // @TODO: this should just be type-based
+  graph->packAndSave(outputFile, configStr.str(), saveGemmType);
 
   std::cout << "Conversion Finished." << std::endl;
 

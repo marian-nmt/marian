@@ -4,7 +4,8 @@
 #include "layers/constructors.h"
 #include "layers/loss.h"
 #include "data/factored_vocab.h"
-#include "rnn/types.h" // for State::select()
+#include "rnn/types.h"     // for State::select()
+#include "models/states.h" // for EncoderState
 
 //using std::size_t; // not sure why this is needed
 
@@ -23,7 +24,11 @@ namespace marian {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
 
     auto firstLogits = logits_.front()->loss();
-    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), "Labels not matching logits shape??");
+    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), 
+             "Labels not matching logits shape ({} != {}, {})??",
+             labels.size() * firstLogits->shape()[-1],
+             firstLogits->shape().elements(),
+             firstLogits->shape());
 
     // base case (no factors)
     if (!factoredVocab_) {
@@ -219,7 +224,7 @@ namespace marian {
       factoredVocab_ = FactoredVocab::tryCreateAndLoad(options_->get<std::string>("vocab", ""));
       if (factoredVocab_) {
         numOutputClasses = (int)factoredVocab_->factorVocabSize();
-        LOG(info, "[embedding] Factored outputs enabled");
+        LOG_ONCE(info, "[embedding] Factored outputs enabled");
       }
 
       if(tiedParam_) {
@@ -237,10 +242,10 @@ namespace marian {
 
       /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
       ABORT_IF(lemmaDimEmb && !factoredVocab_, "--lemma-dim-emb requires a factored vocabulary");
-      if (lemmaDimEmb > 0) {
+      if (lemmaDimEmb > 0) { // > 0 means to embed the (expected) word with a different embedding matrix
 #define HARDMAX_HACK
 #ifdef HARDMAX_HACK
-        lemmaDimEmb = lemmaDimEmb & 0xfffffffe;
+        lemmaDimEmb = lemmaDimEmb & 0xfffffffe; // hack to select hard-max: use an odd number
 #endif
         auto range = factoredVocab_->getGroupRange(0);
         auto lemmaVocabDim = (int)(range.second - range.first);
@@ -263,8 +268,9 @@ namespace marian {
         // project each factor separately
         auto numGroups = factoredVocab_->getNumGroups();
         std::vector<Ptr<RationalLoss>> allLogits(numGroups, nullptr); // (note: null entries for absent factors)
-        Expr input1 = input;
-        Expr Plemma = nullptr;
+        Expr input1 = input; // [B... x D]
+        Expr Plemma = nullptr;     // used for lemmaDimEmb=-1
+        Expr inputLemma = nullptr; // used for lemmaDimEmb=-2, -3
         for (size_t g = 0; g < numGroups; g++) {
           auto range = factoredVocab_->getGroupRange(g);
           if (g > 0 && range.first == range.second) // empty entry
@@ -280,6 +286,52 @@ namespace marian {
             factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
             factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
           }
+          /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
+          if ((lemmaDimEmb == -2 || lemmaDimEmb == -3) && g > 0) { // -2/-3 means a gated transformer-like structure (-3 = hard-max)
+            LOG_ONCE(info, "[embedding] using lemma conditioning with gate");
+            // this mimics one transformer layer
+            //  - attention over two inputs:
+            //     - e = current lemma. We use the original embedding vector; specifically, expectation over all lemmas.
+            //     - input = hidden state FF(h_enc+h_dec)
+            //  - dot-prod attention to allow both sides to influence (unlike our recurrent self-attention)
+            //  - multi-head to allow for multiple conditions to be modeled
+            //  - add & norm, for gradient flow and scaling
+            //  - FF layer   --this is expensive; it is per-factor
+            // multi-head attention
+            int inputDim = input->shape()[-1];
+            int heads = 8;
+            auto name = options_->get<std::string>("prefix") + "_factor" + std::to_string(g);
+            auto Wq = graph_->param(name + "_Wq", { inputDim,  inputDim }, inits::glorotUniform());
+            auto Wk = graph_->param(name + "_Wk", { inputDim,  inputDim }, inits::glorotUniform());
+            auto Wv = graph_->param(name + "_Wv", { inputDim,  inputDim }, inits::glorotUniform());
+            auto toMultiHead = [&](Expr x, int heads) {
+              const auto& shape = x->shape();
+              int inputDim = shape[-1];
+              int otherDim = shape.elements() / inputDim;
+              ABORT_IF(inputDim / heads * heads != inputDim, "inputDim ({}) must be multiple of number of heads ({})", inputDim, heads);
+              return reshape(x, { otherDim, heads, 1, inputDim / heads });
+            };
+            input1 = inputLemma;
+            auto qm  = toMultiHead(dot(input1,         Wq), heads); // [B... x H x D/H] projected query
+            auto kdm = toMultiHead(dot(input1 - input, Wk), heads); // [B... x H x D/H] the two data vectors projected as keys. Use diff and sigmoid, instead of softmax.
+            auto vem = toMultiHead(dot(input1,         Wv), heads); // [B... x H x D/H] one of the two data vectors projected as values
+            auto vim = toMultiHead(dot(         input, Wv), heads); // [B... x H x D/H] the other
+            auto zm = bdot(qm, kdm, false, true);              // [B... x H x 1]
+            auto sm = sigmoid(zm);                // [B... x H x 1]
+            auto rm = sm * (vem - vim) + vim;     // [B... x H x D/H]
+            auto r = reshape(rm, input->shape()); // [B... x D]
+            // add & norm
+            input1 = r + input1;
+            input1 = layerNorm(input1, name + "_att");
+            // FF layer
+            auto ffnDropProb = 0.1f;    // @TODO: get as a parameter
+            auto ffnDim = inputDim * 2; // @TODO: get as a parameter
+            auto f = denseInline(input1, name + "_ffn", /*suffix=*/"1", ffnDim, (ActivationFunction*)relu, ffnDropProb);
+            f      = denseInline(f,      name + "_ffn", /*suffix=*/"2", inputDim);
+            // add & norm
+            input1 = f + input1;
+            input1 = layerNorm(input1, name + "_ffn");
+          }
           // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
           auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true, /*scale=*/1.0f); // [B... x U] factor logits
           // optionally add lemma-dependent bias
@@ -294,15 +346,28 @@ namespace marian {
           allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
           // optionally add a soft embedding of lemma back to create some lemma dependency
           // @TODO: if this works, move it into lazyConstruct
-          /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
-          if (lemmaDimEmb < 0 && g == 0) {
-            ABORT_IF(shortlist_ && lemmaDimEmb != 0, "Lemma-dependent bias with short list is not yet implemented");
+          if (lemmaDimEmb == -2 && g == 0) { // -2 means a gated transformer-like structure
+            LOG_ONCE(info, "[embedding] using lemma conditioning with gate, soft-max version");
+            // get expected lemma embedding vector
+            auto factorLogSoftmax = logsoftmax(factorLogits); // [B... x U] note: with shortlist, this is not the full lemma set
+            auto factorSoftmax = exp(factorLogSoftmax);
+            inputLemma = dot(factorSoftmax, factorWt, false, /*transB=*/isLegacyUntransposedW ? true : false); // [B... x D]
+          }
+          else if (lemmaDimEmb == -3 && g == 0) { // same as -2 except with hard max
+            LOG_ONCE(info, "[embedding] using lemma conditioning with gate, hard-max version");
+            // get max-lemma embedding vector
+            auto maxVal = max(factorLogits, -1); // [B... x U] note: with shortlist, this is not the full lemma set
+            auto factorHardmax = eq(factorLogits, maxVal);
+            inputLemma = dot(factorHardmax, factorWt, false, /*transB=*/isLegacyUntransposedW ? true : false); // [B... x D]
+          }
+          else if (lemmaDimEmb == -1 && g == 0) { // -1 means learn a lemma-dependent bias
+            ABORT_IF(shortlist_, "Lemma-dependent bias with short list is not yet implemented");
             LOG_ONCE(info, "[embedding] using lemma-dependent bias");
             auto factorLogSoftmax = logsoftmax(factorLogits); // (we do that again later, CSE will kick in)
             auto z = /*stopGradient*/(factorLogSoftmax);
             Plemma = exp(z); // [B... x U]
           }
-          if (lemmaDimEmb > 0 && g == 0) {
+          else if (lemmaDimEmb > 0 && g == 0) { // > 0 means learn a re-embedding matrix
             LOG_ONCE(info, "[embedding] enabled re-embedding of lemma, at dim {}", lemmaDimEmb);
             // compute softmax. We compute logsoftmax() separately because this way, computation will be reused later via CSE
             auto factorLogSoftmax = logsoftmax(factorLogits);
@@ -349,7 +414,7 @@ namespace marian {
     factoredVocab_ = FactoredVocab::tryCreateAndLoad(options_->get<std::string>("vocab", ""));
     if (factoredVocab_) {
       dimVoc = (int)factoredVocab_->factorVocabSize();
-      LOG(info, "[embedding] Factored embeddings enabled");
+      LOG_ONCE(info, "[embedding] Factored embeddings enabled");
     }
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
@@ -389,7 +454,7 @@ namespace marian {
     auto graph = E_->graph();
     int dimBatch = (int)subBatch->batchSize();
     int dimEmb = E_->shape()[-1];
-    int dimWords = (int)subBatch->batchWidth();
+    int dimWidth = (int)subBatch->batchWidth();
 
     // factored embeddings:
     //  - regular:
@@ -419,9 +484,16 @@ namespace marian {
     //        - but forward pass weighs them down, so that all factors are in a similar numeric range
     //        - if it is required to be in a different range, the embeddings can still learn that, but more slowly
 
-    auto batchEmbeddings = apply(subBatch->data(), {dimWords, dimBatch, dimEmb});
-    auto batchMask = graph->constant({dimWords, dimBatch, 1},
+    auto batchEmbeddings = apply(subBatch->data(), {dimWidth, dimBatch, dimEmb});
+#if 0
+    auto batchMask = graph->constant({dimWidth, dimBatch, 1},
                                      inits::fromVector(subBatch->mask()));
+#else
+    // experimental: hide inline-fix source tokens from cross attention
+    auto batchMask = graph->constant({dimWidth, dimBatch, 1},
+                                     inits::fromVector(subBatch->crossMaskWithInlineFixSourceSuppressed()));
+#endif
+
     return std::make_tuple(batchEmbeddings, batchMask);
   }
 

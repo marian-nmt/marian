@@ -993,6 +993,8 @@ struct ShiftNodeOp : public UnaryNodeOp {
     if(!cnode)
       return false;
     if(shift_ != cnode->shift_)
+      return false;    
+    if(padValue_ != cnode->padValue_)
       return false;
     return true;
   }

@@ -15,8 +15,16 @@ Expr DataWeighting::getWeights(Ptr<ExpressionGraph> graph,
   bool sentenceWeighting = weightingType_ == "sentence";
   int dimBatch = (int)batch->size();
   int dimWords = sentenceWeighting ? 1 : (int)batch->back()->batchWidth();
+
+  // This would abort anyway in fromVector(...), but has clearer error message
+  // here for this particular case
+  ABORT_IF(batch->getDataWeights().size() != dimWords * dimBatch, 
+           "Number of sentence/word-level weights ({}) does not match tensor size ({})",
+           batch->getDataWeights().size(), dimWords * dimBatch);
+
   auto weights = graph->constant({1, dimWords, dimBatch, 1},
                                  inits::fromVector(batch->getDataWeights()));
-  return weights;
+  return weights; // [1, dimWords, dimBatch, 1] in case of word-level weights or
+                  // [1,        1, dimBatch, 1] in case of sentence-level weights
 }
 }  // namespace marian

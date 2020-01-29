@@ -175,6 +175,7 @@ private:
 
   std::vector<Ptr<Vocab>> srcVocabs_;
   Ptr<Vocab> trgVocab_;
+  Ptr<const data::ShortlistGenerator> shortlistGenerator_;
 
   size_t numDevices_;
 
@@ -199,6 +200,11 @@ public:
     trgVocab_ = New<Vocab>(options_, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
 
+    // load lexical shortlist
+    if(options_->hasAndNotEmpty("shortlist"))
+      shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
+          options_, srcVocabs_.front(), trgVocab_, 0, 1, vocabPaths.front() == vocabPaths.back());
+
     // get device IDs
     auto devices = Config::getDevices(options_);
     numDevices_ = devices.size();
@@ -218,8 +224,11 @@ public:
       graphs_.push_back(graph);
 
       auto scorers = createScorers(options_);
-      for(auto scorer : scorers)
+      for(auto scorer : scorers) {
         scorer->init(graph);
+        if(shortlistGenerator_)
+          scorer->setShortlistGenerator(shortlistGenerator_);
+      }
       scorers_.push_back(scorers);
     }
   }

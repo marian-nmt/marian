@@ -9,7 +9,7 @@
 namespace marian {
 
 bool getSigtermFlag();
-void installSignalHandlers(); 
+void installSignalHandlers();
 
 class Scheduler : public TrainingObserver {
 private:
@@ -229,7 +229,7 @@ public:
         continue;
 
       size_t stalledPrev = validator->stalled();
-      float value = validator->validate(graphs);
+      float value = validator->validate(graphs, state_);
       if(validator->stalled() > 0) {
         LOG_VALID(info,
                   "Ep. {} : Up. {} : {} : {} : stalled {} times (last best: {})",
@@ -358,7 +358,7 @@ public:
        && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 10) {
       printf("PROGRESS: %.2f%%\nEVALERR: %.7f%%\n",
           (double)state_->epochs,
-          state_->costSum / state_->costCount / (mpi ? mpi->numMPIProcesses() : 1));
+          state_->costSum / (state_->costCount ? state_->costCount : 1) / (mpi ? mpi->numMPIProcesses() : 1));
       fflush(stdout);
       std::cout << "MBSIZE: " << batchLabels << " after " << state_->batches << " updates = " << state_->labelsTotal << " labels" << std::endl << std::flush;
       heartBeatTimer_.start();

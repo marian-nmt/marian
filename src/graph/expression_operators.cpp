@@ -7,7 +7,7 @@
 
 #include "graph/auto_tuner.h"
 #include "tensors/cpu/int16.h"
-#include "tensors/cpu/expanded_gemm.h"
+#include "tensors/cpu/fbgemm/expanded_gemm.h"
 
 #if USE_FBGEMM
 #include "fbgemm/Utils.h"
@@ -284,11 +284,6 @@ Expr stopGradient(Expr a) {
   return res;
 }
 
-Expr constant_like(Expr a, const Ptr<inits::NodeInitializer>& init) {
-  auto graph = a->graph();
-  return graph->constant(a->shape(), init, a->value_type());
-}
-
 // gather() -- gather arbitrary elements along an axis; batched or non-batched
 Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
@@ -317,6 +312,7 @@ Expr index_select(Expr a, int axis, Expr indices) {
   indices = reshape(indices, shape); // move index to axis
   return gather(a, axis, indices);
 }
+
 Expr index_select(Expr a, int axis, const std::vector<IndexType>& indices) {
   auto indexExpr = a->graph()->indices(indices);
   return index_select(a, axis, indexExpr);
@@ -355,35 +351,51 @@ Expr slice(Expr a, int axis, Slice slice) { // numpy __getslice__ semantics, but
 }
 
 Expr sum(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, sum of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::sum);
 }
 
 Expr mean(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, mean of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::mean);
 }
 
 Expr std(Expr a, int ax) {
-  return Expression<ReduceNodeOp>(a - mean(a,ax), ax, ReduceNodeOpCode::rms);
+  if(a->shape()[ax] == 1) // nothing to reduce, std(a) = 0
+    return a - a;
+  return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::rms);
 }
 
-Expr var(Expr a, int ax) {
+Expr var(Expr a, int ax) { 
+  if(a->shape()[ax] == 1) // nothing to reduce, var(a) = 0
+    return a - a;
   return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::meanSqr);
 }
 
 Expr max(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, max of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::max);
 }
 
 Expr min(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, min of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::min);
 }
 
 Expr prod(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, prod of itself is a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::prod);
 }
 
 // log(sum(exp(a)))
 Expr logsumexp(Expr a, int ax) {
+  if(a->shape()[ax] == 1) // nothing to reduce, log(sum(exp(a))) = log(exp(a)) = a
+    return a;
   return Expression<ReduceNodeOp>(a, ax, ReduceNodeOpCode::logSumExp);
 }
 
@@ -400,17 +412,50 @@ Expr weighted_average(Expr in, Expr weights, int ax) {
 Expr dot(Expr a, Expr b, bool transA, bool transB, float scale) {
   auto device = a->graph()->getDeviceId().type;
   float clipValue = a->graph()->getBackend()->getClip();
+  // added support for packed GEMM API (fp16, int8)
+  Type aElementType = a->value_type();
+  Type bElementType = b->value_type();
 
   // Currently only true when command line options
   // --optimize --cpu-thread=N with N > 0 are set.
-  if(device == DeviceType::cpu && a->graph()->getBackend()->isOptimized()) {
-    // dotInt16 computes A * B.T, hence the transpose for B to get A * B
-    // if transA = false and transB = false.
+  if(device == DeviceType::cpu) {
+    if(isFloat(aElementType) && isFloat(bElementType)) {
+      if(a->graph()->getBackend()->isOptimized()) {
+        // dotInt16 computes A * B.T, hence the transpose for B to get A * B
+        // if transA = false and transB = false.
 
-    return cpu::int16::dot(
-        cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
-        cpu::int16::quantize(transB ? b : transpose(b), clipValue),
-        scale);
+        return cpu::int16::dot(
+          cpu::int16::quantize(transA ? transpose(a) : a, clipValue),
+          cpu::int16::quantize(transB ? b : transpose(b), clipValue),
+          scale);
+      } else {
+        return Expression<DotNodeOp>(
+          clip(a, clipValue), clip(b, clipValue), transA, transB, scale);
+      }
+    } else if(isFloat(aElementType) && isPacked(bElementType)) {
+#if USE_FBGEMM
+      // 07/10/2019 - Use packed GEMM only if the cpu architecture supports AVX2
+      // one of the fbgemm's sub modules, cpuinfo (https://github.com/pytorch/cpuinfo).
+      // It looks at the cpu register
+      // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
+      // and this cpu lookup is executed only once and the state is kept in FBGEMM.
+      if(fbgemm::fbgemmHasAvx2Support()) {
+        // This variant of dot product can handle matrix multiplications with packed8 and packed16 weight matrix (B).
+        return cpu::variant::dot(clip(a, clipValue),
+                                 b,
+                                 b->shape(),
+                                 transA,
+                                 transB,
+                                 scale);
+      } else {
+        ABORT("AVX2 is not available. At least, AVX2 is needed to use fbgemm-based packed GEMM");
+      }
+#else
+      ABORT("Packed GEMM is not available in this build");
+#endif  // USE_FBGEMM
+    } else {
+      ABORT("Combination of types A: {} B: {} not supported", aElementType, bElementType);
+    }
   } else {
     return Expression<DotNodeOp>(
         clip(a, clipValue), clip(b, clipValue), transA, transB, scale);
@@ -469,6 +514,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
       // (https://github.com/pytorch/cpuinfo/blob/master/src/x86/isa.c#L391),
       // and this cpu lookup is executed only once and the state is kept in FBGEMM.
       if(fbgemm::fbgemmHasAvx2Support()) {
+        // This variant of affine product can handle matrix multiplications with packed8 and packed16 weight matrix (B).
         return cpu::variant::affine(clip(a, clipValue),
                                     b,
                                     b->shape(),
@@ -477,7 +523,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
                                     transB,
                                     scale);
       } else {
-        ABORT("No on-the-fly packing at the moment");
+        ABORT("AVX2 is not available. At least, AVX2 is needed to use fbgemm-based packed GEMM");
       }
 #else
       ABORT("Packed GEMM is not available in this build");
@@ -562,8 +608,20 @@ Expr cast(Expr a, Type type) {
   }
 }
 
-Expr cross_entropy(Expr a, Expr indices) {
-  return Expression<CrossEntropyNodeOp>(a, indices);
+Expr cross_entropy(Expr logits, Expr indices) {
+  return Expression<CrossEntropyNodeOp>(logits, indices);
+}
+
+// Unlikelihood loss based on https://arxiv.org/abs/1908.04319
+Expr unlikelihood(Expr logits, Expr indices) {
+  int dimBatch = logits->shape()[-2];
+  int dimTime  = logits->shape()[-3];
+
+  // @TODO: fix this outside of this function in decoder.h etc. 
+  auto indicesWithLayout = reshape(indices, {1, dimTime, dimBatch, 1});
+
+  // This is currently implemented with multiple ops, might be worth doing a special operation like for cross_entropy
+  return -log(gather(1.f - softmax(logits), /*axis=*/-1, indicesWithLayout));
 }
 
 Expr plus(const std::vector<Expr>& nodes) {

@@ -20,12 +20,14 @@ public:
                    ? options->get<size_t>("beam-size")
                    : 0),
         alignment_(options->get<std::string>("alignment", "")),
-        alignmentThreshold_(getAlignmentThreshold(alignment_)) {}
+        alignmentThreshold_(getAlignmentThreshold(alignment_)),
+        wordScores_(options->get<bool>("word-scores")) {}
 
   template <class OStream>
   void print(Ptr<const History> history, OStream& best1, OStream& bestn) {
     const auto& nbl = history->nBest(nbest_);
 
+    // prepare n-best list output
     for(size_t i = 0; i < nbl.size(); ++i) {
       const auto& result = nbl[i];
       const auto& hypo = std::get<1>(result);
@@ -39,6 +41,9 @@ public:
 
       if(!alignment_.empty())
         bestn << " ||| " << getAlignment(hypo);
+
+      if(wordScores_)
+        bestn << " ||| WordScores=" << getWordScores(hypo);
 
       bestn << " |||";
       if(hypo->getScoreBreakdown().empty()) {
@@ -72,17 +77,26 @@ public:
       best1 << " ||| " << getAlignment(hypo);
     }
 
+    if(wordScores_) {
+      const auto& hypo = std::get<1>(result);
+      best1 << " ||| WordScores=" << getWordScores(hypo);
+    }
+
     best1 << std::flush;
   }
 
 private:
   Ptr<Vocab const> vocab_;
-  bool reverse_{false};
-  size_t nbest_{0};
-  std::string alignment_;
-  float alignmentThreshold_{0.f};
+  bool reverse_{false};            // If it is a right-to-left model that needs reversed word order
+  size_t nbest_{0};                // Size of the n-best list to print
+  std::string alignment_;          // A non-empty string indicates the type of word alignment
+  float alignmentThreshold_{0.f};  // Threshold for converting attention into hard word alignment
+  bool wordScores_{false};         // Whether to print word-level scores or not
 
+  // Get word alignment pairs or soft alignment
   std::string getAlignment(const Hypothesis::PtrType& hyp);
+  // Get word-level scores
+  std::string getWordScores(const Hypothesis::PtrType& hyp);
 
   float getAlignmentThreshold(const std::string& str) {
     try {

@@ -13,6 +13,10 @@ set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 # Custom CMake options
 option(COMPILE_CPU "Compile CPU version" ON)
 option(COMPILE_CUDA "Compile GPU version" ON)
+option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" ON)
+option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" ON)
+option(COMPILE_CUDA_SM60 "Compile GPU version with SM60 support" ON)
+option(COMPILE_CUDA_SM70 "Compile GPU version with SM70 support" ON)
 option(COMPILE_EXAMPLES "Compile examples" OFF)
 option(COMPILE_SERVER "Compile marian-server" OFF)
 option(COMPILE_TESTS "Compile tests" OFF)
@@ -181,8 +185,6 @@ set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
 if(COMPILE_CUDA)
 
-LIST(APPEND COMPUTE -arch=sm_35; -gencode=arch=compute_35,code=sm_35; -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52; -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61;)
-
 if(USE_STATIC_LIBS)
   # link statically to stdlib libraries
   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
@@ -196,16 +198,25 @@ if(USE_STATIC_LIBS)
   endif()
 endif()
 
-find_package(CUDA "8.0") # TODO: only enable FP16-related options for compute_70 and higher.
+find_package(CUDA "9.0") # TODO: only enable FP16-related options for compute_70 and higher.
 if(CUDA_FOUND)
   # CUDA >= 10.0 requires CMake >= 3.12.2
   if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND (CMAKE_VERSION VERSION_LESS "3.12.2"))
       message(WARNING "On some Unix systems CUDA 10.0+ requires CMake 3.12.2+; you use CMake ${CMAKE_VERSION}")
   endif()
-
-  if(CUDA_VERSION VERSION_GREATER "8.0")
-    LIST(APPEND COMPUTE -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70)
-  endif()
+  
+  if(COMPILE_CUDA_SM35)
+    LIST(APPEND COMPUTE -arch=sm_35; -gencode=arch=compute_35,code=sm_35;)                             # Tesla K40 and above
+  endif(COMPILE_CUDA_SM35)
+  if(COMPILE_CUDA_SM50)
+    LIST(APPEND COMPUTE -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52;)     # Maxwell GPUs
+  endif(COMPILE_CUDA_SM50)
+  if(COMPILE_CUDA_SM60)
+    LIST(APPEND COMPUTE -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61;)     # Pascal GPUs
+  endif(COMPILE_CUDA_SM60)
+  if(COMPILE_CUDA_SM70)
+    LIST(APPEND COMPUTE -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70) # Volta GPUs
+  endif(COMPILE_CUDA_SM70)
 
   if(USE_STATIC_LIBS)
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
@@ -321,9 +332,12 @@ if(COMPILE_CPU)
     set(BLA_VENDOR "OpenBLAS")
     find_package(BLAS)
     if(BLAS_FOUND)
-      include_directories(${BLAS_INCLUDE_DIR})
-      set(EXT_LIBS ${EXT_LIBS} ${BLAS_LIBRARIES})
-      add_definitions(-DBLAS_FOUND=1)
+      include(FindCBLAS)
+      if(CBLAS_FOUND)
+        include_directories(${BLAS_INCLUDE_DIR} ${CBLAS_INCLUDE_DIR})
+        set(EXT_LIBS ${EXT_LIBS} ${BLAS_LIBRARIES} ${CBLAS_LIBRARIES})
+        add_definitions(-DBLAS_FOUND=1)
+      endif(CBLAS_FOUND)
     endif(BLAS_FOUND)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)

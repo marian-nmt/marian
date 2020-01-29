@@ -145,20 +145,20 @@ struct ConstantShape {
 
   HOST_DEVICE_INLINE int elements() const { return (int)elements_; }
 
-  // The following functions iterate over shape dimensions and use resursive
+  // The following functions iterate over shape dimensions and use recursive
   // templates. They unroll over a compile-time defined number of dimensions.
 
   // Struct for recurrent template calls over shape dimensions,
   // version for K > 0
   template <const int K, const int D> struct I {
     HOST_DEVICE_INLINE static int index(const Array<int, D>& dims,
-                             const Array<int, D>& stride) {
+                                        const Array<int, D>& stride) {
       return dims[K] * stride[K] + I<K-1, D>::index(dims, stride);
     }
 
     HOST_DEVICE_INLINE static int index(int si,
-                             const Array<int, D>& shape,
-                             const Array<int, D>& stride) {
+                                        const Array<int, D>& shape,
+                                        const Array<int, D>& stride) {
       return (si % shape[K]) * stride[K] + I<K-1, D>::index(si / shape[K], shape, stride);
     }
 
@@ -175,19 +175,19 @@ struct ConstantShape {
   // specialization for K == 0
   template <const int D> struct I<0, D> {
     HOST_DEVICE_INLINE static int index(const Array<int, D>& dims,
-                             const Array<int, D>& stride) {
+                                        const Array<int, D>& stride) {
       return dims[0] * stride[0];
     }
 
     HOST_DEVICE_INLINE static int index(int si,
-                             const Array<int, D>& shape,
-                             const Array<int, D>& stride) {
+                                        const Array<int, D>& shape,
+                                        const Array<int, D>& stride) {
       return (si % shape[0]) * stride[0];
     }
 
    HOST_DEVICE_INLINE static void dims(int si,
-                            Array<int, D>& dims,
-                            const Array<int, D>& shape) {
+                                       Array<int, D>& dims,
+                                       const Array<int, D>& shape) {
       dims[0] = si % shape[0];
     }
   };

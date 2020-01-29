@@ -5,9 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
 
 ### Added
+- Add CMAKE options to disable compilation for specific GPU SM types
+- An option to print word-level translation scores
+- An option to turn off automatic detokenization from SentencePiece
+- Separate quantization types for 8-bit FBGEMM for AVX2 and AVX512
+- Sequence-level unliklihood training
+- Allow file name templated valid-translation-output files
+- Support for lexical shortlists in marian-server
+- Support for 8-bit matrix multiplication with FBGEMM
+- CMakeLists.txt now looks for SSE 4.2
 - Purging of finished hypotheses during beam-search. A lot faster for large batches.
 - Faster option look-up, up to 20-30% faster translation
 - Added --cite and --authors flag
@@ -24,6 +34,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Fix empty source batch entries with batch purging
+- Clear RNN chache in transformer model, add correct hash functions to nodes
+- Gather-operation for all index sizes
+- Fix word weighting with max length cropping
+- Fixed compilation on CPUs without support for AVX
+- FastOpt now reads "n" and "y" values as strings, not as boolean values
+- Fixed multiple reduction kernels on GPU
+- Fixed guided-alignment training with cross-entropy
 - Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
   due to thread-non-safty of reference counting.
 - Make sure that items are 256-byte aligned during saving
@@ -38,6 +56,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Revert LayerNorm eps to old position, i.e. sigma' = sqrt(sigma^2 + eps)
+- Downgrade NCCL to 2.3.7 as 2.4.2 is buggy (hangs with larger models)
+- Return error signal on SIGTERM
+- Dropped support for CUDA 8.0, CUDA 9.0 is now minimal requirement
 - Removed autotuner for now, will be switched back on later
 - Boost depdendency is now optional and only required for marian_server 
 - Dropped support for g++-4.9

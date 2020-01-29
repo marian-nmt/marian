@@ -66,6 +66,9 @@ public:
   bool canExpandFactoredWord(Word word, size_t groupIndex) const { return lemmaHasFactorGroup(getFactor(word, 0), groupIndex); }
   size_t getFactor(Word word, size_t groupIndex) const;
   bool lemmaHasFactorGroup(size_t factor0Index, size_t g) const { return lemmaHasFactorGroup_[factor0Index][g]; }
+  const std::string& getFactorGroupPrefix(size_t groupIndex) const { return groupPrefixes_[groupIndex]; } // for diagnostics only
+  const std::string& getFactorName(size_t groupIndex, size_t factorIndex) const { return factorVocab_[(WordIndex)(factorIndex + groupRanges_[groupIndex].first)]; }
+  std::string decodeForDiagnostics(const Words& sentence) const;
 
   static constexpr size_t FACTOR_NOT_APPLICABLE = (SIZE_MAX - 1);
   static constexpr size_t FACTOR_NOT_SPECIFIED  = (SIZE_MAX - 2);
@@ -74,6 +77,17 @@ public:
   static Ptr<FactoredVocab> tryCreateAndLoad(const std::string& path); // load from "vocab" option if it specifies a factored vocab
   std::string word2string(Word word) const;
   Word string2word(const std::string& w) const;
+  bool tryGetFactor(const std::string& factorGroupName, size_t& groupIndex, size_t& factorIndex) const; // note: factorGroupName given without separator
+
+  // some hard-coded constants from FactoredSegmenter
+  // The naming mimics the names in FactoredSegmenter.cs, and therefore intentionally does not follow Marian conventions.
+  // @TODO: We have more hard-coded constants throughout the code. Move them all here.
+  // @TODO: figure out how to do this with static const*/constexpr
+#define FactoredVocab_INLINE_FIX_WHAT_serialized "is"
+#define FactoredVocab_FIX_SRC_ID_TAG             "<IOPEN>"
+#define FactoredVocab_FIX_TGT_ID_TAG             "<IDELIM>"
+#define FactoredVocab_FIX_END_ID_TAG             "<ICLOSE>"
+
 private:
   void constructGroupInfoFromFactorVocab();
   void constructFactorIndexConversion();

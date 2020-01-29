@@ -143,12 +143,19 @@ public:
    * words (width) and \f$s\f$ is the number of sentences (size).
    */
   Words& data() { return indices_; }
+  const Words& data() const { return indices_; }
+  /**
+   * @brief compute flat index into data() and mask() vectors for given batch index and word index in sentence
+   */
+  size_t locate(size_t batchIdx, size_t wordPos) const { return locate(batchIdx, wordPos, size_); }
+  static size_t locate(size_t batchIdx, size_t wordPos, size_t batchSize) { return wordPos * batchSize + batchIdx; }
   /**
    * @brief Flat masking vector; 0 is used for masked words.
    *
    * @see data()
    */
   std::vector<float>& mask() { return mask_; }
+  const std::vector<float>& mask() const { return mask_; }
 
   /**
    * @brief Accessors to the vocab_ field.
@@ -158,15 +165,15 @@ public:
   /**
    * @brief The number of sentences in the batch.
    */
-  size_t batchSize() { return size_; }
+  size_t batchSize() const { return size_; }
   /**
    * @brief The number of words in the longest sentence in the batch.
    */
-  size_t batchWidth() { return width_; };
+  size_t batchWidth() const { return width_; };
   /**
    * @brief The total number of words in the batch (not counting masked-out words).
    */
-  size_t batchWords() { return words_; }
+  size_t batchWords() const { return words_; }
 
   /**
    * @brief Splits the stream into sub-batches of equal size (except for last).
@@ -179,7 +186,7 @@ public:
    *
    * @see marian::data::Batch::split(size_t n)
    */
-  std::vector<Ptr<SubBatch>> split(size_t n, size_t sizeLimit /*or SIZE_MAX*/) {
+  std::vector<Ptr<SubBatch>> split(size_t n, size_t sizeLimit /*or SIZE_MAX*/) const {
     ABORT_IF(size_ == 0, "Encountered sub-batch size of 0");
 
     auto size = std::min(size_, sizeLimit); // if limit is given then pretend the batch only has that many sentences
@@ -191,26 +198,24 @@ public:
 
       // determine actual width (=max length) of this sub-batch, which may be smaller than the overall max length
       size_t subWidth = 0;
-      for(size_t j = 0; j < width_; ++j) {
-        for(size_t i = 0; i < subSize; ++i) {
-          if(mask_[j * size_ + (pos + i)] != 0)
-            if (subWidth < j + 1)
-              subWidth = j + 1;
+      for(size_t s = 0; s < width_; ++s) {
+        for(size_t b = 0; b < subSize; ++b) {
+          if(mask_[locate(/*batchIdx=*/pos + b, /*wordPos=*/s)] != 0)   // s * size_ + (pos + b)
+            if (subWidth < s + 1)
+              subWidth = s + 1;
         }
       }
-      //if (subWidth < width_)
-      //  LOG(info, "[data] sub-batch {} of {} wide batch has effective width of {}", pos / targetSize, width_, subWidth);
 
       // create sub-batch
       auto sb = New<SubBatch>(subSize, subWidth, vocab_);
 
       size_t words = 0;
-      for(size_t j = 0; j < subWidth; ++j) {
-        for(size_t i = 0; i < subSize; ++i) {
-          sb->data()[j * subSize + i] = indices_[j * size_ + (pos + i)];
-          sb->mask()[j * subSize + i] =    mask_[j * size_ + (pos + i)];
+      for(size_t s = 0; s < subWidth; ++s) {
+        for(size_t b = 0; b < subSize; ++b) {
+          sb->data()[locate(/*batchIdx=*/b, /*wordPos=*/s, /*batchSize=*/subSize)/*s * subSize + b*/] = indices_[locate(/*batchIdx=*/pos + b, /*wordPos=*/s)]; // s * size_ + (pos + b)
+          sb->mask()[locate(/*batchIdx=*/b, /*wordPos=*/s, /*batchSize=*/subSize)/*s * subSize + b*/] =    mask_[locate(/*batchIdx=*/pos + b, /*wordPos=*/s)]; // s * size_ + (pos + b)
 
-          if(mask_[j * size_ + (pos + i)] != 0)
+          if(mask_[locate(/*batchIdx=*/pos + b, /*wordPos=*/s)/*s * size_ + (pos + b)*/] != 0)
             words++;
         }
       }
@@ -222,6 +227,9 @@ public:
   }
 
   void setWords(size_t words) { words_ = words; }
+
+  // experimental: hide inline-fix source tokens from cross attention
+  std::vector<float> crossMaskWithInlineFixSourceSuppressed() const;
 };
 
 /**
@@ -231,7 +239,7 @@ public:
 class CorpusBatch : public Batch {
 protected:
   std::vector<Ptr<SubBatch>> subBatches_;
-  std::vector<float> guidedAlignment_;
+  std::vector<float> guidedAlignment_; // [max source len, batch size, max target len] flattened
   std::vector<float> dataWeights_;
 
 public:
@@ -302,7 +310,8 @@ public:
 
   /**
    * @brief Creates a batch filled with fake data. Used to determine the size of
-   * the batch object.
+   * the batch object. With guided-alignments and multiple encoders, those
+   * multiple source streams are expected to have the same lengths.
    *
    * @param lengths List of subbatch sizes.
    * @param batchSize Number of sentences in the batch.
@@ -335,6 +344,7 @@ public:
       return batch;
 
     if(options->get("guided-alignment", std::string("none")) != "none") {
+      // @TODO: if > 1 encoder, verify that all encoders have the same sentence lengths
       std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
                                    0.f);
       batch->setGuidedAlignment(std::move(alignment));
@@ -369,7 +379,7 @@ public:
     // split each stream separately
     for(auto batchStream : subBatches_) {
       size_t i = 0; // index into split batch
-      for(auto splitSubBatch : batchStream->split(n, sizeLimit)) {
+      for(auto splitSubBatch : batchStream->split(n, sizeLimit)) { // splits a batch into pieces, can also change width
         if(subs.size() <= i)
           subs.resize(i + 1);
         subs[i++].push_back(splitSubBatch); // this forms tuples across streams
@@ -408,7 +418,7 @@ public:
           size_t bi = i + pos;
           for(size_t sid = 0; sid < srcWords; ++sid) {
             for(size_t tid = 0; tid < trgWords; ++tid) {
-              size_t bidx = sid * oldSize  * oldTrgWords + bi * oldTrgWords + tid;
+              size_t bidx = sid * oldSize  * oldTrgWords + bi * oldTrgWords + tid; // [sid, bi, tid]
               size_t idx  = sid * dimBatch *    trgWords +  i *    trgWords + tid;
               aligns[idx] = guidedAlignment_[bidx];
             }
@@ -424,20 +434,19 @@ public:
     if(!dataWeights_.empty()) {
       size_t oldSize = size();
 
-      size_t width = 1;
-      // There are more weights than sentences, i.e. these are word weights.
-      if(dataWeights_.size() != oldSize)
-        width = subBatches_.back()->batchWidth();
-
       for(auto split : splits) {
+        auto cb = std::static_pointer_cast<CorpusBatch>(split);
+        size_t width = 1;                   // One weight per sentence in case of sentence-level weights
+        if(dataWeights_.size() != oldSize)  // if number of weights does not correspond to number of sentences we have word-level weights
+          width = cb->back()->batchWidth(); // splitting also affects width, hence we need to accomodate this here
         std::vector<float> ws(width * split->size(), 1.0f);
 
         // this needs to be split along the batch dimension
         // which is here the innermost dimension.
         // Should work for sentence-based weights, too.
-        for(size_t j = 0; j < width; ++j) {
-          for(size_t i = 0; i < split->size(); ++i) {
-            ws[j * split->size() + i] = dataWeights_[j * oldSize + i + pos];
+        for(size_t s = 0; s < width; ++s) {
+          for(size_t b = 0; b < split->size(); ++b) {
+            ws[s * split->size() + b] = dataWeights_[s * oldSize + b + pos]; // @TODO: use locate() as well
           }
         }
         split->setDataWeights(ws);
@@ -448,9 +457,13 @@ public:
     return splits;
   }
 
-  std::vector<float>& getGuidedAlignment() { return guidedAlignment_; }
+  const std::vector<float>& getGuidedAlignment() const { return guidedAlignment_; }  // [dimSrcWords, dimBatch, dimTrgWords] flattened
   void setGuidedAlignment(std::vector<float>&& aln) override {
-      guidedAlignment_ = std::move(aln);
+    guidedAlignment_ = std::move(aln);
+  }
+
+  size_t locateInGuidedAlignments(size_t b, size_t s, size_t t) {
+    return ((s * size()) + b) * widthTrg() + t;
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }
@@ -472,15 +485,14 @@ public:
       std::cerr << std::endl;
     }
 
-    size_t b = 0;
+    size_t subBatchIndex = 0;
     for(auto sb : subBatches_) {
-      std::cerr << "batch " << b++ << ": " << std::endl;
+      std::cerr << "stream " << subBatchIndex++ << ": " << std::endl;
       const auto& vocab = sb->vocab();
-      for(size_t i = 0; i < sb->batchWidth(); i++) {
+      for(size_t s = 0; s < sb->batchWidth(); s++) {
         std::cerr << "\t w: ";
-        for(size_t j = 0; j < sb->batchSize(); j++) {
-          size_t idx = i * sb->batchSize() + j;
-          Word w = sb->data()[idx];
+        for(size_t b = 0; b < sb->batchSize(); b++) {
+          Word w = sb->data()[sb->locate(/*batchIdx=*/b, /*wordPos=*/s)]; // s * sb->batchSize() + b;
           if (vocab && !printIndices)
             std::cerr << (*vocab)[w] << " ";
           else

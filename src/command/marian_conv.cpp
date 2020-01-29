@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-#include "graph/expression_graph_packable.h"
+#include "tensors/cpu/fbgemm/expression_graph_packable.h"
 
 int main(int argc, char** argv) {
   using namespace marian;
@@ -19,16 +19,29 @@ int main(int argc, char** argv) {
         "Convert a model in the .npz format and normal memory layout to a mmap-able binary model which could be in normal memory layout or packed memory layout",
         "Allowed options",
         "Examples:\n"
-        "  ./marian-conv -f model.npz -t model.bin --gemm-type fp16packed");
+        "  ./marian-conv -f model.npz -t model.bin --gemm-type packed16");
     cli->add<std::string>("--from,-f", "Input model", "model.npz");
     cli->add<std::string>("--to,-t", "Output model", "model.bin");
-    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used with this weights", "mklfp32");
+    cli->add<std::string>("--gemm-type,-g", "GEMM Type to be used: float32, packed16, packed8avx2, packed8avx512", "float32");
     cli->parse(argc, argv);
     options->merge(config);
   }
   auto modelFrom = options->get<std::string>("from");
   auto modelTo = options->get<std::string>("to");
-  auto saveGemmType = options->get<std::string>("gemm-type");
+  
+  auto saveGemmTypeStr = options->get<std::string>("gemm-type", "float32");
+  Type saveGemmType;
+  if(saveGemmTypeStr == "float32") {
+    saveGemmType = Type::float32;
+  } else if(saveGemmTypeStr == "packed16") {  // packed16 only supports AVX2. AVX512 might be added later
+    saveGemmType = Type::packed16;
+  } else if(saveGemmTypeStr == "packed8avx2") { // packed8 for AVX2
+    saveGemmType = Type::packed8avx2;
+  } else if(saveGemmTypeStr == "packed8avx512") { // packed8 for AVX512
+    saveGemmType = Type::packed8avx512;
+  } else {
+    ABORT("Unknown gemm-type: {}", saveGemmTypeStr);
+  }
 
   LOG(info, "Outputting {}", modelTo);
 

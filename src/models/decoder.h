@@ -47,13 +47,12 @@ public:
 
     ABORT_IF(shortlist_, "How did a shortlist make it into training?");
 
-    const Words& data = subBatch->data();
-    Expr yData = graph_->indices(toWordIndexVector(data));
-
     auto yShifted = shift(y, {1, 0, 0});
 
     state->setTargetHistoryEmbeddings(yShifted);
     state->setTargetMask(yMask);
+    
+    const Words& data = subBatch->data();
     state->setTargetWords(data);
   }
 

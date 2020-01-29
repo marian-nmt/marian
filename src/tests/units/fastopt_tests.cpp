@@ -40,6 +40,9 @@ TEST_CASE("Options can be accessed", "[fastopt]") {
       "subnode: {"
       "  baz: [ 111.5, False ],"
       "  qux: 222,"
+      "  preprocess1: n,"
+      "  preprocess2: d,"
+      "  preprocess3: y,"
       "  }"
       "}");
 
@@ -57,6 +60,9 @@ TEST_CASE("Options can be accessed", "[fastopt]") {
     CHECK( o["subnode"]["baz"][0].as<float>() == 111.5f );
     CHECK( o["subnode"]["baz"][1].as<bool>() == false );
     CHECK( o["subnode"]["baz"][0].as<int>() == 111 );
+    CHECK( o["subnode"]["preprocess1"].as<std::string>() == "n" ); // don't allow "n" to be cast to boolean false while converting from YAML
+    CHECK( o["subnode"]["preprocess2"].as<std::string>() == "d" );
+    CHECK( o["subnode"]["preprocess3"].as<std::string>() == "y" ); // don't allow "y" to be cast to boolean true while converting from YAML
   }
 
   node["foo"] = "baz";

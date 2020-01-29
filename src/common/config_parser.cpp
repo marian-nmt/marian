@@ -328,6 +328,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
   cli.add<std::string>("--multi-loss-type",
       "How to accumulate multi-objective losses: sum, scaled, mean", "sum");
+  cli.add<bool>("--unlikelihood-loss",
+      "Use word-level weights as indicators for sequence-level unlikelihood training");
   cli.add<bool>("--overwrite",
       "Do not create model checkpoints, only overwrite main model file with last checkpoint. "
       "Reduces disk usage");
@@ -502,7 +504,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      true);
 
   // add ULR settings
-  addSuboptionsULR(cli);
+  addSuboptionsULR(cli); 
 
   cli.add<std::vector<std::string>>("--task",
      "Use predefined set of options. Possible values: transformer, transformer-big");
@@ -543,6 +545,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Allow unknown words to appear in output");
   cli.add<bool>("--n-best",
       "Generate n-best list");
+  cli.add<bool>("--word-scores",
+      "Print word-level scores");
 
   // efficiency options
   cli.add<int>("--valid-mini-batch",
@@ -562,8 +566,10 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Additional args passed to --valid-script-path. These are inserted"
       " between the script path and the output translation-file path");
   cli.add<std::string>("--valid-translation-output",
-     "Path to store the translation");
-
+     "(Template for) path to store the translation. "
+     "E.g., validation-output-after-{U}-updates-{T}-tokens.txt. Template "
+     "parameters: {E} for epoch; {B} for No. of batches within epoch; "
+     "{U} for total No. of updates; {T} for total No. of tokens seen.");
   cli.add<bool>("--keep-best",
       "Keep best model for each validation metric");
   cli.add<std::string>("--valid-log",
@@ -603,6 +609,12 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
+  cli.add<bool>("--word-scores",
+      "Print word-level scores");
+#ifdef USE_SENTENCEPIECE
+  cli.add<bool>("--no-spm-decode",
+      "Keep the output segmented into SentencePiece subwords");
+#endif
 
   addSuboptionsDevices(cli);
   addSuboptionsInputLength(cli);
@@ -612,7 +624,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
       "Optimize speed aggressively sacrificing memory or precision");
   cli.add<bool>("--skip-cost",
       "Ignore model cost during translation, not recommended for beam-size > 1");
-  cli.add<bool>("--fp16", 
+  cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
@@ -626,8 +638,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Noise output layer with gumbel noise",
       false);
 
+#if 0 // @TODO: Ask Hany if there are any decoding-time options
   // add ULR settings
   addSuboptionsULR(cli);
+#endif
 
   cli.switchGroup(previous_group);
   // clang-format on
@@ -737,29 +751,31 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
       "Sorting strategy for maxi-batch: none, src, trg (not available for decoder)",
       defaultMaxiBatchSort);
 
-  cli.add<bool>("--shuffle-in-ram",
-      "Keep shuffled corpus in RAM, do not write to temp file");
-  // @TODO: Consider making the next two options options of the vocab instead, to make it more local in scope.
-  cli.add<size_t>("--all-caps-every",
-      "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
-  cli.add<size_t>("--english-title-case-every",
-      "When forming minibatches, preprocess every Nth line on the fly to title-case. Assumes English (ASCII only)");
+  if(mode_ == cli::mode::training) {
+    cli.add<bool>("--shuffle-in-ram",
+        "Keep shuffled corpus in RAM, do not write to temp file");
+    // @TODO: Consider making the next two options options of the vocab instead, to make it more local in scope.
+    cli.add<size_t>("--all-caps-every",
+        "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
+    cli.add<size_t>("--english-title-case-every",
+        "When forming minibatches, preprocess every Nth line on the fly to title-case. Assumes English (ASCII only)");
 
-  cli.add<int>("--mini-batch-words-ref",
-      "If given, the following hyper parameters are adjusted as-if we had this mini-batch size: "
-      "--learn-rate, --optimizer-params, --exponential-smoothing, --mini-batch-warmup");
-  cli.add<std::string/*SchedulerPeriod*/>("--mini-batch-warmup",
-      "Linear ramp-up of MB size, up to this #updates (append 't' for up to this #target labels). "
-      "Auto-adjusted to --mini-batch-words-ref if given",
-      {"0"});
-  cli.add<bool>("--mini-batch-track-lr",
-      "Dynamically track mini-batch size inverse to actual learning rate (not considering lr-warmup)");
-  cli.add<size_t>("--mini-batch-overstuff",
-      "[experimental] Stuff this much more data into a minibatch, but scale down the LR and progress counter",
-      1);
-  cli.add<size_t>("--mini-batch-understuff",
-      "[experimental] Break each batch into this many updates",
-      1);
+    cli.add<int>("--mini-batch-words-ref",
+        "If given, the following hyper parameters are adjusted as-if we had this mini-batch size: "
+        "--learn-rate, --optimizer-params, --exponential-smoothing, --mini-batch-warmup");
+    cli.add<std::string/*SchedulerPeriod*/>("--mini-batch-warmup",
+        "Linear ramp-up of MB size, up to this #updates (append 't' for up to this #target labels). "
+        "Auto-adjusted to --mini-batch-words-ref if given",
+        {"0"});
+    cli.add<bool>("--mini-batch-track-lr",
+        "Dynamically track mini-batch size inverse to actual learning rate (not considering lr-warmup)");
+    cli.add<size_t>("--mini-batch-overstuff",
+        "[experimental] Stuff this much more data into a minibatch, but scale down the LR and progress counter",
+        1);
+    cli.add<size_t>("--mini-batch-understuff",
+        "[experimental] Break each batch into this many updates",
+        1);
+  }
   // clang-format on
 }
 

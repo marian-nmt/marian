@@ -51,7 +51,7 @@ add_library(marian STATIC
   tensors/cpu/sharp/int_gemm.cpp
   tensors/cpu/sharp/avx_gemm.cpp
   tensors/cpu/sharp/sse_gemm.cpp
-  tensors/cpu/sharp/packed_gemm.cpp
+  tensors/cpu/fbgemm/packed_gemm.cpp
 
   graph/expression_graph.cpp
   graph/expression_operators.cpp
@@ -138,7 +138,8 @@ cuda_add_library(marian_cuda
   tensors/gpu/algorithm.cu
   tensors/gpu/prod.cpp
   tensors/gpu/element.cu
-  tensors/gpu/add.cu
+  tensors/gpu/add.cu  
+  tensors/gpu/add_all.cu
   tensors/gpu/tensor_operators.cu
   tensors/gpu/cudnn_wrappers.cu
   translator/nth_element.cu

@@ -36,17 +36,18 @@ private:
   std::mt19937 generator_;
   std::uniform_int_distribution<int> randInt_; // from 0 to INT_MAX
 
+  // Keeps sentences segmented into subword units
+  bool keepEncoded_{false};
+
   // Sample from one file, based on first algorithm from:
   // https://en.wikipedia.org/wiki/Reservoir_sampling
   void reservoirSampling(std::vector<std::string>& sample, size_t& seenLines,
                         const std::string& trainPath, size_t maxLines, size_t maxBytes) {
-
     ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
 
-    std::unique_ptr<std::istream> trainStrm(
-			    trainPath == "stdin" ? new std::istream(std::cin.rdbuf())
-                           : new io::InputFileStream(trainPath)
-    );
+    std::unique_ptr<std::istream> trainStrm(trainPath == "stdin"
+                                                ? new std::istream(std::cin.rdbuf())
+                                                : new io::InputFileStream(trainPath));
 
     std::string line;
     while(getline(*trainStrm, line)) {
@@ -109,8 +110,10 @@ private:
 
 public:
   SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
-    : options_(options), batchIndex_(batchIndex), generator_((uint32_t)Config::seed) {
-
+      : options_(options),
+        batchIndex_(batchIndex),
+        generator_((uint32_t)Config::seed),
+        keepEncoded_(options->get<bool>("no-spm-decode", false)) {
     if(options_->has("sentencepiece-alphas")) {
       auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
       if(alphas.size() <= batchIndex)
@@ -221,11 +224,18 @@ public:
 
   std::string decode(const Words& sentence, bool /*ignoreEOS*/) const override {
     std::string line;
-    // convert vector of Word to vector of int
-    std::vector<int> spmSentence; spmSentence.reserve(sentence.size());
-    for (auto&& word : sentence)
-      spmSentence.push_back(word.toWordIndex());
-    spm_->Decode(spmSentence, &line);
+    if(keepEncoded_) {  // i.e. keep the sentence segmented into subword units
+      for(const Word& id : sentence)
+        line += (*this)[id] + " ";
+      line.pop_back();  // trim the trailing whitespace
+    } else {
+      // convert vector of Word to vector of int
+      std::vector<int> spmSentence;
+      spmSentence.reserve(sentence.size());
+      for(auto&& word : sentence)
+        spmSentence.push_back(word.toWordIndex());
+      spm_->Decode(spmSentence, &line);
+    }
     return line;
   }
 

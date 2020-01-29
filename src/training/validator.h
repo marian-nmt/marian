@@ -37,7 +37,8 @@ protected:
 public:
   ValidatorBase(bool lowerIsBetter) : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) = 0;
   virtual std::string type() = 0;
 
   float lastBest() { return lastBest_; }
@@ -83,7 +84,8 @@ protected:
   }
 public:
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> /*ignored*/) override {
     for(auto graph : graphs)
       graph->setInference(true);
 
@@ -176,7 +178,8 @@ class ScriptValidator : public Validator<data::Corpus, models::IModel> {
 public:
   ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> /*ignored*/) override;
 
   std::string type() override { return "valid-script"; }
 
@@ -191,7 +194,8 @@ class TranslationValidator : public Validator<data::Corpus, models::IModel> {
 public:
   TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) override;
 
   std::string type() override { return "translation"; }
 
@@ -209,7 +213,8 @@ class BleuValidator : public Validator<data::Corpus, models::IModel> {
 public:
   BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false);
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) override;
 
   // @TODO: why do we return this string, but not pass it to the constructor?
   std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }

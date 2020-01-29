@@ -7,8 +7,8 @@
 namespace marian {
 namespace functional {
 
-// By default for single valued types like float do nothing. Usually the number of elements in a tensor 
-// is correctly mirrored in the shape object. Only special multi-element types like float32x4 (4 floats), 
+// By default for single valued types like float do nothing. Usually the number of elements in a tensor
+// is correctly mirrored in the shape object. Only special multi-element types like float32x4 (4 floats),
 // float32x8 (8 floats) and half2 (2 half) require special handling done by specializations below.
 // Similar for multi-element integer types to be added later.
 template <typename T>
@@ -31,7 +31,7 @@ inline marian::Shape adapt<float32x4>(const marian::Shape& shape) {
   x4Shape.set(-1, shape[-1] / 4);
   return x4Shape;
 }
-
+#ifdef __AVX__
 template <>
 inline marian::Shape adapt<float32x8>(const marian::Shape& shape) {
   ABORT_IF(shape[-1] % 8 != 0,
@@ -42,7 +42,7 @@ inline marian::Shape adapt<float32x8>(const marian::Shape& shape) {
   x8Shape.set(-1, shape[-1] / 8);
   return x8Shape;
 }
-
+#endif
 #endif
 
 template <typename T, const int D>
