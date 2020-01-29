@@ -66,10 +66,10 @@ protected:
   Ptr<Options> options_;
   bool restored_{false};
 
-  // replacing old shuffle_ with two variants that determine more fine-grained shuffling behavior. 
-  // Both set to false is equivalent to old shuffle_ == false. 
+  // replacing old shuffle_ with two variants that determine more fine-grained shuffling behavior.
+  // Both set to false is equivalent to old shuffle_ == false.
   // Now we can not shuffle the data, but shuffle batches. Useful for linear reading of very large data sets with pre-reading.
-  // Parameters like maxi-batch determine how much data is pre-read and sorted by length or other criteria. 
+  // Parameters like maxi-batch determine how much data is pre-read and sorted by length or other criteria.
   bool shuffleData_{false};    // determine if full data should be shuffled before reading and batching.
   bool shuffleBatches_{false}; // determine if batches should be shuffled after batching.
 
@@ -103,7 +103,7 @@ private:
     };
 
     auto cmpNone = [](const Sample& a, const Sample& b) { return a.getId() < b.getId(); }; // sort in order of original ids = original data order unless shuffling
-    
+
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
 
@@ -229,7 +229,7 @@ private:
 
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
-    ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
+    ABORT_IF(futureBufferedBatches_.valid(), "Attempted to restart futureBufferedBatches_ while still running");
     futureBufferedBatches_ = threadPool_.enqueue([this]() {
       return fetchBatches();
     });
@@ -239,7 +239,9 @@ private:
     if(bufferedBatches_.empty()) {
       // out of data: need to get next batch from background thread
       // We only get here if the future has been scheduled to run; it must be valid.
-      ABORT_IF(!futureBufferedBatches_.valid(), "attempted to wait for futureBufferedBatches_ when none pending");
+      ABORT_IF(!futureBufferedBatches_.valid(), "Attempted to wait for futureBufferedBatches_ when none pending.\n"
+          "This error often occurs when Marian tries to restore the training data iterator, but the corpus has been changed or replaced.\n"
+          "If you have changed the training corpus, add --no-restore-corpus to the training command and run it again.");
       bufferedBatches_ = std::move(futureBufferedBatches_.get());
       // if bg thread returns an empty swath, we hit the end of the epoch
       if (bufferedBatches_.empty()) {
