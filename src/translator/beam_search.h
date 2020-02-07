@@ -74,10 +74,20 @@ public:
       const auto currentBatchIdx = (key / vocabSize) / nBestBeamSize;
       const auto origBatchIdx    = reverseBatchIdxMap.empty() ? currentBatchIdx : reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
 
-      bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx];
-
-      // if we force=drop the hypothesis, assign EOS, otherwise the expected word id. 
-      const auto wordIdx    = dropHyp ? trgVocab_->getEosId().toWordIndex() : (WordIndex)(key % vocabSize);
+      bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx] && factorGroup == 0;
+      
+      WordIndex wordIdx;
+      if(dropHyp) { // if we force=drop the hypothesis, assign EOS, otherwise the expected word id.
+        if(factoredVocab) { // when using factoredVocab, extract the EOS lemma index from the word id, we predicting factors one by one here, hence lemma only
+          std::vector<size_t> eosFactors;
+          factoredVocab->word2factors(factoredVocab->getEosId(), eosFactors);
+          wordIdx = eosFactors[0]; 
+        } else { // without factoredVocab lemma index and word index are the same. Safe cruising. 
+          wordIdx = trgVocab_->getEosId().toWordIndex();
+        }
+      } else { // we are not dropping anything, just assign the normal index
+        wordIdx = (WordIndex)(key % vocabSize);
+      }
 
       // @TODO: We currently assign a log probability of 0 to all beam entries of the dropped batch entry, instead it might be a good idea to use
       // the per Hyp pathScore without the current expansion (a bit hard to obtain). 
