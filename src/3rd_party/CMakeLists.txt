@@ -95,7 +95,7 @@ if(CUDA_FOUND)
       BUILD_COMMAND
         $(MAKE) -f ${CMAKE_CURRENT_SOURCE_DIR}/nccl/Makefile src.build
         BUILDDIR=${CMAKE_BINARY_DIR}/local CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
-        CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER}
+        CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=-Wno-unused-function
       INSTALL_COMMAND "")
 
     set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/local/lib/libnccl_static.a)
