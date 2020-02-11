@@ -130,9 +130,6 @@ class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
 
   bool inferenceOnly_{false};
 
-  // during inference, use optimizations that might lead to precision loss, e.g. 8-bit MatMul.
-  // At this moment, this is used for int16 qunatized Matmul - 11/1/2019
-  bool optimized_{false};
   bool checkpointing_{false}; // use gradient checkpointing if true
 
   bool reloaded_{false};
@@ -177,9 +174,6 @@ public:
 
   void setInference(bool inference) { inferenceOnly_ = inference; }
   bool isInference() { return inferenceOnly_; }
-
-  void setOptimized(bool optimized) { optimized_ = optimized; }
-  bool isOptimized() { return (optimized_ && inferenceOnly_); }
 
   void setCheckpointing(bool checkpointing) { checkpointing_ = checkpointing; }
   bool isCheckpointing() { return checkpointing_; }
