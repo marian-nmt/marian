@@ -81,7 +81,7 @@ public:
         if(factoredVocab) { // when using factoredVocab, extract the EOS lemma index from the word id, we predicting factors one by one here, hence lemma only
           std::vector<size_t> eosFactors;
           factoredVocab->word2factors(factoredVocab->getEosId(), eosFactors);
-          wordIdx = eosFactors[0]; 
+          wordIdx = (WordIndex)eosFactors[0];
         } else { // without factoredVocab lemma index and word index are the same. Safe cruising. 
           wordIdx = trgVocab_->getEosId().toWordIndex();
         }
