@@ -86,12 +86,6 @@ if(CUDA_FOUND)
     if(COMPILE_CUDA_SM70)
       set(GENCODE "${GENCODE} -gencode=arch=compute_70,code=sm_70")
     endif(COMPILE_CUDA_SM70)
-    # clang generates a lot of unused function warnings for NCCL
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-      set(NCCL_CXXFLAGS "-Wno-unused-function")
-    else()
-      set(NCCL_CXXFLAGS "")
-    endif()
 
     # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
     ExternalProject_Add(nccl_install
@@ -101,7 +95,7 @@ if(CUDA_FOUND)
       BUILD_COMMAND
         $(MAKE) -f ${CMAKE_CURRENT_SOURCE_DIR}/nccl/Makefile src.build
         BUILDDIR=${CMAKE_BINARY_DIR}/local CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
-        CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER} CXXFLAGS=${NCCL_CXXFLAGS}
+        CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER}
       INSTALL_COMMAND "")
 
     set_target_properties(nccl PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/local/lib/libnccl_static.a)
