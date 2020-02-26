@@ -20,34 +20,6 @@ public:
   NthElementCPU() {}
   NthElementCPU(const NthElementCPU& copy) = delete;
 
-private:
-  // for each batch, select the max N elements, where N is the beam size for this batch.
-  void selectNBest(const float* scores,
-                   const std::vector<int>& batchFirstElementIdxs,
-                   const std::vector<int>& cumulativeBeamSizes) {
-    int numProbs = batchFirstElementIdxs.back();
-    std::vector<int> idxs(numProbs);
-    std::iota(idxs.begin(), idxs.end(), 0);
-
-    size_t numBatches = batchFirstElementIdxs.size() - 1;
-    for(size_t batchIdx = 0; batchIdx < numBatches; ++batchIdx) {
-      int pos = cumulativeBeamSizes[batchIdx];
-      int beamSize = cumulativeBeamSizes[batchIdx + 1] - pos;
-
-      std::vector<int>::iterator begin = idxs.begin() + batchFirstElementIdxs[batchIdx];
-      std::vector<int>::iterator middle = begin + beamSize;
-      std::vector<int>::iterator end = idxs.begin() + batchFirstElementIdxs[batchIdx + 1];
-      std::partial_sort(
-          begin, middle, end, [&](int a, int b) { return scores[a] > scores[b]; });
-
-      while(begin != middle) {
-        int idx = *begin++;
-        h_res_idx[pos] = idx;
-        h_res[pos] = scores[idx];
-        ++pos;
-      }
-    }
-  }
 
 public:
   void getNBestList(Tensor scores, // [dimBatch, 1, beamSize, dimVocab or dimShortlist]
@@ -59,23 +31,39 @@ public:
     const auto inputN    = scores->shape()[-2];
     const auto dimBatch  = scores->shape()[-4];
     ABORT_IF(inputN != (isFirst ? 1 : N), "Input tensor has wrong beam dim??"); // @TODO: Remove isFirst argument altogether
-
-    std::vector<int> cumulativeBeamSizes(dimBatch + 1, 0);
-    std::vector<int> batchFirstElementIdxs(dimBatch + 1, 0);
-
-    for(int batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
-      cumulativeBeamSizes[batchIdx + 1] = (batchIdx + 1) * (int)N;
-      batchFirstElementIdxs[batchIdx + 1] += (batchIdx + 1) * inputN * vocabSize;
-      ABORT_IF(cumulativeBeamSizes[batchIdx + 1] != cumulativeBeamSizes[batchIdx] + (int)N, "cumulativeBeamSizes wrong??");
-      ABORT_IF((isFirst ? batchIdx + 1 : cumulativeBeamSizes[batchIdx + 1]) != (batchIdx + 1) * inputN, "inputN wrong??");
-    }
-    ABORT_IF(cumulativeBeamSizes.back() != dimBatch * N, "cumulativeBeamSizes.back() wrong??");
+    const float* scoresData = scores->data();
 
     size_t maxSize = N * dimBatch;
     h_res.resize(maxSize);
     h_res_idx.resize(maxSize);
+    size_t pos = 0; // iterates through h_res and h_res_idx
 
-    selectNBest(scores->data(), batchFirstElementIdxs, cumulativeBeamSizes);
+    size_t batchOffset = inputN * vocabSize;
+    std::vector<int> idxs(batchOffset); // re-used for each batch
+    std::iota(idxs.begin(), idxs.end(), 0);
+
+    for(size_t batchIdx = 0; batchIdx < dimBatch; ++batchIdx) {
+
+      std::partial_sort( 
+        // sorts the top N (beam size) idxs by score to the front
+        idxs.begin(),
+        idxs.begin() + N,
+        idxs.end(),
+        [&](int a, int b) { return scoresData[a] > scoresData[b]; }
+      );
+
+      // copy top N idxs and scores to return vectors
+      for(size_t i = 0; i < N; ++i) {
+        int idx = idxs[i];
+        // since idxs is re-used for each batch, add batch offset to each idx to get absolute position
+        h_res_idx[pos] = idx + batchIdx * batchOffset;
+        h_res[pos] = scoresData[idx];
+        ++pos;
+      }
+
+      // advance pointer to next batch's beginning
+      scoresData += batchOffset;
+    }
     getPairs(/*cumulativeBeamSizes.back(),*/ outKeys, outPathScores);
   }
 
