@@ -35,7 +35,7 @@ protected:
 public:
   BaseRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
-
+  virtual ~BaseRNN() {}
   virtual Expr transduce(Expr, Expr = nullptr) = 0;
   virtual Expr transduce(Expr, State, Expr = nullptr) = 0;
   virtual Expr transduce(Expr, States, Expr = nullptr) = 0;
@@ -113,6 +113,7 @@ private:
 
 public:
   friend RNN;
+  virtual ~SingleLayerRNN() {}
 
   // @TODO: benchmark whether this concatenation is a good idea
   virtual Expr transduce(Expr input, Expr mask = nullptr) override {

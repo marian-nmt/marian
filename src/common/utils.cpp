@@ -8,11 +8,21 @@
 #include <sstream>
 #include <string>
 #include <set>
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
 #include <codecvt>
 #include <cwctype>
+
+// MACOS lacks HOST_NAME_MAX
+#ifndef HOST_NAME_MAX
+# if defined(_POSIX_HOST_NAME_MAX)
+#  define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+# elif defined(MAXHOSTNAMELEN)
+#  define HOST_NAME_MAX MAXHOSTNAMELEN
+# endif
+#endif
+
 
 namespace marian {
 namespace utils {

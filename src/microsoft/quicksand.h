@@ -54,6 +54,8 @@ public:
                      const std::vector<const void*>& ptrs)
       : options_(options), ptrs_(ptrs) {}
 
+  virtual ~IBeamSearchDecoder() {}
+
   virtual QSNBestBatch decode(const QSBatch& qsBatch,
                               size_t maxLength,
                               const std::unordered_set<WordIndex>& shortlist)

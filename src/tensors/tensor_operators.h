@@ -25,7 +25,7 @@
 namespace marian {
 
 template <typename InIt, typename OutIt>
-void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
+void copy(Ptr<Backend>& MAYBE_UNUSED backend, const InIt beg, const InIt end, OutIt it) {
 #ifdef CUDA_FOUND
   if(backend->getDeviceId().type == DeviceType::gpu)
     gpu::copy(backend, beg, end, it);
@@ -119,7 +119,7 @@ DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
 // clang-format on
 
-// Bernoulli(tensor, 0.5f, 2.f, -1.f) generates a tensor composed of 50% of 1 and 50% of -1. 
+// Bernoulli(tensor, 0.5f, 2.f, -1.f) generates a tensor composed of 50% of 1 and 50% of -1.
 static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 1.f, float shift = 0.f) {
   // in-place uniform distribution
   auto rnd = resultTensor->getBackend()->getRandomGenerator();
@@ -190,7 +190,7 @@ void LayerNormalizationGrad(Tensor gradX,
 }
 
 static inline void LayerNormalizationGrad(
-                            Ptr<Allocator> allocator,
+                            Ptr<Allocator> MAYBE_UNUSED allocator,
                             Tensor gradX,
                             Tensor gradGamma,
                             Tensor gradBeta,

@@ -8,29 +8,40 @@
 
 namespace marian {
 namespace cpu {
+namespace {
 
 // allocate function for tensor reserve() below. 
-// Needed for AVX512, while not available on all compilers. It seems clang
-// does not have aligned_alloc for all cstlib versions. If AVX512 is not used
-// a simple malloc is probably fine. 
-// Should generate a runtime error otherwise as we have a check in the AVX512 
-// functions which tests for alignment. 
-#ifdef _WIN32
-#define MALLOC(size) _aligned_malloc(size, alignment_)
-#elif __GNUC__
-#define MALLOC(size) aligned_alloc(alignment_, size)
-#else
-#define MALLOC(size) malloc(size)
-#endif
+// Alignment is needed because we use AVX512 and AVX2 vectors. We should fail if we can't allocate aligned memory.
 
 #ifdef _WIN32
-#define FREE(ptr) _aligned_free(ptr)
+void *genericMalloc(size_t alignment, size_t size) {
+  void *ret = _aligned_malloc(size, alignment);
+  ABORT_IF(!ret, "Failed to allocate memory on CPU");
+  return ret;
+}
+void genericFree(void *ptr) {
+  _aligned_free(ptr);
+}
 #else
-#define FREE(ptr) free(ptr)
+// Linux and OS X.  There is no fallback to malloc because we need it to be aligned.
+void *genericMalloc(size_t alignment, size_t size) {
+  // On macos, aligned_alloc is available only on c++17
+  // Furthermore, it requires that the memory requested is an exact multiple of the alignment, otherwise it fails.
+  // posix_memalign is available both Mac (Since 2016) and Linux and in both gcc and clang
+  void *result;
+  // Error could be detected by return value or just remaining nullptr.
+  ABORT_IF(posix_memalign(&result, alignment, size), "Failed to allocate memory on CPU");
+  return result;
+}
+void genericFree(void *ptr) {
+  free(ptr);
+}
 #endif
+
+} // namespace
 
 Device::~Device() {
-  FREE(data_);
+  genericFree(data_);
 }
 
 void Device::reserve(size_t size) {
@@ -38,14 +49,12 @@ void Device::reserve(size_t size) {
   ABORT_IF(size < size_ || size == 0,
            "New size must be larger than old size and larger than 0");
 
+  uint8_t *temp = static_cast<uint8_t*>(genericMalloc(alignment_, size));
   if(data_) {
-    uint8_t *temp = static_cast<uint8_t*>(MALLOC(size));
     std::copy(data_, data_ + size_, temp);
-    FREE(data_);
-    data_ = temp;
-  } else {
-    data_ = static_cast<uint8_t*>(MALLOC(size));
+    genericFree(data_);
   }
+  data_ = temp;
   size_ = size;
 }
 }  // namespace cpu

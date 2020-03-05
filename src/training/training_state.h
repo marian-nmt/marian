@@ -13,6 +13,7 @@ class TrainingState;
 
 class TrainingObserver {
 public:
+  virtual ~TrainingObserver() {}
   virtual void init(TrainingState&) {}
   virtual void actAfterEpoch(TrainingState&) {}
   virtual void actAfterBatches(TrainingState&) {}

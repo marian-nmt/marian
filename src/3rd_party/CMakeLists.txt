@@ -15,12 +15,22 @@ if(USE_FBGEMM)
 
   if(NOT MSVC)
     # only locally disabled for the 3rd_party folder
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused")
   endif()
 
   set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "Disable fbgemm tests")
   set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "Disable fbgemm benchmark")
   add_subdirectory(./fbgemm)
+
+  # asmjit (3rd-party submodule of fbgemm) sets -Wall -Wextra near the end of
+  # the compile options, invalidating any -Wno-... flags that we may have set
+  # earlier. Let's remove them.
+  get_property(ASMJIT_COMPILE_OPTIONS TARGET asmjit PROPERTY COMPILE_OPTIONS)
+  list(REMOVE_ITEM ASMJIT_COMPILE_OPTIONS -Wall -Wextra)
+  set_property(TARGET asmjit PROPERTY COMPILE_OPTIONS ${ASMJIT_COMPILE_OPTIONS})
+  message("   ASMJIT COMPILE FLAGS: ${ASMJIT_COMPILE_OPTIONS}")
+
 endif(USE_FBGEMM)
 
 if(USE_SENTENCEPIECE)
@@ -39,7 +49,7 @@ if(USE_SENTENCEPIECE)
     message(WARNING "You are compiling SentencePiece binaries with -DUSE_STATIC_LIBS=on. \
     This will cause spm_train to segfault. No need to worry if you do not intend to use that binary. \
     Marian support for SentencePiece will work fine.")
-    
+
     set(SPM_ENABLE_SHARED OFF CACHE BOOL "Builds shared libaries in addition to static libraries." FORCE)
     set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
   else(USE_STATIC_LIBS)
@@ -51,8 +61,19 @@ if(USE_SENTENCEPIECE)
   include_directories(./sentencepiece)
 
   set_target_properties(spm_encode spm_decode spm_train spm_normalize spm_export_vocab
-                        PROPERTIES
-                        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    foreach(t sentencepiece sentencepiece_train sentencepiece_train-static
+        spm_decode spm_encode spm_export_vocab spm_normalize spm_train)
+      set_property(TARGET ${t} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-compare -Wno-unused")
+      if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0)
+        set_property(TARGET ${t} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-range-loop-construct")
+      endif()
+      # get_property(SENTENCEPIECE_COMPILE_FLAGS TARGET ${t} PROPERTY COMPILE_FLAGS)
+      # message("-- SENTENCPIECE: compile flags for target ${t}: ${SENTENCEPIECE_COMPILE_FLAGS}")
+    endforeach(t)
+  endif()
 
   if(USE_STATIC_LIBS)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -62,6 +83,22 @@ endif(USE_SENTENCEPIECE)
 include_directories(./SQLiteCpp/include)
 include_directories(./CLI)
 include_directories(./pathie-cpp/include)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  #set_target_properties(SQLiteCpp PROPERTIES COMPILE_FLAGS
+  set_property(TARGET SQLiteCpp APPEND_STRING PROPERTY COMPILE_FLAGS
+    " -Wno-parentheses-equality -Wno-unused-value")
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0)
+    set_property(TARGET SQLiteCpp APPEND_STRING PROPERTY COMPILE_FLAGS
+      " -Wno-implicit-int-float-conversion")
+  endif()
+  set_property(TARGET libyaml-cpp APPEND_STRING PROPERTY COMPILE_FLAGS
+    " -fPIC -Wno-unused-value")
+  set_property(TARGET pathie-cpp APPEND_STRING PROPERTY COMPILE_FLAGS
+    " -fPIC -Wno-unused-value")
+endif()
+
+
 
 include_directories(./zlib)
 

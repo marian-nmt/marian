@@ -169,12 +169,12 @@ inline bool operator!=(const IntrusivePtr<T>& a, std::nullptr_t) {
 
 template<class T>
 inline bool operator==(T* a, const IntrusivePtr<T>& b) {
-  return b.get();
+  return a == b.get(); // used to say: return b.get(); That cannot be right. [UG]
 }
 
 template<class T>
 inline bool operator!=(T* a, const IntrusivePtr<T>& b) {
-  return b.get();
+  return a != b.get(); // used to say: return b.get(); That cannot be right. [UG]
 }
 
 template<class T, class U>
@@ -223,5 +223,3 @@ namespace std {
     }
   };
 }
-
-

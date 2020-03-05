@@ -13,6 +13,7 @@ namespace marian {
 class ScoreCollector {
 public:
   ScoreCollector(const Ptr<Options>& options);
+  virtual ~ScoreCollector() {}
 
   virtual void Write(long id, const std::string& message);
   virtual void Write(long id,

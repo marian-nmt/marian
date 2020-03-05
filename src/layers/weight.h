@@ -17,6 +17,7 @@ public:
   virtual void debugWeighting(std::vector<float> /*weightedMask*/,
                               std::vector<float> /*freqMask*/,
                               Ptr<data::CorpusBatch> /*batch*/){};
+  virtual ~WeightingBase() {}
 };
 
 class DataWeighting : public WeightingBase {

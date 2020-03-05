@@ -1,7 +1,7 @@
 #include "marian.h"
 #include "common/timer.h"
 
-int main(int argc, char** argv) {
+int main(int /*argc*/, char** /*argv*/) {
     using namespace marian;
 
     {

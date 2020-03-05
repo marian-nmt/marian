@@ -57,6 +57,7 @@ public:
   virtual Word randWord() const {
     return Word::fromWordIndex(rand() % size());
   }
+  virtual ~IVocab() {};
 };
 
 class Options;

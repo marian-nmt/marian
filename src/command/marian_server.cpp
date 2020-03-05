@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
   // Error Codes for error code meanings
   // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html
-  translate.on_error = [](Ptr<WSServer::Connection> connection,
+  translate.on_error = [](Ptr<WSServer::Connection> /*connection*/,
                           const SimpleWeb::error_code &ec) {
     LOG(error, "Connection error: ({}) {}", ec.value(), ec.message());
   };

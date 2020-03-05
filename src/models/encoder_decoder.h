@@ -11,6 +11,7 @@ namespace marian {
 
 class IEncoderDecoder : public models::IModel {
 public:
+  virtual ~IEncoderDecoder() {}
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool markedReloaded = true) override

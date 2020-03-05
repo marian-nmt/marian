@@ -36,6 +36,8 @@ public:
 
 class ShortlistGenerator {
 public:
+  virtual ~ShortlistGenerator() {}
+
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const = 0;
 
   // Writes text version of (possibly) pruned short list to file
@@ -129,7 +131,6 @@ private:
   Ptr<const Vocab> trgVocab_;
 
   size_t srcIdx_;
-  size_t trgIdx_;
   bool shared_{false};
 
   size_t firstNum_{100};
@@ -183,13 +184,12 @@ public:
                             Ptr<const Vocab> srcVocab,
                             Ptr<const Vocab> trgVocab,
                             size_t srcIdx = 0,
-                            size_t trgIdx = 1,
+                            size_t /*trgIdx*/ = 1,
                             bool shared = false)
       : options_(options),
         srcVocab_(srcVocab),
         trgVocab_(trgVocab),
         srcIdx_(srcIdx),
-        trgIdx_(trgIdx),
         shared_(shared) {
     std::vector<std::string> vals = options_->get<std::vector<std::string>>("shortlist");
 
@@ -235,7 +235,6 @@ public:
 
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override {
     auto srcBatch = (*batch)[srcIdx_];
-    // auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
     std::unordered_set<WordIndex> indexSet;

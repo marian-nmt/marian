@@ -26,7 +26,7 @@ public:
 
   virtual void setGuidedAlignment(std::vector<float>&&) = 0;
   virtual void setDataWeights(const std::vector<float>&) = 0;
-
+  virtual ~Batch() {};
 protected:
   std::vector<size_t> sentenceIds_;
 };

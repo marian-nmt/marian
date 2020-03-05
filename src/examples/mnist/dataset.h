@@ -62,6 +62,7 @@ private:
   std::vector<Input> inputs_;
 
 public:
+
   std::vector<Input>& inputs() { return inputs_; }
 
   const std::vector<Input>& inputs() const { return inputs_; }
@@ -143,6 +144,8 @@ public:
       : Dataset(paths, options), IMAGE_MAGIC_NUMBER(2051), LABEL_MAGIC_NUMBER(2049) {
     loadData();
   }
+
+  virtual ~MNISTData(){}
 
   void loadData() override {
     ABORT_IF(paths_.size() != 2, "Paths to MNIST data files are not specified");
