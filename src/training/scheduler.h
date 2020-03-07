@@ -196,8 +196,7 @@ public:
 
     registerTrainingObserver(validators_.back());
     if(!state_->loaded) {
-      state_->validators[validator->type()]["last-best"]
-          = validator->initScore();
+      state_->validators[validator->type()]["last-best"] = validator->initScore();
       state_->validators[validator->type()]["stalled"] = 0;
     }
     if(validators_.size() == 1)
@@ -215,12 +214,12 @@ public:
   }
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
-                bool final = false) {
+                bool isFinal = false) {
     // Do not validate if already validated (for instance, after the model is
     // loaded) or if validation is scheduled for another update, or when signal SIGTERM was received
     if(getSigtermFlag() // SIGTERM was received
        || state_->validated // already validated (in resumed training, for example)
-       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !final)) // not now
+       || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !isFinal)) // not now
       return;
 
     bool firstValidator = true;

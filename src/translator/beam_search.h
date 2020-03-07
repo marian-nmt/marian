@@ -18,8 +18,8 @@ private:
   size_t beamSize_;
   Ptr<const Vocab> trgVocab_;
 
-  static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
-  static constexpr auto PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
+  const float INVALID_PATH_SCORE = std::numeric_limits<float>::lowest(); // @TODO: observe this closely
+  const bool PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -74,10 +74,20 @@ public:
       const auto currentBatchIdx = (key / vocabSize) / nBestBeamSize;
       const auto origBatchIdx    = reverseBatchIdxMap.empty() ? currentBatchIdx : reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
 
-      bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx];
-
-      // if we force=drop the hypothesis, assign EOS, otherwise the expected word id. 
-      const auto wordIdx    = dropHyp ? trgVocab_->getEosId().toWordIndex() : (WordIndex)(key % vocabSize);
+      bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx] && factorGroup == 0;
+      
+      WordIndex wordIdx;
+      if(dropHyp) { // if we force=drop the hypothesis, assign EOS, otherwise the expected word id.
+        if(factoredVocab) { // when using factoredVocab, extract the EOS lemma index from the word id, we predicting factors one by one here, hence lemma only
+          std::vector<size_t> eosFactors;
+          factoredVocab->word2factors(factoredVocab->getEosId(), eosFactors);
+          wordIdx = (WordIndex)eosFactors[0];
+        } else { // without factoredVocab lemma index and word index are the same. Safe cruising. 
+          wordIdx = trgVocab_->getEosId().toWordIndex();
+        }
+      } else { // we are not dropping anything, just assign the normal index
+        wordIdx = (WordIndex)(key % vocabSize);
+      }
 
       // @TODO: We currently assign a log probability of 0 to all beam entries of the dropped batch entry, instead it might be a good idea to use
       // the per Hyp pathScore without the current expansion (a bit hard to obtain). 
@@ -88,11 +98,12 @@ public:
       const auto& beam = beams[origBatchIdx];
       auto& newBeam = newBeams[origBatchIdx]; // extended hypotheses are going to be placed in this new beam
 
-      if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
+      if(newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
-      if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
+      if(pathScore == INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
-
+      
+      ABORT_IF(pathScore < INVALID_PATH_SCORE, "Actual pathScore ({}) is lower than INVALID_PATH_SCORE ({})??", pathScore, INVALID_PATH_SCORE); // This should not happen in valid situations. Currently the only smaller value would be -inf (effect of overflow in summation?)
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??"); // effectively this is equivalent to ABORT_IF(beams[origBatchIdx].empty(), ...)
 
       // map wordIdx to word

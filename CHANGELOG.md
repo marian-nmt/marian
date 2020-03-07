@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gradient-checkpointing
 
 ### Fixed
+- Replace value for INVALID_PATH_SCORE with std::numer_limits<float>::lowest() 
+  to avoid overflow with long sequences
+- Break up potential circular references for GraphGroup*
 - Fix empty source batch entries with batch purging
 - Clear RNN chache in transformer model, add correct hash functions to nodes
 - Gather-operation for all index sizes
@@ -68,6 +71,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Dropped support for g++-4.9
 - Simplified file stream and temporary file handling
 - Unified node intializers, same function API.
+- Remove overstuff/understuff code
 
 ## [1.8.0] - 2019-09-04
 

@@ -14,6 +14,7 @@ class TrainingState;
 class TrainingObserver {
 public:
   virtual ~TrainingObserver() {}
+  
   virtual void init(TrainingState&) {}
   virtual void actAfterEpoch(TrainingState&) {}
   virtual void actAfterBatches(TrainingState&) {}
@@ -130,8 +131,8 @@ public:
   }
 
   void registerObserver(Ptr<TrainingObserver> observer) {
-    observers_.push_back(observer);
-    observers_.back()->init(*this);
+    observer->init(*this);
+    wObservers_.push_back(observer);
   }
 
   // return the totals count that corresponds to the given unit (batches, labels, or epochs)
@@ -184,8 +185,11 @@ public:
 
   void newEpoch() {
     ++epochs;
-    for(auto observer : observers_)
+    for(auto wObserver : wObservers_) {
+      auto observer = wObserver.lock();
+      ABORT_IF(!observer, "Training observer object expired. Make sure all registered observers exist during scheduler life time");
       observer->actAfterEpoch(*this);
+    }
     samplesEpoch = 0;
     batchesEpoch = 0;
   }
@@ -195,22 +199,31 @@ public:
     batchesEpoch += batchesInUpdate;
     loaded = false;
     validated = false;
-    for(auto observer : observers_)
+    for(auto wObserver : wObservers_) {
+      auto observer = wObserver.lock();
+      ABORT_IF(!observer, "Training observer object expired. Make sure all registered observers exist during scheduler life time");
       observer->actAfterBatches(*this);
+    }
   }
 
   void newStalled(size_t num) {
     stalled = num;
     if(num > maxStalled)
       ++maxStalled;
-    for(auto observer : observers_)
+    for(auto wObserver : wObservers_) {
+      auto observer = wObserver.lock();
+      ABORT_IF(!observer, "Training observer object expired. Make sure all registered observers exist during scheduler life time");
       observer->actAfterStalled(*this);
+    }
   }
 
   void newLoad() {
     loaded = true;
-    for(auto observer : observers_)
+    for(auto wObserver : wObservers_) {
+      auto observer = wObserver.lock();
+      ABORT_IF(!observer, "Training observer object expired. Make sure all registered observers exist during scheduler life time");
       observer->actAfterLoaded(*this);
+    }
   }
 
   void load(const std::string& name) {
@@ -303,6 +316,9 @@ public:
   }
 
 private:
-  std::vector<Ptr<TrainingObserver>> observers_;
+  // this needs to be a vector of weak pointers, otherwise
+  // it is likely to cause circular dependencies.
+  std::vector<Weak<TrainingObserver>> wObservers_;
+
 };
 }  // namespace marian
