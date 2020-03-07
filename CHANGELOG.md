@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Add support for compiling on Mac (and clang)
 - An option for resetting stalled validation metrics
 - Add CMAKE options to disable compilation for specific GPU SM types
 - An option to print word-level translation scores
@@ -57,6 +58,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compilation with CUDA 10.1
 
 ### Changed
+- Combine two for-loops in nth_element.cpp on CPU
 - Revert LayerNorm eps to old position, i.e. sigma' = sqrt(sigma^2 + eps)
 - Downgrade NCCL to 2.3.7 as 2.4.2 is buggy (hangs with larger models)
 - Return error signal on SIGTERM
