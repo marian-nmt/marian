@@ -18,8 +18,8 @@ private:
   size_t beamSize_;
   Ptr<Vocab> trgVocab_;
 
-  static constexpr auto INVALID_PATH_SCORE = -9999; // (@TODO: change to -9999.0 once C++ allows that)
-  static constexpr auto PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
+  const float INVALID_PATH_SCORE = std::numeric_limits<float>::lowest(); // @TODO: observe this closely
+  const bool PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
 
 public:
   BeamSearch(Ptr<Options> options,
@@ -98,11 +98,12 @@ public:
       const auto& beam = beams[origBatchIdx];
       auto& newBeam = newBeams[origBatchIdx]; // extended hypotheses are going to be placed in this new beam
 
-      if (newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
+      if(newBeam.size() >= beam.size()) // getNBestList() generates N for all batch entries incl. those that already have a narrower beam
         continue;
-      if (pathScore <= INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
+      if(pathScore == INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
-
+      
+      ABORT_IF(pathScore < INVALID_PATH_SCORE, "Actual pathScore ({}) is lower than INVALID_PATH_SCORE ({})??", pathScore, INVALID_PATH_SCORE); // This should not happen in valid situations. Currently the only smaller value would be -inf (effect of overflow in summation?)
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??"); // effectively this is equivalent to ABORT_IF(beams[origBatchIdx].empty(), ...)
 
       // map wordIdx to word

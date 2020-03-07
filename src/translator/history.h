@@ -55,7 +55,11 @@ public:
     return nbest;
   }
 
-  Result top() const { return nBest(1)[0]; }
+  Result top() const { 
+    const NBestList& nbest = nBest(1);
+    ABORT_IF(nbest.empty(), "No hypotheses in n-best list??");
+    return nbest[0]; 
+  }
 
   size_t getLineNum() const { return lineNo_; }
 
