@@ -254,7 +254,7 @@ enum class Type : size_t {
   packed16      = TypeClass::packed_type + 2u,                          // special type for FBGEMM, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint16) is meaningless.
   packed8avx2   = TypeClass::packed_type + 1u + TypeClass::avx2_type,   // special type for FBGEMM with AVX2, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint8) is meaningless.
   packed8avx512 = TypeClass::packed_type + 1u + TypeClass::avx512_type, // special type for FBGEMM with AVX512, not meant to be used anywhere else, not meant to be accessed invidually. Internal actual type (uint8) is meaningless.
-  
+
 };
 
 static inline size_t operator&(TypeClass typeClass, Type type) {
@@ -394,7 +394,7 @@ static Type inline typeFromString(const std::string& str) {
     return Type::float32;
   if(str == "float64")
     return Type::float64;
-  
+
   if(str == "packed16")
     return Type::packed16;
   if(str == "packed8avx2")
@@ -437,19 +437,35 @@ void matchOrAbort(Type type) {
 
 namespace typeFitting { // own namespace instead of in class, otherwise we get error "explicit specialization in non-namespace scope"
 
-  // compares max for different types as constexpr, so can be used at compile-time to determine if RequestType type max fits into ReturnType max, see std::conditional below.
-  template <typename RequestType, typename ReturnType>
-  constexpr bool fitsIntoMax() { return std::numeric_limits<RequestType>::max() <= std::numeric_limits<ReturnType>::max(); } // for built-in types everything is constexpr
+  // Helper function for fitsIntoMax() below
+  // Returns the 'capacity' of a type: number of digits for integers,
+  // max_exponent for floats. We ignore the mantissa for floats.
+  template<typename X> constexpr int capacity() {
+    static_assert(std::is_arithmetic<X>::value || std::is_same<X,HalfFloat>::value,
+                  "Wrong type for this template");
+    return (std::is_integral<X>::value
+            ? std::numeric_limits<X>::digits
+            : std::numeric_limits<X>::max_exponent);
+ }
 
-  // add specializations here when needed
-  template <> constexpr bool fitsIntoMax<float16, float>() { return true; };  // for float16 conversion to float is not constexpr, hence specializations
-  template <> constexpr bool fitsIntoMax<float, float16>() { return false; }; // for float16 conversion to float is not constexpr, hence specializations
+
+  // Compare max for different types as constexpr, so can be used at compile-time to determine if RequestType type max fits into ReturnType max, see std::conditional below.
+  template <typename RequestType, typename ReturnType>
+  constexpr bool fitsIntoMax() {
+    // We can't just compare std::numeric_limits<>::max(), because Clang-10
+    // complains about rounding errors when implicitly converting int to float
+    return ((!std::is_integral<RequestType>::value // RequestType is a float
+             && std::is_integral<ReturnType>::value) // ReturnType an integer
+            ? capacity<RequestType>() < capacity<ReturnType>() // special case
+            : capacity<RequestType>() <= capacity<ReturnType>()); // normal case
+  } // for built-in types everything is constexpr
+
 }
 
 template <typename ReturnType>
 class NumericLimits {
 private:
-  
+
   template <typename MaxType> void setLimitsMax() {
     max    = (ReturnType)std::numeric_limits<MaxType>::max();
     lowest = (ReturnType)std::numeric_limits<MaxType>::lowest();
@@ -459,10 +475,14 @@ private:
   void setLimits() {
     // check if the maximum of type RequestType fits into ReturnType
     constexpr bool fits = typeFitting::fitsIntoMax<RequestType, ReturnType>();
+    // sanity check:
+    static_assert(fits || typeFitting::fitsIntoMax<ReturnType, RequestType>(),
+                  "RequestType doesn't fit into ReturnType, and ReturnType doesn't "
+                  "fit into RequestType. fitsIntoMax is broken!");
     // and then use the smaller of each types to determine max, min, lowest.
     using MaxType = typename std::conditional<fits, RequestType, ReturnType>::type;
     setLimitsMax<MaxType>();
-    // @TODO: should we rather abort if the RequestType does not fit into ReturnType instead of clipping to smaller type? 
+    // @TODO: should we rather abort if the RequestType does not fit into ReturnType instead of clipping to smaller type?
     // ABORT_IF(!fits, "Type {} is too small to contain max of type {}", typeId<ReturnType>(), typeId<RequestType>());
   }
 

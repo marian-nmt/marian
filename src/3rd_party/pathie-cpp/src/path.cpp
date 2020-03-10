@@ -902,7 +902,7 @@ Path Path::pwd()
  */
 Path Path::exe()
 {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
   char buf[PATH_MAX];
   ssize_t size = ::readlink("/proc/self/exe", buf, PATH_MAX);
 

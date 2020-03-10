@@ -25,6 +25,7 @@ public:
                                        Ptr<ExpressionGraph> graph, // @TODO: why needed? Can it be gotten from model?
                                        Ptr<data::Batch> batch,
                                        bool clearGraph = true) = 0;
+  virtual ~ICost() {}
 };
 
 class EncoderDecoderCECost : public ICost {
@@ -50,6 +51,8 @@ public:
     if(toBeWeighted_)
       weighter_ = WeightingFactory(options_);
   }
+
+  virtual ~EncoderDecoderCECost() {}
 
   Ptr<MultiRationalLoss> apply(Ptr<IModel> model,
              Ptr<ExpressionGraph> graph,
@@ -136,6 +139,8 @@ public:
   Trainer(Ptr<IModel> model, Ptr<ICost> cost)
       : model_(model), cost_(cost) {}
 
+  virtual ~Trainer() {}
+
   Ptr<IModel> getModel() { return model_; }
 
   virtual void load(Ptr<ExpressionGraph> graph,
@@ -179,6 +184,8 @@ public:
   Scorer(Ptr<IModel> model, Ptr<ILogProb> cost)
       : model_(model), logProb_(cost) {}
 
+  virtual ~Scorer(){}
+
   Ptr<IModel> getModel() { return model_; }
 
   virtual void load(Ptr<ExpressionGraph> graph,
@@ -211,6 +218,7 @@ public:
 
 class LogSoftmaxStep : public ILogProbStep {
 public:
+  virtual ~LogSoftmaxStep() {}
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
     state->setLogProbs(state->getLogProbs().applyUnaryFunction(logsoftmax));
@@ -224,6 +232,7 @@ public:
 // with --output-sampling during translation with marian-decoder
 class GumbelSoftmaxStep : public ILogProbStep {
 public:
+  virtual ~GumbelSoftmaxStep() {}
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
     state->setLogProbs(state->getLogProbs().applyUnaryFunctions(
       [](Expr logits){ // lemma gets gumbelled

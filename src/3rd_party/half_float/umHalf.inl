@@ -186,7 +186,7 @@ inline HalfFloat& HalfFloat::operator= (float other)
 inline bool HalfFloat::operator== (HalfFloat other) const
 {
 	// +0 and -0 are considered to be equal
-	if (!(bits << 1u) && !(other.bits << 1u))return true;
+	if ((bits << 1u) == 0 && (other.bits << 1u) == 0) return true;
 
 	return bits == other.bits && !this->IsNaN();
 }
@@ -194,7 +194,7 @@ inline bool HalfFloat::operator== (HalfFloat other) const
 inline bool HalfFloat::operator!= (HalfFloat other) const
 {
 	// +0 and -0 are considered to be equal
-	if (!(bits << 1u) && !(other.bits << 1u))return false;
+	if ((bits << 1u) == 0 && (other.bits << 1u) == 0) return false;
 
 	return bits != other.bits || this->IsNaN();
 }

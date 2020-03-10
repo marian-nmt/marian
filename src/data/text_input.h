@@ -37,6 +37,7 @@ public:
   typedef SentenceTuple Sample;
 
   TextInput(std::vector<std::string> inputs, std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
+  virtual ~TextInput() {}
 
   Sample next() override;
 

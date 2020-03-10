@@ -5,14 +5,14 @@
 
 namespace marian {
 
-static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
+static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> /*graph*/,
                                                Ptr<data::CorpusBatch> batch,
                                                Ptr<Options> options,
                                                Expr attention) { // [beam depth=1, max src length, batch size, tgt length]
 
   std::string guidedLossType = options->get<std::string>("guided-alignment-cost");  // @TODO: change "cost" to "loss"
   float guidedLossWeight = options->get<float>("guided-alignment-weight");
-  
+
   const auto& shape = attention->shape(); // [beam depth=1, max src length, batch size, tgt length]
   float epsilon = 1e-6f;
   Expr alignmentLoss; // sum up loss over all attention/alignment positions
@@ -55,8 +55,8 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
     else
        ABORT("Unknown alignment cost type: {}", guidedLossType);
     // every position is a label as they should all agree
-    // @TODO: there should be positional masking here ... on the other hand, positions that are not 
-    // in a sentence should always agree (both being 0). Lack of masking affects label count only which is 
+    // @TODO: there should be positional masking here ... on the other hand, positions that are not
+    // in a sentence should always agree (both being 0). Lack of masking affects label count only which is
     // probably negligible?
     numLabels = shape.elements();
   }

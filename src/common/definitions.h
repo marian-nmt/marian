@@ -10,6 +10,21 @@
 #include <string>
 #include <vector>
 
+// The macro MAYBE_UNUSED is used to selectively disable
+// unused-variable warnings. C++17 defines the attribute
+// [[maybe_unused]], but I don't think we're at C++17 yet. We can add it when we reach C++17.
+// The compilers gcc and clang (and maybe others) define
+// __has_attribute and support __attribute__(unused) in C++11,
+#if defined __has_attribute
+#  if __has_attribute(unused)
+#    define MAYBE_UNUSED __attribute__((unused))
+#  else
+#    define MAYBE_UNUSED
+#  endif
+#else
+#  define MAYBE_UNUSED
+#endif
+
 #define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
 

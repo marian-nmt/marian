@@ -11,6 +11,7 @@ namespace marian {
 
 class PrintingStrategy {
 public:
+  virtual ~PrintingStrategy() {}
   virtual bool shouldBePrinted(long) = 0;
 };
 

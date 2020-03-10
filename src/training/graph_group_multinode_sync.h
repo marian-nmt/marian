@@ -63,7 +63,6 @@ private:
   Tensor paramsAvg_;
   std::vector<float> accGradientsSync_cpu;
   std::vector<float> receiveBuffer_cpu;
-  bool synchronization_happened{false};
 
   Ptr<OptimizerBase> syncOptimizer_;
 

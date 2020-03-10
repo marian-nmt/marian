@@ -47,6 +47,8 @@ class MNISTLogsoftmax : public ILogProb {
 public:
   MNISTLogsoftmax() {}
 
+  virtual ~MNISTLogsoftmax(){}
+
   Logits apply(Ptr<IModel> model,
              Ptr<ExpressionGraph> graph,
              Ptr<data::Batch> batch,
@@ -61,13 +63,15 @@ public:
   typedef data::MNISTData dataset_type;
 
   template <class... Args>
-  MnistFeedForwardNet(Ptr<Options> options, Args... args)
+  MnistFeedForwardNet(Ptr<Options> options, Args... /*args*/)
       : options_(options), inference_(options->get<bool>("inference", false)) {}
+
+  virtual ~MnistFeedForwardNet(){}
 
   virtual Logits build(Ptr<ExpressionGraph> graph,
                      Ptr<data::Batch> batch,
                      bool /*clean*/ = false) override {
-    
+
     return Logits(apply(graph, batch, inference_));
   }
 

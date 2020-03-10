@@ -525,6 +525,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
       "translation, bleu, bleu-detok. Multiple metrics can be specified",
       {"cross-entropy"});
+  cli.add<bool>("--valid-reset-stalled",
+     "Reset all stalled validation metrics when the training is restarted");
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
      10);
@@ -553,7 +555,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Size of mini-batch used during validation",
       32);
   cli.add<size_t>("--valid-max-length",
-      "Maximum length of a sentence in a validating sentence pair",
+      "Maximum length of a sentence in a validating sentence pair. "
+      "Sentences longer than valid-max-length are cropped to valid-max-length",
       1000);
 
   // options for validation script

@@ -143,7 +143,7 @@ std::string Pathie::convert_encodings(const char* from_encoding, const char* to_
     errno  = 0;
     errsav = 0;
 
-#ifdef BSD
+#if defined(BSD) && ! defined(__APPLE__) //Since MacOS evolved from BSD, it is captured here but the iconv on macos behaves differently
     // What the heck. FreeBSD violates POSIX.1-2008: it declares iconv()
     // differently than mandated by POSIX: http://pubs.opengroup.org/onlinepubs/9699919799/functions/iconv.html
     // (it declares a `const' where it must not be).
@@ -181,11 +181,10 @@ std::string Pathie::convert_encodings(const char* from_encoding, const char* to_
 std::string Pathie::utf8_to_filename(const std::string& utf8)
 {
   bool fs_encoding_is_utf8 = false;
-
+  char* fsencoding = NULL;
 #if defined(__APPLE__) || defined(PATHIE_ASSUME_UTF8_ON_UNIX)
   fs_encoding_is_utf8 = true;
 #else
-  char* fsencoding = NULL;
   fsencoding = nl_langinfo(CODESET);
   fs_encoding_is_utf8 = (strcmp(fsencoding, "UTF-8") == 0);
 #endif
@@ -206,11 +205,10 @@ std::string Pathie::utf8_to_filename(const std::string& utf8)
 std::string Pathie::filename_to_utf8(const std::string& native_filename)
 {
   bool fs_encoding_is_utf8 = false;
-
+  char* fsencoding = NULL;
 #if defined(__APPLE__) || defined(PATHIE_ASSUME_UTF8_ON_UNIX)
   fs_encoding_is_utf8 = true;
 #else
-  char* fsencoding = NULL;
   fsencoding = nl_langinfo(CODESET);
   fs_encoding_is_utf8 = (strcmp(fsencoding, "UTF-8") == 0);
 #endif

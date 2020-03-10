@@ -45,6 +45,7 @@ protected:
 
 public:
   // @TODO: choose between 'virtual' and 'final'. Can we derive from this class?
+  virtual ~DefaultVocab() {};
   virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
   virtual const std::vector<std::string>& suffixes() const override { return suffixes_; }
 
@@ -295,7 +296,7 @@ private:
 class ClassVocab : public DefaultVocab {
 private:
   // Do nothing.
-  virtual void addRequiredVocabulary(const std::string& vocabPath, bool isJson) override { vocabPath; isJson; }
+  virtual void addRequiredVocabulary(const std::string& /*vocabPath*/, bool /*isJson*/) override {}
 
   // Not adding special class labels, only seen classes.
   virtual void create(const std::string& vocabPath,

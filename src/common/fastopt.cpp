@@ -84,10 +84,16 @@ std::vector<T> As<std::vector<T>>::apply(const FastOpt& node) {
 // specializations for simple vector types
 template struct As<std::vector<bool>>;
 template struct As<std::vector<int>>;
-// Windows and Unix based OS have different type definitions for 'unsigned long'.
-// So, we need an explicit definition for uint64_t. Otherwise, there's a linking error on windows.
+// Windows, Linux based OS and Mac have different type definitions for 'unsigned long'.
+// So, we need an explicit definitions for uint64_t, that cover different platforms.
+// Otherwise, there's a linking error on windows or Linux or Mac.
 // https://software.intel.com/en-us/articles/size-of-long-integer-type-on-different-architecture-and-os/
-template struct As<std::vector<uint64_t>>;
+// https://stackoverflow.com/questions/32021860/c-should-you-size-t-with-a-regular-array
+// MacOS: size_t = unsigned long (8 bytes), uint64_t = unsigned long long (8 bytes)
+// Linux: size_t = unsigned long (8 bytes), uint64_t = unsigned long (8 bytes)
+// Windows: size_t = unsigned long long (8 bytes), uint64_t = unsigned long long (8 bytes)
+template struct As<std::vector<unsigned long long>>;
+template struct As<std::vector<unsigned long>>;
 template struct As<std::vector<float>>;
 template struct As<std::vector<double>>;
 template struct As<std::vector<std::string>>;

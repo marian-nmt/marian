@@ -17,6 +17,7 @@ public:
       : context_(context), mask_(mask), batch_(batch) {}
 
   EncoderState() {}
+  virtual ~EncoderState() {}
 
   virtual Expr getContext()   const { return context_;   }
   virtual Expr getAttended()  const { return context_;   }
@@ -53,6 +54,7 @@ public:
                const std::vector<Ptr<EncoderState>>& encStates,
                Ptr<data::CorpusBatch> batch)
       : states_(states), logProbs_(logProbs), encStates_(encStates), batch_(batch) {}
+  virtual ~DecoderState() {}
 
   // @TODO: Do we need all these to be virtual?
   virtual const std::vector<Ptr<EncoderState>>& getEncoderStates() const {
@@ -68,10 +70,10 @@ public:
                                    int beamSize) const {
 
     std::vector<Ptr<EncoderState>> newEncStates;
-    for(auto& es : encStates_) 
+    for(auto& es : encStates_)
       // If the size of the batch dimension of the encoder state context changed, subselect the correct batch entries
       newEncStates.push_back(es->getContext()->shape()[-2] == batchIndices.size() ? es : es->select(batchIndices));
-      
+
     // hypindices matches batchIndices in terms of batch dimension, so we only need hypIndices
     auto selectedState = New<DecoderState>(
         states_.select(hypIndices, beamSize, /*isBatchMajor=*/false), logProbs_, newEncStates, batch_);
@@ -121,6 +123,7 @@ private:
   Words targetWords_;
 
 public:
+  virtual ~ClassifierState() {}
   virtual Expr getLogProbs() const { return logProbs_; }
   virtual void setLogProbs(Expr logProbs) { logProbs_ = logProbs; }
 

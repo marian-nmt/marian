@@ -41,6 +41,8 @@ public:
 // @TODO: Is there a better name?
 class ICriterionFunction {
 public:
+  virtual ~ICriterionFunction() {}
+
   virtual void load(Ptr<ExpressionGraph>,
                     const std::string&,
                     bool markReloaded = true)

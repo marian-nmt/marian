@@ -10,6 +10,8 @@ namespace marian {
 
 class ScorerState {
 public:
+  virtual ~ScorerState(){}
+
   virtual Logits getLogProbs() const = 0;
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
@@ -23,6 +25,8 @@ protected:
 public:
   Scorer(const std::string& name, float weight)
       : name_(name), weight_(weight) {}
+
+  virtual ~Scorer(){}
 
   std::string getName() { return name_; }
   float getWeight() { return weight_; }
@@ -53,6 +57,7 @@ protected:
 
 public:
   ScorerWrapperState(Ptr<DecoderState> state) : state_(state) {}
+  virtual ~ScorerWrapperState() {}
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
@@ -87,6 +92,8 @@ public:
       : Scorer(name, weight),
         encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         ptr_{ptr} {}
+
+  virtual ~ScorerWrapper() {}
 
   virtual void init(Ptr<ExpressionGraph> graph) override {
     graph->switchParams(getName());

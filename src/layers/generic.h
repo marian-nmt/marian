@@ -39,6 +39,7 @@ public:
 
 // Simplest layer interface: Unary function
 struct IUnaryLayer {
+  virtual ~IUnaryLayer() {}
   virtual Expr apply(Expr) = 0;
   virtual Expr apply(const std::vector<Expr>& es) {
     ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
@@ -59,6 +60,7 @@ struct IEmbeddingLayer {
 
   // alternative from indices directly
   virtual Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const = 0;
+  virtual ~IEmbeddingLayer() {}
 };
 
 // base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)

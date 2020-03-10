@@ -7,9 +7,19 @@
 // @TODO: go back to canonical names for functions and objects
 // as specified in C++17 so it becomes easy to move in the future
 
+// Even when compiling with clang, __GNUC__ may be defined, so
+// we need to add some extra checks to avoid compile errors with
+// respect to -Wsuggest-override.
 #ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsuggest-override"
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-value"
+#  if defined(__has_warning)
+#    if __has_warning("-Wsuggest-override")
+#      pragma GCC diagnostic ignored "-Wsuggest-override"
+#    endif
+#  else
+#    pragma GCC diagnostic ignored "-Wsuggest-override"
+#  endif
 #endif
 
 #include "3rd_party/pathie-cpp/include/path.hpp"  // @TODO: update to latest Pathie

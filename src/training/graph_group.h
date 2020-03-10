@@ -54,10 +54,10 @@ public:
    * number of devices, which is passed in as the 'multiplier'.
    */
   // @TODO: Can this be made const? It seems wrong to have a stateful method that still returns a result.
-  virtual Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
-                                             Ptr<models::ICriterionFunction> model,
-                                             const std::vector<Ptr<Vocab>>& vocabs,
-                                             double multiplier = 1.) {
+  Ptr<data::BatchStats> collectStats(Ptr<ExpressionGraph> graph,
+                                     Ptr<models::ICriterionFunction> model,
+                                     const std::vector<Ptr<Vocab>>& vocabs,
+                                     double multiplier = 1.) {
     auto stats = New<data::BatchStats>();
 
     size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
@@ -92,8 +92,8 @@ public:
         maxBatch *= 2;
     }
 
-    // Do a binary search for maxmimum batch size that fits into given workspace memory 
-    // for a tested sentence length. 
+    // Do a binary search for maxmimum batch size that fits into given workspace memory
+    // for a tested sentence length.
     for(size_t i = step; i <= maxLength; i += step) {
       size_t start = 1;
       size_t end = maxBatch;

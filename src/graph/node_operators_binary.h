@@ -480,9 +480,12 @@ class CSRDotNodeOp : public NaryNodeOp {
   bool transS_;
   bool swapOperands_;
 public:
-  CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands)
-      : NaryNodeOp({ S_values, S_indices, S_offsets, D }, newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands), commonType({S_values, D})),
-                   transS_(transS), swapOperands_(swapOperands) {
+  CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices,
+               Expr S_offsets, Expr D, bool transS, bool swapOperands)
+    : NaryNodeOp({ S_values, S_indices, S_offsets, D },
+                 newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands),
+                 NaryNodeOp::commonType({S_values, D})),
+      transS_(transS), swapOperands_(swapOperands) {
     matchOrAbort<IndexType>(S_indices->value_type());
     matchOrAbort<IndexType>(S_offsets->value_type());
   }
@@ -513,7 +516,7 @@ public:
 
   NodeOps backwardOps() override {
     return { nullptr, // can't backprop into the sparse matrix (the gradient is dense)
-             nullptr, 
+             nullptr,
              nullptr,
              NodeOp(CSRProd(child(3)->grad(), // child(3) = D
                             graph()->allocator(),
@@ -527,7 +530,7 @@ public:
   virtual size_t hash() override {
     size_t seed = NaryNodeOp::hash();
     for(auto s : shape())
-      util::hash_combine(seed, s);  
+      util::hash_combine(seed, s);
     util::hash_combine(seed, transS_);
     util::hash_combine(seed, swapOperands_);
     return seed;
@@ -1050,8 +1053,8 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     auto checkShape = shape;
     for(auto child : nodes) {
       checkShape.set(ax_, child->shape()[ax_]); // don't abort on different sizes on axis dim.
-      ABORT_IF(checkShape != child->shape(), 
-               "Child shapes {} and {} cannot be concatenated along axis {}", 
+      ABORT_IF(checkShape != child->shape(),
+               "Child shapes {} and {} cannot be concatenated along axis {}",
                shape, child->shape(), ax);
 
       sum += child->shape()[ax_];

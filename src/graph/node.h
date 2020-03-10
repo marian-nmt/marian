@@ -40,7 +40,7 @@ protected:
   std::string debugMessage_;
 
   Ptr<std::list<Expr>> subtape_; // a subtape is used to keep track of nodes that need to be freed and recomputed with gradient-checkpointing.
-  bool isCheckpoint_{false};     // true if this node has been selected to be a checkpoint, currently only done manually. 
+  bool isCheckpoint_{false};     // true if this node has been selected to be a checkpoint, currently only done manually.
 
   Ptr<AutoTunerRecorder> recorder_;
   size_t recorderHash_;
@@ -138,7 +138,7 @@ public:
 
   virtual std::string graphviz() override {
     std::stringstream ss;
-    ss << "\"" << this << "\" [" 
+    ss << "\"" << this << "\" ["
       << "shape=\"" << form() << "\", "
       << "label="   << label() << ", "
       << "style=\"filled\", "
@@ -147,7 +147,7 @@ public:
 
     for(auto&& child : children())
       ss << "\"" << child << "\" -> \"" << this << "\";" << std::endl;
-    
+
     if(subtape_) {
       for(auto&& dep : *subtape_)
         ss << "\"" << dep << "\" -> \"" << this << "\" [style=dotted];" << std::endl;
@@ -188,9 +188,9 @@ struct NaryNodeOp : public Node {
 
   // Deduce type automatically, but then all types must be the same
   // this is called automatically when no output type is specified.
-  // If the input types are mixed, the output type needs to be specified 
+  // If the input types are mixed, the output type needs to be specified
   // in the constructor.
-  Type commonType(const std::vector<Expr>& nodes) {
+  static Type commonType(const std::vector<Expr>& nodes) {
     ABORT_IF(nodes.size() == 0, "NaryNodeOp has no children");
     Type type = nodes[0]->value_type();
     for(int i = 1; i < nodes.size(); ++i)

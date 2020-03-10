@@ -17,7 +17,7 @@ protected:
 public:
   Backend(DeviceId deviceId, size_t seed)
       : deviceId_(deviceId), seed_(seed), randomGenerator_(createRandomGenerator(seed, deviceId)) {}
-
+  virtual ~Backend() {};
   virtual DeviceId getDeviceId() { return deviceId_; };
   virtual Ptr<RandomGenerator> getRandomGenerator() { return randomGenerator_; }
 

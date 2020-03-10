@@ -525,6 +525,7 @@ public:
              const std::vector<Ptr<Vocab>>& vocabs,
              Ptr<Options> options);
 
+  virtual ~CorpusBase() {}
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;
 
 protected:

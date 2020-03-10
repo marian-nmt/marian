@@ -10,10 +10,10 @@
 
 namespace marian {
 
-// @TODO: Currently an ExpressionGraph only supports one Parameters object and 
+// @TODO: Currently an ExpressionGraph only supports one Parameters object and
 // the type of parameters has to be the inside on Parameters object. This limits
 // parameter types to a single chosen type, e.g. only fp32 or only fp16. This should
-// be extended to allow multiple sets of parameters. 
+// be extended to allow multiple sets of parameters.
 // The reason here is to be able to efficiently compute updates of whole parameter
 // sets of one type.
 class Parameters {
@@ -40,7 +40,7 @@ public:
     LOG(debug, "Created parameter object of type {}", acceptedElementType_);
   }
 
-  ~Parameters() {
+  virtual ~Parameters() {
     LOG(debug, "Destroyed parameter object of type {}", acceptedElementType_);
   }
 
@@ -88,7 +88,7 @@ public:
 
       // sort parameters by name before allocation to make sure the memory layout after allocation is always the same
       std::sort(params_.begin(), params_.end(), [](Expr n1, Expr n2){ return n1->name() < n2->name(); });
-      
+
       for(auto p : params_) {
         if(!p->val()) {
           vals_->allocate(p->val(), p->shape(), p->value_type());
