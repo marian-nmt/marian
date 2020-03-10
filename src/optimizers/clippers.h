@@ -16,6 +16,7 @@ namespace marian {
 class ClipperBase {
 public:
   virtual void clip(Tensor) = 0;
+  virtual ~ClipperBase() {}
 };
 
 typedef std::shared_ptr<ClipperBase> ClipperPtr;

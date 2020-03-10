@@ -1,6 +1,7 @@
 #include <random>
 
 #include "data/corpus.h"
+#include "data/factored_vocab.h"
 
 namespace marian {
 namespace data {
@@ -40,9 +41,12 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
            "Number of corpus files and vocab files does not agree");
 
   for(auto path : paths_) {
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
+    UPtr<io::InputFileStream> strm(new io::InputFileStream(path));
+    ABORT_IF(strm->empty(), "File '{}' is empty", path);
+    files_.emplace_back(std::move(strm));
   }
+
+  initEOS(/*training=*/true);
 }
 
 CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
@@ -56,6 +60,8 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     paths_ = options_->get<std::vector<std::string>>("train-sets");
   else
     paths_ = options_->get<std::vector<std::string>>("input");
+
+  initEOS(training);
 
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
@@ -78,22 +84,24 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       LOG(info, "No vocabulary files given, trying to find or build based on training data. "
                 "Vocabularies will be built separately for each file.");
 
+      std::vector<int> vocabDims(paths_.size(), 0);
+      std::vector<std::string> vocabPaths1(paths_.size());
       // Create vocabs if not provided
       for(size_t i = 0; i < paths_.size(); ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
         std::vector<std::string> trainPaths = { paths_[i] };
-        size_t vocSize = vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
-        // TODO: this is not nice as it modifies the option object and needs to expose the changes
-        // outside the corpus as models need to know about the vocabulary size; extract the vocab
-        // creation functionality from the class.
-        options_->getYaml()["dim-vocabs"][i] = vocSize;
-
-        options_->getYaml()["vocabs"].push_back(paths_[i] + ".yml");
+        vocabDims[i] = (int) vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
+        vocabPaths1[i] = paths_[i] + ".yml";
         vocabs_.emplace_back(vocab);
       }
+      // TODO: this is not nice as it modifies the option object and needs to expose the changes
+      // outside the corpus as models need to know about the vocabulary size; extract the vocab
+      // creation functionality from the class.
+      options_->set("dim-vocabs", vocabDims, "vocabs", vocabPaths1);
     } else {
       // Load all vocabs
-      if(maxVocabs.size() < vocabPaths.size())
+      size_t numVocs = vocabPaths.size();
+      if(maxVocabs.size() < numVocs)
         maxVocabs.resize(paths_.size(), 0);
 
       // Helper object to for grouping training data based on vocabulary file name
@@ -101,33 +109,33 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
         std::set<std::string> paths; // contains all paths that are used for training the vocabulary
         size_t size;                 // contains the maximum vocabulary size
       };
-      
+
       // Group training files based on vocabulary path. If the same
       // vocab path corresponds to different training files, this means
       // that a single vocab should combine tokens from all files.
       std::map<std::string, PathsAndSize> groupVocab;
-      for(size_t i = 0; i < vocabPaths.size(); ++i) {
+      for(size_t i = 0; i < numVocs; ++i) {
         groupVocab[vocabPaths[i]].paths.insert(paths_[i]);
         if(groupVocab[vocabPaths[i]].size < maxVocabs[i])
           groupVocab[vocabPaths[i]].size = maxVocabs[i];
       }
 
-      for(size_t i = 0; i < vocabPaths.size(); ++i) {
+      auto vocabDims = options_->get<std::vector<int>>("dim-vocabs");
+      vocabDims.resize(numVocs, 0);
+      for(size_t i = 0; i < numVocs; ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
 
         // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
         // it wild not be created again, but just correctly loaded.
         auto pathsAndSize = groupVocab[vocabPaths[i]];
         std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
-        size_t vocSize = vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
-        
-        // TODO: this is not nice as it modifies the option object and needs to expose the changes
-        // outside the corpus as models need to know about the vocabulary size; extract the vocab
-        // creation functionality from the class.
-        options_->getYaml()["dim-vocabs"][i] = vocSize;
-
+        vocabDims[i] = (int) vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
         vocabs_.emplace_back(vocab);
       }
+      // TODO: this is not nice as it modifies the option object and needs to expose the changes
+      // outside the corpus as models need to know about the vocabulary size; extract the vocab
+      // creation functionality from the class.
+      options_->set("dim-vocabs", vocabDims);
     }
   }
 
@@ -135,24 +143,30 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     ABORT_IF(vocabPaths.empty(),
              "Translating, but vocabularies are not given!");
 
-    if(maxVocabs.size() < vocabPaths.size())
+    size_t numVocs = vocabPaths.size();
+    if(maxVocabs.size() < numVocs)
       maxVocabs.resize(paths_.size(), 0);
 
-    for(size_t i = 0; i + 1 < vocabPaths.size(); ++i) {
+    auto vocabDims = options_->get<std::vector<int>>("dim-vocabs");
+    vocabDims.resize(numVocs, 0);
+    for(size_t i = 0; i + 1 < numVocs; ++i) {
       Ptr<Vocab> vocab = New<Vocab>(options_, i);
-      size_t vocSize = vocab->load(vocabPaths[i], maxVocabs[i]);
-      options_->getYaml()["dim-vocabs"][i] = vocSize;
-
+      vocabDims[i] = (int) vocab->load(vocabPaths[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
     }
+    // TODO: As above, this is not nice as it modifies the option object and needs to expose the changes
+    // outside the corpus as models need to know about the vocabulary size; extract the vocab
+    // creation functionality from the class.
+    options_->set("dim-vocabs", vocabDims);
   }
 
   for(auto path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
+      files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else {
-      files_.emplace_back(new io::InputFileStream(path));
-      ABORT_IF(files_.back()->empty(), "File '{}' is empty", path);
+      io::InputFileStream *strm = new io::InputFileStream(path);
+      ABORT_IF(strm->empty(), "File '{}' is empty", path);
+      files_.emplace_back(strm);
     }
   }
 
@@ -170,11 +184,12 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
     alignFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File with alignments '{}' is empty", path);
+    io::InputFileStream* strm = new io::InputFileStream(path);
+    ABORT_IF(strm->empty(), "File with alignments '{}' is empty", path);
+    files_.emplace_back(strm);
   }
 
-  if(training && options_->has("data-weighting")) {
+  if(training && options_->hasAndNotEmpty("data-weighting")) {
     auto path = options_->get<std::string>("data-weighting");
 
     ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
@@ -182,26 +197,27 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
     weightFileIdx_ = paths_.size();
     paths_.emplace_back(path);
-    files_.emplace_back(new io::InputFileStream(path));
-    ABORT_IF(files_.back()->empty(), "File with weights '{}' is empty", path);
+    io::InputFileStream* strm = new io::InputFileStream(path);
+    ABORT_IF(strm->empty(), "File with weights '{}' is empty", path);
+    files_.emplace_back(strm);
   }
 }
 
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
-                                         size_t i,
+                                         size_t batchIndex,
                                          SentenceTuple& tup) const {
 
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
-  Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, inference_);
+  Words words = vocabs_[batchIndex]->encode(line, /*addEOS =*/ addEOS_[batchIndex], inference_);
 
-  if(words.empty())
-    words.push_back(0);
+  ABORT_IF(words.empty(), "Empty input sequences are presently untested");
 
   if(maxLengthCrop_ && words.size() > maxLength_) {
     words.resize(maxLength_);
-    words.back() = 0;
+    if(addEOS_[batchIndex])
+      words.back() = vocabs_[batchIndex]->getEosId();
   }
 
   if(rightLeft_)
@@ -225,10 +241,10 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTupl
 
   if(!elements.empty()) {
     std::vector<float> weights;
-    for(auto& e : elements) {
-      if(maxLengthCrop_ && weights.size() > maxLength_)
+    for(auto& e : elements) {                             // Iterate weights as strings
+      if(maxLengthCrop_ && weights.size() >= maxLength_)  // Cut if the input is going to be cut
         break;
-      weights.emplace_back(std::stof(e));
+      weights.emplace_back(std::stof(e));                 // Add a weight converted into float
     }
 
     if(rightLeft_)
@@ -279,5 +295,90 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
   batch->setDataWeights(weights);
 }
+
+void CorpusBase::initEOS(bool training = true) {
+  // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
+  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
+  // input type.
+
+  addEOS_.resize(paths_.size(), true);
+  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
+
+  // make sure there is an input type for each path
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < paths_.size(),
+           "Input types have been specified ({}), you need to specify one per input ({})",
+           inputTypes.size(),
+           paths_.size());
+
+  // make sure there is an equal number of input types and paths when training
+  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != paths_.size(),
+           "Input types have been specified ({}), you need to specify one per input ({})",
+           inputTypes.size(),
+           paths_.size());
+
+  for(int i = 0; i < paths_.size(); ++i)
+    if(inputTypes.size() > i) {
+      if(inputTypes[i] == "class")
+        addEOS_[i] = false;
+      else if(inputTypes[i] == "sequence")
+        addEOS_[i] = true;
+      else
+        ABORT("Unknown input type {}: {}", i, inputTypes[i]);
+    } else {
+      // No input type specified, assuming "sequence"
+      addEOS_[i] = true;
+    }
+}
+
+// experimental: hide inline-fix source tokens from cross attention
+std::vector<float> SubBatch::crossMaskWithInlineFixSourceSuppressed() const
+{
+  const auto& srcVocab = *vocab();
+
+  auto factoredVocab = vocab()->tryAs<FactoredVocab>();
+  size_t inlineFixGroupIndex = 0, inlineFixSrc = 0;
+  auto hasInlineFixFactors = factoredVocab && factoredVocab->tryGetFactor(FactoredVocab_INLINE_FIX_WHAT_serialized, /*out*/ inlineFixGroupIndex, /*out*/ inlineFixSrc);
+
+  auto fixSrcId = srcVocab[FactoredVocab_FIX_SRC_ID_TAG];
+  auto fixTgtId = srcVocab[FactoredVocab_FIX_TGT_ID_TAG];
+  auto fixEndId = srcVocab[FactoredVocab_FIX_END_ID_TAG];
+  auto unkId = srcVocab.getUnkId();
+  auto hasInlineFixTags = fixSrcId != unkId && fixTgtId != unkId && fixEndId != unkId;
+
+  auto m = mask(); // default return value, which we will modify in-place below in case we need to
+  if (hasInlineFixFactors || hasInlineFixTags) {
+    LOG_ONCE(info, "[data] Suppressing cross-attention into inline-fix source tokens");
+
+    // example: force French translation of name "frank" to always be "franck"
+    //  - hasInlineFixFactors: "frank|is franck|it", "frank|is" cannot be cross-attended to
+    //  - hasInlineFixTags:    "<IOPEN> frank <IDELIM> franck <ICLOSE>", "frank" and all tags cannot be cross-attended to
+    auto dimBatch = batchSize();  // number of sentences in the batch
+    auto dimWidth = batchWidth(); // number of words in the longest sentence in the batch
+    const auto& d = data();
+    size_t numWords = 0;
+    for (size_t b = 0; b < dimBatch; b++) {     // loop over batch entries
+      bool inside = false;
+      for (size_t s = 0; s < dimWidth; s++) {  // loop over source positions
+        auto i = locate(/*batchIdx=*/b, /*wordPos=*/s);
+        if (!m[i])
+          break;
+        numWords++;
+        // keep track of entering/exiting the inline-fix source tags
+        auto w = d[i];
+        if (w == fixSrcId)
+          inside = true;
+        else if (w == fixTgtId)
+          inside = false;
+        bool wHasSrcIdFactor = hasInlineFixFactors && factoredVocab->getFactor(w, inlineFixGroupIndex) == inlineFixSrc;
+        if (inside || w == fixSrcId || w == fixTgtId || w == fixEndId || wHasSrcIdFactor)
+          m[i] = 0.0f; // decoder must not look at embedded source, nor the markup tokens
+      }
+    }
+    ABORT_IF(batchWords() != 0/*n/a*/ && numWords != batchWords(), "batchWords() inconsistency??");
+  }
+  return m;
+}
+
 }  // namespace data
 }  // namespace marian

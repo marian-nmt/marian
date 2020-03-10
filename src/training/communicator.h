@@ -37,8 +37,8 @@ public:
   virtual void foreach(const ForeachFunc& func, bool parallel = true) const = 0;
   // @TODO: We probably can still share foreach() between the two implementations. Just need to move some helper functions from the .cu file.
 
-  virtual void scatterReduce() const = 0; // reduce param gradients and scatter into gradient shards
-  virtual void allGather() const = 0;     // redistribute value shards into param values
+  virtual void scatterReduceAndResetGrads() const = 0; // reduce param gradients and scatter into gradient shards
+  virtual void allGatherParams() const = 0;     // redistribute value shards into param values
 
   virtual void swapParams(const std::vector<Tensor>& paramShards) const = 0;
 
@@ -153,14 +153,11 @@ public:
       t.join();
   }
 
-  void scatterReduce() const override {
+  void scatterReduceAndResetGrads() const override {
     const_cast<DefaultCommunicator*>(this)->lazyInit();
 
-    int totalSize = (int)graphs_[0]->params()->vals()->size();
-    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
-
     // Gather gradients from different devices into current gradient shards
-    auto scatter = [this, shardSize](size_t idx, size_t begin, size_t end) {
+    auto scatter = [this](size_t idx, size_t begin, size_t end) {
       auto curGrad = graphs_[idx]->params()->grads()->subtensor(begin, end-begin);
 
       // collect and sum gradients
@@ -175,15 +172,23 @@ public:
       }
     };
 
+    // reset gradients outside current shard
+    auto reset = [this](size_t idx, size_t begin, size_t end) {
+      auto grad = graphs_[idx]->params()->grads();
+      if (begin > 0)
+        grad->subtensor(0, begin)->set(0);
+      if (end < grad->size())
+        grad->subtensor(end, grad->size()-end)->set(0);
+    };
+
     foreach(scatter);
+    foreach(reset);
   }
 
-  void allGather() const override {
-    int totalSize = (int)graphs_[0]->params()->vals()->size();
-    int shardSize = (int)ceil(totalSize / (float)graphs_.size());
+  void allGatherParams() const override {
 
     // Update all graphs with parameter shard
-    auto gather = [this, shardSize](size_t idx, size_t begin, size_t end) {
+    auto gather = [this](size_t idx, size_t begin, size_t end) {
       auto getShard = [&](Ptr<ExpressionGraph> graph) {
         return graph->params()->vals()->subtensor(begin, end-begin);
       };
@@ -203,7 +208,6 @@ public:
 
   void swapParams(const std::vector<Tensor>& paramShards) const override {
     // Update all graphs with parameter shard
-    
     auto gather = [this, paramShards](size_t idx, size_t begin, size_t end) {
       ABORT_IF(end - begin != paramShards[idx]->size(), "inconsistent shard size (swapParams, [{}], {} vs {})??", idx, end-begin, paramShards[idx]->size());
       // Copy parameter shard to each graph, apart from last graph

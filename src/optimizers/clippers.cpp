@@ -11,7 +11,7 @@ void Elementwise::clip(Tensor t) {
 
 void Norm::clip(Tensor t) {
   using namespace functional;
-  float l2Norm = L2Norm(t);
+  float l2Norm = L2Norm(t, nullptr); // @TODO: this is a placeholder for a memory allocator, will be replaced with better version in a PR or two.
   if(l2Norm >= c_)
     Element(_1 = (c_ / l2Norm) * _1, t);
 }

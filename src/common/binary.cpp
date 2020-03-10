@@ -18,6 +18,7 @@ struct Header {
   size_t dataLength;
 };
 
+// cast current void pointer to T pointer and move forward by num elements 
 template <typename T>
 const T* get(const void*& current, size_t num = 1) {
   const T* ptr = (const T*)current;
@@ -32,9 +33,10 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
            binaryFileVersion,
            BINARY_FILE_VERSION);
 
-  size_t numHeaders = *get<size_t>(current);
-  const Header* headers = get<Header>(current, numHeaders);
+  size_t numHeaders = *get<size_t>(current); // number of item headers that follow
+  const Header* headers = get<Header>(current, numHeaders); // read that many headers
 
+  // prepopulate items with meta data from headers
   items.resize(numHeaders);
   for(int i = 0; i < numHeaders; ++i) {
     items[i].type = (Type)headers[i].type;
@@ -42,21 +44,22 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
     items[i].mapped = mapped;
   }
 
+  // read in actual shape and data
   for(int i = 0; i < numHeaders; ++i) {
     size_t len = headers[i].shapeLength;
-    items[i].shape.resize(len);
-    const int* arr = get<int>(current, len);
-    std::copy(arr, arr + len, items[i].shape.begin());
+    items[i].shape.resize(len); 
+    const int* arr = get<int>(current, len); // read shape
+    std::copy(arr, arr + len, items[i].shape.begin()); // copy to Item::shape 
   }
 
-  // move by offset bytes
+  // move by offset bytes, aligned to 256-bytes boundary
   size_t offset = *get<size_t>(current);
   get<char>(current, offset);
 
   for(int i = 0; i < numHeaders; ++i) {
-    if(items[i].mapped) {
+    if(items[i].mapped) { // memory-mapped, hence only set pointer
       items[i].ptr = get<char>(current, headers[i].dataLength);
-    } else {
+    } else { // reading into item data
       size_t len = headers[i].dataLength;
       items[i].bytes.resize(len);
       const char* ptr = get<char>(current, len);
@@ -68,15 +71,21 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
   size_t fileSize = filesystem::fileSize(fileName);
-  char* ptr = new char[fileSize];
+  std::vector<char> buf(fileSize);
+// @TODO: check this again:
+#if 1 // for some reason, the #else branch fails with "file not found" in the *read* operation (open succeeds)
+  FILE *f = fopen(fileName.c_str(), "rb");
+  ABORT_IF(f == nullptr, "Error {} ('{}') opening file '{}'", errno, strerror(errno), fileName);
+  auto rc = fread(buf.data(), sizeof(*buf.data()), buf.size(), f);
+  ABORT_IF(rc != buf.size(), "Error {} ('{}') reading file '{}'", errno, strerror(errno), fileName);
+  fclose(f);
+#else
   io::InputFileStream in(fileName);
-  in.read(ptr, fileSize);
+  in.read(buf.data(), buf.size());
+#endif
 
   // Load items from buffer without mapping
-  loadItems(ptr, items, false);
-
-  // Delete buffer
-  delete[] ptr;
+  loadItems(buf.data(), items, false);
 }
 
 io::Item getItem(const void* current, const std::string& varName) {
@@ -114,7 +123,7 @@ void saveItems(const std::string& fileName,
     headers.push_back(Header{item.name.size() + 1,
                              (size_t)item.type,
                              item.shape.size(),
-                             item.size()});
+                             item.bytes.size()}); // binary item size with padding, will be 256-byte-aligned
   }
 
   size_t headerSize = headers.size();
@@ -141,9 +150,11 @@ void saveItems(const std::string& fileName,
   }
 
   // Write out all values
-  for(const auto& item : items) {
-    pos += out.write(item.data(), item.size());
-  }
+  for(const auto& item : items)
+    pos += out.write(item.data(), item.bytes.size()); // writes out data with padding, keeps 256-byte boundary. 
+                                                      // Amazingly this is binary-compatible with V1 and aligned and 
+                                                      // non-aligned models can be read with the same procedure.
+                                                      // No version-bump required. Gets 5-8% of speed back when mmapped.
 }
 
 }  // namespace binary

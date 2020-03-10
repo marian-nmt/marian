@@ -19,7 +19,7 @@ namespace marian {
 #ifdef USE_SENTENCEPIECE
 
 // Wrapper around https://github.com/google/sentencepiece
-class SentencePieceVocab : public VocabBase {
+class SentencePieceVocab : public IVocab {
 private:
   // Actual SentencePiece processor object
   UPtr<sentencepiece::SentencePieceProcessor> spm_;
@@ -36,17 +36,18 @@ private:
   std::mt19937 generator_;
   std::uniform_int_distribution<int> randInt_; // from 0 to INT_MAX
 
+  // Keeps sentences segmented into subword units
+  bool keepEncoded_{false};
+
   // Sample from one file, based on first algorithm from:
   // https://en.wikipedia.org/wiki/Reservoir_sampling
   void reservoirSampling(std::vector<std::string>& sample, size_t& seenLines,
                         const std::string& trainPath, size_t maxLines, size_t maxBytes) {
-
     ABORT_IF(maxLines == 0, "Sample needs to be larger 0");
 
-    std::unique_ptr<io::InputFileStream> trainStrm(
-      trainPath == "stdin" ? new io::InputFileStream(std::cin)
-                           : new io::InputFileStream(trainPath)
-    );
+    std::unique_ptr<std::istream> trainStrm(trainPath == "stdin"
+                                                ? new std::istream(std::cin.rdbuf())
+                                                : new io::InputFileStream(trainPath));
 
     std::string line;
     while(getline(*trainStrm, line)) {
@@ -78,9 +79,8 @@ private:
       reservoirSampling(sample, seenLines, trainPath, maxLines, maxBytes);
     std::shuffle(sample.begin(), sample.end(), generator_);
 
-    io::OutputFileStream out(temp);
     for(const auto& line : sample)
-        out << line << std::endl;
+        temp << line << std::endl;
 
     LOG(info, "[SentencePiece] Selected {} lines", sample.size());
     return sample.size();
@@ -94,12 +94,11 @@ private:
 
     size_t seenLines = 0;
     std::string line;
-    io::OutputFileStream out(temp);
     for(const auto& trainPath : trainPaths) {
       io::InputFileStream in(trainPath);
       while(getline(in, line)) {
         if(line.size() > 0 && line.size() < maxBytes) {
-          out << line << std::endl;
+          temp << line << std::endl;
           seenLines++;
         }
       }
@@ -111,8 +110,10 @@ private:
 
 public:
   SentencePieceVocab(Ptr<Options> options, size_t batchIndex)
-    : options_(options), batchIndex_(batchIndex), generator_((uint32_t)Config::seed) {
-
+      : options_(options),
+        batchIndex_(batchIndex),
+        generator_((uint32_t)Config::seed),
+        keepEncoded_(options->get<bool>("no-spm-decode", false)) {
     if(options_->has("sentencepiece-alphas")) {
       auto alphas = options_->get<std::vector<float>>("sentencepiece-alphas");
       if(alphas.size() <= batchIndex)
@@ -126,7 +127,6 @@ public:
             alpha_,
             batchIndex_);
     }
-
   }
 
   virtual const std::string& canonicalExtension() const override { return suffixes_[0]; }
@@ -136,8 +136,8 @@ public:
 
   virtual std::string type() const override { return "SentencePieceVocab"; }
 
-  virtual Word getEosId() const override { return (Word)spm_->eos_id(); }
-  virtual Word getUnkId() const override { return (Word)spm_->unk_id(); }
+  virtual Word getEosId() const override { return Word::fromWordIndex(spm_->eos_id()); }
+  virtual Word getUnkId() const override { return Word::fromWordIndex(spm_->unk_id()); }
 
   void create(const std::string& vocabPath,
               const std::vector<std::string>& trainPaths,
@@ -198,12 +198,12 @@ public:
   }
 
   Word operator[](const std::string& token) const override {
-    return (Word)spm_->PieceToId(token);
+    return Word::fromWordIndex(spm_->PieceToId(token));
   }
 
   const std::string& operator[](Word id) const override {
-    ABORT_IF(id >= size(), "Unknown word id: ", id);
-    return spm_->IdToPiece(id);
+    ABORT_IF(id.toWordIndex() >= size(), "Unknown word id: ", id.toWordIndex());
+    return spm_->IdToPiece(id.toWordIndex());
   }
 
   Words encode(const std::string& line, bool addEOS, bool inference) const override {
@@ -213,7 +213,9 @@ public:
     else
       spm_->SampleEncode(line, -1, alpha_, &spmIds);
 
-    Words words(spmIds.begin(), spmIds.end());
+    Words words; words.reserve(spmIds.size() + addEOS);
+    for (auto&& spmId : spmIds)
+      words.push_back(Word::fromWordIndex(spmId));
 
     if(addEOS)
       words.push_back(getEosId());
@@ -222,10 +224,24 @@ public:
 
   std::string decode(const Words& sentence, bool /*ignoreEOS*/) const override {
     std::string line;
-    // convert vector of Word to vector of int
-    std::vector<int> spmSentence(sentence.begin(), sentence.end());
-    spm_->Decode(spmSentence, &line);
+    if(keepEncoded_) {  // i.e. keep the sentence segmented into subword units
+      for(const Word& id : sentence)
+        line += (*this)[id] + " ";
+      line.pop_back();  // trim the trailing whitespace
+    } else {
+      // convert vector of Word to vector of int
+      std::vector<int> spmSentence;
+      spmSentence.reserve(sentence.size());
+      for(auto&& word : sentence)
+        spmSentence.push_back(word.toWordIndex());
+      spm_->Decode(spmSentence, &line);
+    }
     return line;
+  }
+
+  std::string surfaceForm(const Words& sentence) const override {
+    // with SentencePiece, decoded form and surface form are identical
+    return decode(sentence, /*ignoreEOS=*/true);
   }
 
   size_t size() const override {
@@ -236,7 +252,7 @@ public:
     LOG(info, "[data] Loading SentencePiece vocabulary from file {}", vocabPath);
 
     ABORT_IF(!filesystem::exists(vocabPath),
-             "SentencePiece vocabulary file {} does not exits",
+             "SentencePiece vocabulary file {} does not exist",
              vocabPath);
 
     spm_.reset(new sentencepiece::SentencePieceProcessor());
@@ -249,10 +265,12 @@ public:
     return spm_->GetPieceSize();
   }
 
+  std::string toUpper(const std::string& line) const override { return utils::utf8ToUpper(line); }
+  std::string toEnglishTitleCase(const std::string& line) const override { return utils::toEnglishTitleCase(line); }
 };
 #endif // USE_SENTENCEPIECE
 
-Ptr<VocabBase> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
+Ptr<IVocab> createSentencePieceVocab(const std::string& vocabPath, Ptr<Options> options, size_t batchIndex) {
   bool isSentencePiece = regex::regex_search(vocabPath, regex::regex("\\.(spm)$"));
   if(isSentencePiece) {
 #ifdef USE_SENTENCEPIECE

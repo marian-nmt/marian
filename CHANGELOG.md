@@ -5,23 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
 
 ### Added
-- Automatic detection of CPU intrisics when building with -arch=native 
+- An option to print cached variables from CMake
+- Add support for compiling on Mac (and clang)
+- An option for resetting stalled validation metrics
+- Add CMAKE options to disable compilation for specific GPU SM types
+- An option to print word-level translation scores
+- An option to turn off automatic detokenization from SentencePiece
+- Separate quantization types for 8-bit FBGEMM for AVX2 and AVX512
+- Sequence-level unliklihood training
+- Allow file name templated valid-translation-output files
+- Support for lexical shortlists in marian-server
+- Support for 8-bit matrix multiplication with FBGEMM
+- CMakeLists.txt now looks for SSE 4.2
+- Purging of finished hypotheses during beam-search. A lot faster for large batches.
+- Faster option look-up, up to 20-30% faster translation
+- Added --cite and --authors flag
+- Added optional support for ccache
+- Switch to change abort to exception, only to be used in library mode
+- Support for 16-bit packed models with FBGEMM
+- Multiple separated parameter types in ExpressionGraph, currently inference-only
+- Safe handling of sigterm signal
+- Automatic vectorization of elementwise operations on CPU for tensors dims that 
+  are divisible by 4 (AVX) and 8 (AVX2)
+- Replacing std::shared_ptr<T> with custom IntrusivePtr<T> for small objects like 
+  Tensors, Hypotheses and Expressions.
+- Fp16 inference working for translation
+- Gradient-checkpointing
 
 ### Fixed
-- Windows build with recent changes
-- Bug with read-ahead buffer
-- Fixed handling of "dump-config: false" in YAML config
-- Errors due to warnings
-- Fixed issue concerning failed saving with single GPU training and --sync-sgd option. 
+- Replace value for INVALID_PATH_SCORE with std::numer_limits<float>::lowest() 
+  to avoid overflow with long sequences
+- Break up potential circular references for GraphGroup*
+- Fix empty source batch entries with batch purging
+- Clear RNN chache in transformer model, add correct hash functions to nodes
+- Gather-operation for all index sizes
+- Fix word weighting with max length cropping
+- Fixed compilation on CPUs without support for AVX
+- FastOpt now reads "n" and "y" values as strings, not as boolean values
+- Fixed multiple reduction kernels on GPU
+- Fixed guided-alignment training with cross-entropy
+- Replace IntrusivePtr with std::uniq_ptr in FastOpt, fixes random segfaults 
+  due to thread-non-safty of reference counting.
+- Make sure that items are 256-byte aligned during saving
+- Make explicit matmul functions respect setting of cublasMathMode
+- Fix memory mapping for mixed paramter models
+- Removed naked pointer and potential memory-leak from file_stream.{cpp,h}
+- Compilation for GCC >= 7 due to exception thrown in destructor
+- Sort parameters by lexicographical order during allocation to ensure consistent 
+  memory-layout during allocation, loading, saving.
+- Output empty line when input is empty line. Previous behavior might result in 
+  hallucinated outputs.
+- Compilation with CUDA 10.1
 
 ### Changed
+- Combine two for-loops in nth_element.cpp on CPU
+- Revert LayerNorm eps to old position, i.e. sigma' = sqrt(sigma^2 + eps)
+- Downgrade NCCL to 2.3.7 as 2.4.2 is buggy (hangs with larger models)
+- Return error signal on SIGTERM
+- Dropped support for CUDA 8.0, CUDA 9.0 is now minimal requirement
+- Removed autotuner for now, will be switched back on later
+- Boost depdendency is now optional and only required for marian_server 
+- Dropped support for g++-4.9
+- Simplified file stream and temporary file handling
+- Unified node intializers, same function API.
+- Remove overstuff/understuff code
+
+## [1.8.0] - 2019-09-04
+
+### Added
+- Alias options and new --task option
+- Automatic detection of CPU intrisics when building with -arch=native
+- First version of BERT-training and BERT-classifier, currently not compatible with TF models
+- New reduction operators
+- Use Cmake's ExternalProject to build NCCL and potentially other external libs
+- Code for Factored Vocabulary, currently not usable yet without outside tools
+
+### Fixed
+- Issue with relative paths in automatically generated decoder config files
+- Bug with overlapping CXX flags and building spm_train executable
+- Compilation with gcc 8
+- Overwriting and unsetting vector options
+- Windows build with recent changes
+- Bug with read-ahead buffer
+- Handling of "dump-config: false" in YAML config
+- Errors due to warnings
+- Issue concerning failed saving with single GPU training and --sync-sgd option.
+- NaN problem when training with Tensor Cores on Volta GPUs
+- Fix pipe-handling
+- Fix compilation with GCC 9.1
+- Fix CMake build types
+
+### Changed
+- Error message when using left-to-right and right-to-left models together in ensembles
+- Regression tests included as a submodule
+- Update NCCL to 2.4.2
 - Add zlib source to Marian's source tree, builds now as object lib
 - -DUSE_STATIC_LIBS=on now also looks for static versions of CUDA libraries
 - Include NCCL build from github.com/marian-nmt/nccl and compile within source tree
-- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party.
+- Set nearly all warnings as errors for Marian's own targets. Disable warnings for 3rd party
+- Refactored beam search
 
 ## [1.7.0] - 2018-11-27
 

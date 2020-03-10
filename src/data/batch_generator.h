@@ -56,7 +56,7 @@ public:
   typedef typename DataSet::batch_ptr BatchPtr;
 
   typedef typename DataSet::Sample Sample;
-  typedef std::vector<Sample> Samples;     // @TODO: type names should be capitalized
+  typedef std::vector<Sample> Samples;
 
   typedef BatchIterator<BatchGenerator> iterator;
   friend iterator;
@@ -65,7 +65,13 @@ protected:
   Ptr<DataSet> data_;
   Ptr<Options> options_;
   bool restored_{false};
-  bool shuffle_;
+
+  // replacing old shuffle_ with two variants that determine more fine-grained shuffling behavior.
+  // Both set to false is equivalent to old shuffle_ == false.
+  // Now we can not shuffle the data, but shuffle batches. Useful for linear reading of very large data sets with pre-reading.
+  // Parameters like maxi-batch determine how much data is pre-read and sorted by length or other criteria.
+  bool shuffleData_{false};    // determine if full data should be shuffled before reading and batching.
+  bool shuffleBatches_{false}; // determine if batches should be shuffled after batching.
 
 private:
   Ptr<BatchStats> stats_;
@@ -83,7 +89,6 @@ private:
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
   std::deque<BatchPtr> fetchBatches() {
-    //LOG(info, "fillBatches entered");
     typedef typename Sample::value_type Item;
     auto itemCmp = [](const Item& sa, const Item& sb) { return sa.size() < sb.size(); }; // sort by element length, not content
 
@@ -97,7 +102,7 @@ private:
           a.rbegin(), a.rend(), b.rbegin(), b.rend(), itemCmp);
     };
 
-    auto cmpNone = [](const Sample& a, const Sample& b) { return &a < &b; }; // instead sort by address, so we have something to work with
+    auto cmpNone = [](const Sample& a, const Sample& b) { return a.getId() < b.getId(); }; // sort in order of original ids = original data order unless shuffling
 
     typedef std::function<bool(const Sample&, const Sample&)> cmp_type;
     typedef std::priority_queue<Sample, Samples, cmp_type> sample_queue;
@@ -118,8 +123,6 @@ private:
     size_t maxBatchSize = options_->get<int>("mini-batch");
     size_t maxSize = maxBatchSize * options_->get<int>("maxi-batch");
 
-    // LOG(info, "Preloading batches");
-
     // consume data from corpus into maxi-batch (single sentences)
     // sorted into specified order (due to queue)
     if(newlyPrepared_) {
@@ -133,15 +136,13 @@ private:
     while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
       maxiBatch->push(*current_);
       sets = current_->size();
-        // do not consume more than required for the maxi batch as this causes
-        // that line-by-line translation is delayed by one sentence
-        bool last = maxiBatch->size() == maxSize;
+      // do not consume more than required for the maxi batch as this causes
+      // that line-by-line translation is delayed by one sentence
+      bool last = maxiBatch->size() == maxSize;
       if(!last)
         ++current_; // this actually reads the next line and pre-processes it
     }
     size_t numSentencesRead = maxiBatch->size();
-
-    // LOG(info, "Turning samples into batches");
 
     // construct the actual batches and place them in the queue
     Samples batchVector;
@@ -152,7 +153,6 @@ private:
 
     // process all loaded sentences in order of increasing length
     // @TODO: we could just use a vector and do a sort() here; would make the cost more explicit
-    //LOG(info, "begin form batches, #lines = {}", maxiBatch->size());
     const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
     const bool useDynamicBatching = options_->has("mini-batch-fit");
     BatchStats::const_iterator cachedStatsIter;
@@ -205,21 +205,31 @@ private:
     }
 
     // turn rest into batch
+    // @BUGBUG: This can create a very small batch, which with ce-mean-words can artificially
+    // inflate the contribution of the sames in the batch, causing instability.
+    // I think a good alternative would be to carry over the left-over sentences into the next round.
     if(!batchVector.empty())
       tempBatches.push_back(data_->toBatch(batchVector));
-    //LOG(info, "end form batches, #tempBatches = {}", tempBatches.size());
 
     // Shuffle the batches
-    if(shuffle_) {
+    if(shuffleBatches_) {
       std::shuffle(tempBatches.begin(), tempBatches.end(), eng_);
     }
-    LOG(debug, "[data] fetched {} batches with {} sentences.", tempBatches.size(), numSentencesRead);
+    double totalSent{}, totalLabels{};
+    for (auto& b : tempBatches) {
+      totalSent += (double)b->size();
+      totalLabels += (double)b->words(-1);
+    }
+    auto totalDenom = tempBatches.empty() ? 1 : tempBatches.size(); // (make 0/0 = 0)
+    LOG(debug, "[data] fetched {} batches with {} sentences. Per batch: {} sentences, {} labels.",
+        tempBatches.size(), numSentencesRead,
+        (double)totalSent / (double)totalDenom, (double)totalLabels / (double)totalDenom);
     return tempBatches;
   }
 
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
-    ABORT_IF(futureBufferedBatches_.valid(), "attempted to restart futureBufferedBatches_ while still running");
+    ABORT_IF(futureBufferedBatches_.valid(), "Attempted to restart futureBufferedBatches_ while still running");
     futureBufferedBatches_ = threadPool_.enqueue([this]() {
       return fetchBatches();
     });
@@ -229,7 +239,9 @@ private:
     if(bufferedBatches_.empty()) {
       // out of data: need to get next batch from background thread
       // We only get here if the future has been scheduled to run; it must be valid.
-      ABORT_IF(!futureBufferedBatches_.valid(), "attempted to wait for futureBufferedBatches_ when none pending");
+      ABORT_IF(!futureBufferedBatches_.valid(), "Attempted to wait for futureBufferedBatches_ when none pending.\n"
+          "This error often occurs when Marian tries to restore the training data iterator, but the corpus has been changed or replaced.\n"
+          "If you have changed the training corpus, add --no-restore-corpus to the training command and run it again.");
       bufferedBatches_ = std::move(futureBufferedBatches_.get());
       // if bg thread returns an empty swath, we hit the end of the epoch
       if (bufferedBatches_.empty()) {
@@ -248,7 +260,11 @@ public:
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Options> options,
                  Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), threadPool_(1) {}
+      : data_(data), options_(options), stats_(stats), threadPool_(1) {
+    auto shuffle = options_->get<std::string>("shuffle");
+    shuffleData_ = shuffle == "data";
+    shuffleBatches_ = shuffleData_ || shuffle == "batches";
+  }
 
   ~BatchGenerator() {
     if (futureBufferedBatches_.valid()) // bg thread holds a reference to 'this',
@@ -264,15 +280,12 @@ public:
   }
 
   // @TODO: get rid of this function, begin() or constructor should figure this out
-  void prepare(bool shuffle = true) {
-    if(shuffle)
+  void prepare() {
+    if(shuffleData_)
       data_->shuffle();
     else
       data_->reset();
     newlyPrepared_ = true;
-
-    // @TODO: solve this better, maybe use options
-    shuffle_ = shuffle;
 
     // start the background pre-fetch operation
     fetchBatchesAsync();
@@ -280,7 +293,7 @@ public:
 
   // Used to restore the state of a BatchGenerator after
   // an interrupted and resumed training.
-  bool restore(Ptr<TrainingState> state, bool shuffle) {
+  bool restore(Ptr<TrainingState> state) {
     if(state->epochs == 1 && state->batchesEpoch == 0)
       return false;
 
@@ -294,11 +307,23 @@ public:
       setRNGState(state->seedBatch);
     }
 
-    prepare(shuffle);
+    prepare();
     for(size_t i = 0; i < state->batchesEpoch; ++i)
       next();
 
     return true;
+  }
+
+  // this is needed for dynamic MB scaling. Returns 0 if size is not known in words.
+  size_t estimateTypicalTrgBatchWords() const {
+    const size_t mbWords = options_->get<size_t>("mini-batch-words", 0);
+    const bool useDynamicBatching = options_->has("mini-batch-fit");
+    if (useDynamicBatching && stats_)
+      return stats_->estimateTypicalTrgWords();
+    else if (mbWords)
+      return mbWords;
+    else
+      return 0;
   }
 };
 

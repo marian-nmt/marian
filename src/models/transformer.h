@@ -6,7 +6,6 @@
 #include "marian.h"
 
 #include "layers/constructors.h"
-#include "layers/factory.h"
 #include "models/decoder.h"
 #include "models/encoder.h"
 #include "models/states.h"
@@ -23,50 +22,79 @@ namespace marian {
 template<class EncoderOrDecoderBase>
 class Transformer : public EncoderOrDecoderBase {
   typedef EncoderOrDecoderBase Base;
+  using Base::Base;
 
 protected:
-  using Base::options_; using Base::inference_;
-  std::unordered_map<std::string, Expr> cache_;
+  using Base::options_; using Base::inference_; using Base::batchIndex_; using Base::graph_;
+  std::unordered_map<std::string, Expr> cache_;  // caching transformation of the encoder that should not be created again
 
   // attention weights produced by step()
   // If enabled, it is set once per batch during training, and once per step during translation.
   // It can be accessed by getAlignments(). @TODO: move into a state or return-value object
   std::vector<Expr> alignments_; // [max tgt len or 1][beam depth, max src length, batch size, 1]
 
-  template <typename T> T opt(const std::string& key) const { Ptr<Options> options = options_; return options->get<T>(key); }  // need to duplicate, since somehow using Base::opt is not working
-  // FIXME: that separate options assignment is weird
+  // @TODO: make this go away
+  template <typename T> 
+  T opt(const char* const key) const { Ptr<Options> options = options_; return options->get<T>(key); }  
 
-  template <typename T> T opt(const std::string& key, const T& def) const { Ptr<Options> options = options_; if (options->has(key)) return options->get<T>(key); else return def; }
+  template <typename T> 
+  T opt(const std::string& key) const { return opt<T>(key.c_str()); }  
 
-  Ptr<ExpressionGraph> graph_;
+  template <typename T> 
+  T opt(const char* const key, const T& def) const { Ptr<Options> options = options_; return options->get<T>(key, def);  }
+
+  template <typename T> 
+  T opt(const std::string& key, const T& def) const { opt<T>(key.c_str(), def); }
 
 public:
-  Transformer(Ptr<Options> options)
-    : EncoderOrDecoderBase(options) {
-  }
-
   static Expr transposeTimeBatch(Expr input) { return transpose(input, {0, 2, 1, 3}); }
 
-  Expr addPositionalEmbeddings(Expr input, int start = 0) const {
+  Expr addPositionalEmbeddings(Expr input, int start = 0, bool trainPosEmbeddings = false) const {
     int dimEmb   = input->shape()[-1];
     int dimWords = input->shape()[-3];
 
-    float num_timescales = (float)dimEmb / 2;
-    float log_timescale_increment = std::log(10000.f) / (num_timescales - 1.f);
+    Expr embeddings = input;
 
-    std::vector<float> vPos(dimEmb * dimWords, 0);
-    for(int p = start; p < dimWords + start; ++p) {
-      for(int i = 0; i < num_timescales; ++i) {
-        float v = p * std::exp(i * -log_timescale_increment);
-        vPos[(p - start) * dimEmb + i] = std::sin(v);
-        vPos[(p - start) * dimEmb + (int)num_timescales + i] = std::cos(v); // @TODO: is int vs. float correct for num_timescales?
-      }
+    if(trainPosEmbeddings) {
+      int maxLength = opt<int>("max-length");
+
+      // Hack for translating with length longer than trained embeddings
+      // We check if the embedding matrix "Wpos" already exist so we can
+      // check the number of positions in that loaded parameter.
+      // We then have to restict the maximum length to the maximum positon
+      // and positions beyond this will be the maximum position.
+      Expr seenEmb = graph_->get("Wpos");
+      int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
+
+      auto embeddingLayer = embedding(
+                             "prefix", "Wpos", // share positional embeddings across all encoders/decorders
+                             "dimVocab", numPos,
+                             "dimEmb", dimEmb)
+                            .construct(graph_);
+
+      // fill with increasing numbers until current length or maxPos
+      std::vector<IndexType> positions(dimWords, numPos - 1);
+      for(int i = 0; i < std::min(dimWords, numPos); ++i)
+        positions[i] = i;
+
+      auto signal = embeddingLayer->applyIndices(positions, {dimWords, 1, dimEmb});
+      embeddings = embeddings + signal;
+    } else {
+      // @TODO : test if embeddings should be scaled when trainable
+      // according to paper embeddings are scaled up by \sqrt(d_m)
+      embeddings = std::sqrt((float)dimEmb) * embeddings; // embeddings were initialized to unit length; so norms will be in order of sqrt(dimEmb)
+
+      auto signal = graph_->constant({dimWords, 1, dimEmb},
+                                     inits::sinusoidalPositionEmbeddings(start));
+      embeddings = embeddings + signal;
     }
 
-    // shared across batch entries
-    auto signal
-        = graph_->constant({dimWords, 1, dimEmb}, inits::from_vector(vPos));
-    return input + signal;
+    return embeddings;
+  }
+
+  virtual Expr addSpecialEmbeddings(Expr input, int start = 0, Ptr<data::CorpusBatch> /*batch*/ = nullptr) const {
+    bool trainPosEmbeddings = opt<bool>("transformer-train-positions", false);
+    return addPositionalEmbeddings(input, start, trainPosEmbeddings);
   }
 
   Expr triangleMask(int length) const {
@@ -75,13 +103,14 @@ public:
     for(int i = 0; i < length; ++i)
       for(int j = 0; j <= i; ++j)
         vMask[i * length + j] = 1.f;
-    return graph_->constant({1, length, length}, inits::from_vector(vMask));
+    return graph_->constant({1, length, length}, inits::fromVector(vMask));
   }
 
   // convert multiplicative 1/0 mask to additive 0/-inf log mask, and transpose to match result of bdot() op in Attention()
   static Expr transposedLogMask(Expr mask) { // mask: [-4: beam depth=1, -3: batch size, -2: vector dim=1, -1: max length]
     auto ms = mask->shape();
-    mask = (1 - mask) * -99999999.f;
+    float maskFactor = std::max(NumericLimits<float>(mask->value_type()).lowest / 2.f, -99999999.f); // to make sure we do not overflow for fp16
+    mask = (1 - mask) * maskFactor;
     return reshape(mask, {ms[-3], 1, ms[-2], ms[-1]}); // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
   }
 
@@ -113,30 +142,6 @@ public:
     return reshape(output, {dimBeam, dimBatch, dimSteps, dimModel});
   }
 
-  // like affine() but with built-in parameters, activation, and dropout
-  static inline
-  Expr dense(Expr x, std::string prefix, std::string suffix, int outDim, const std::function<Expr(Expr)>& actFn = nullptr, float dropProb = 0.0f)
-  {
-    auto graph = x->graph();
-
-    auto W = graph->param(prefix + "_W" + suffix, { x->shape()[-1], outDim }, inits::glorot_uniform);
-    auto b = graph->param(prefix + "_b" + suffix, { 1,              outDim }, inits::zeros);
-
-    x = affine(x, W, b);
-    if (actFn)
-      x = actFn(x);
-    if (dropProb)
-      x = dropout(x, dropProb);
-    return x;
-  }
-
-  Expr layerNorm(Expr x, std::string prefix, std::string suffix = std::string()) const {
-    int dimModel = x->shape()[-1];
-    auto scale = graph_->param(prefix + "_ln_scale" + suffix, { 1, dimModel }, inits::ones);
-    auto bias  = graph_->param(prefix + "_ln_bias"  + suffix, { 1, dimModel }, inits::zeros);
-    return marian::layerNorm(x, scale, bias, 1e-6f);
-  }
-
   Expr preProcess(std::string prefix, std::string ops, Expr input, float dropProb = 0.0f) const {
     auto output = input;
     for(auto op : ops) {
@@ -164,7 +169,7 @@ public:
       // highway connection
       else if(op == 'h') {
         int dimModel = input->shape()[-1];
-        auto t = dense(prevInput, prefix, /*suffix=*/"h", dimModel);
+        auto t = denseInline(prevInput, prefix, /*suffix=*/"h", dimModel);
         output = highway(output, prevInput, t);
       }
       // layer normalization
@@ -178,23 +183,23 @@ public:
 
   void collectOneHead(Expr weights, int dimBeam) {
     // select first head, this is arbitrary as the choice does not really matter
-    auto head0 = select(weights, std::vector<IndexType>({0}), -3); // @TODO: implement an index() or slice() operator and use that
+    auto head0 = slice(weights, -3, 0);
 
     int dimBatchBeam = head0->shape()[-4];
-    int srcWords = head0->shape()[-1];
-    int trgWords = head0->shape()[-2];
+    int srcWords = head0->shape()[-1]; // (max) length of src sequence
+    int trgWords = head0->shape()[-2]; // (max) length of trg sequence, or 1 in decoding
     int dimBatch = dimBatchBeam / dimBeam;
 
     // reshape and transpose to match the format guided_alignment expects
     head0 = reshape(head0, {dimBeam, dimBatch, trgWords, srcWords});
-    head0 = transpose(head0, {0, 3, 1, 2}); // [-4: beam depth, -3: max src length, -2: batch size, -1: max tgt length]
+    head0 = transpose(head0, {0, 3, 1, 2}); // [beam depth, max src length, batch size, max tgt length]
 
     // save only last alignment set. For training this will be all alignments,
     // for translation only the last one. Also split alignments by target words.
     // @TODO: make splitting obsolete
     alignments_.clear();
-    for(int i = 0; i < trgWords; ++i) {
-      alignments_.push_back(select(head0, std::vector<IndexType>({(IndexType)i}), -1)); // [tgt index][-4: beam depth, -3: max src length, -2: batch size, -1: 1]
+    for(int i = 0; i < trgWords; ++i) { // loop over all trg positions. In decoding, there is only one.
+      alignments_.push_back(slice(head0, -1, i)); // [tgt index][beam depth, max src length, batch size, 1] P(src pos|trg pos, beam index, batch index)
     }
   }
 
@@ -221,17 +226,16 @@ public:
 
     // take softmax along src sequence axis (-1)
     auto weights = softmax(z); // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: max src length]
-
+    
     if(saveAttentionWeights)
       collectOneHead(weights, dimBeam);
 
     // optional dropout for attention weights
-    float dropProb
-        = inference_ ? 0 : opt<float>("transformer-dropout-attention");
-    weights = dropout(weights, dropProb);
+    weights = dropout(weights, inference_ ? 0 : opt<float>("transformer-dropout-attention"));
 
     // apply attention weights to values
     auto output = bdot(weights, v);   // [-4: beam depth * batch size, -3: num heads, -2: max tgt length, -1: split vector dim]
+
     return output;
   }
 
@@ -246,8 +250,8 @@ public:
                  bool saveAttentionWeights = false) {
     int dimModel = q->shape()[-1];
     // @TODO: good opportunity to implement auto-batching here or do something manually?
-    auto Wq = graph_->param(prefix + "_Wq", {dimModel, dimModel}, inits::glorot_uniform);
-    auto bq = graph_->param(prefix + "_bq", {       1, dimModel}, inits::zeros);
+    auto Wq = graph_->param(prefix + "_Wq", {dimModel, dimModel}, inits::glorotUniform());
+    auto bq = graph_->param(prefix + "_bq", {       1, dimModel}, inits::zeros());
     auto qh = affine(q, Wq, bq);
     qh = SplitHeads(qh, dimHeads); // [-4: beam depth * batch size, -3: num heads, -2: max length, -1: split vector dim]
 
@@ -255,28 +259,32 @@ public:
     // Caching transformation of the encoder that should not be created again.
     // @TODO: set this automatically by memoizing encoder context and
     // memoization propagation (short-term)
-    if (!cache || (cache && cache_.count(prefix + "_keys") == 0)) {
-      auto Wk = graph_->param(prefix + "_Wk", {dimModel, dimModel}, inits::glorot_uniform);
-      auto bk = graph_->param(prefix + "_bk", {1,        dimModel}, inits::zeros);
+    if (cache                                                                          // if caching
+        && cache_.count(prefix + "_keys") > 0                                          // and the keys expression has been seen
+        && cache_[prefix + "_keys"]->shape().elements() == keys->shape().elements()) { // and the underlying element size did not change
+      kh = cache_[prefix + "_keys"];                                                   // then return cached tensor
+    }
+    else {
+      auto Wk = graph_->param(prefix + "_Wk", {dimModel, dimModel}, inits::glorotUniform());
+      auto bk = graph_->param(prefix + "_bk", {1,        dimModel}, inits::zeros());
 
-      kh = affine(keys,Wk, bk);      // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+      kh = affine(keys, Wk, bk);     // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
       kh = SplitHeads(kh, dimHeads); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       cache_[prefix + "_keys"] = kh;
     }
-    else {
-      kh = cache_[prefix + "_keys"];
-    }
 
     Expr vh;
-    if (!cache || (cache && cache_.count(prefix + "_values") == 0)) {
-      auto Wv = graph_->param(prefix + "_Wv", {dimModel, dimModel}, inits::glorot_uniform);
-      auto bv = graph_->param(prefix + "_bv", {1,        dimModel}, inits::zeros);
+    if (cache 
+        && cache_.count(prefix + "_values") > 0 
+        && cache_[prefix + "_values"]->shape().elements() == values->shape().elements()) {
+      vh = cache_[prefix + "_values"];
+    } else {
+      auto Wv = graph_->param(prefix + "_Wv", {dimModel, dimModel}, inits::glorotUniform());
+      auto bv = graph_->param(prefix + "_bv", {1,        dimModel}, inits::zeros());
 
       vh = affine(values, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
       vh = SplitHeads(vh, dimHeads);
       cache_[prefix + "_values"] = vh;
-    } else {
-      vh = cache_[prefix + "_values"];
     }
 
     int dimBeam = q->shape()[-4];
@@ -292,8 +300,8 @@ public:
     bool project = !opt<bool>("transformer-no-projection");
     if(project || dimAtt != dimOut) {
       auto Wo
-        = graph_->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorot_uniform);
-      auto bo = graph_->param(prefix + "_bo", {1, dimOut}, inits::zeros);
+        = graph_->param(prefix + "_Wo", {dimAtt, dimOut}, inits::glorotUniform());
+      auto bo = graph_->param(prefix + "_bo", {1, dimOut}, inits::zeros());
       output = affine(output, Wo, bo);
     }
 
@@ -317,7 +325,7 @@ public:
 
     // multi-head self-attention over previous input
     output = MultiHead(prefix, dimModel, heads, output, keys, values, mask, cache, saveAttentionWeights);
-
+    
     auto opsPost = opt<std::string>("transformer-postprocess");
     output = postProcess(prefix + "_Wo", opsPost, output, input, dropProb);
 
@@ -349,6 +357,8 @@ public:
       return (ActivationFunction*)relu;
     else if (actName == "swish")
       return (ActivationFunction*)swish;
+    else if (actName == "gelu")
+      return (ActivationFunction*)gelu;
     ABORT("Invalid activation name '{}'", actName);
   }
 
@@ -369,8 +379,8 @@ public:
 
     // the stack of FF layers
     for(int i = 1; i < depthFfn; ++i)
-      output = dense(output, prefix, /*suffix=*/std::to_string(i), dimFfn, actFn, ffnDropProb);
-    output = dense(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel);
+      output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, actFn, ffnDropProb);
+    output = denseInline(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
     output
@@ -397,14 +407,14 @@ public:
 
     // the stack of AAN layers
     for(int i = 1; i < depthAan; ++i)
-      y = dense(y, prefix, /*suffix=*/std::to_string(i), dimAan, actFn, aanDropProb);
+      y = denseInline(y, prefix, /*suffix=*/std::to_string(i), dimAan, actFn, aanDropProb);
     if(y->shape()[-1] != dimModel) // bring it back to the desired dimension if needed
-      y = dense(y, prefix, std::to_string(depthAan), dimModel);
+      y = denseInline(y, prefix, std::to_string(depthAan), dimModel);
 
     bool noGate = opt<bool>("transformer-aan-nogate");
     if(!noGate) {
-      auto gi = dense(x, prefix, /*suffix=*/"i", dimModel, (ActivationFunction*)sigmoid);
-      auto gf = dense(y, prefix, /*suffix=*/"f", dimModel, (ActivationFunction*)sigmoid);
+      auto gi = denseInline(x, prefix, /*suffix=*/"i", dimModel, (ActivationFunction*)sigmoid);
+      auto gf = denseInline(y, prefix, /*suffix=*/"f", dimModel, (ActivationFunction*)sigmoid);
       y = gi * x + gf * y;
     }
 
@@ -440,7 +450,8 @@ public:
     return LayerAAN(prefix, input, output);
   }
 
-  Expr DecoderLayerRNN(rnn::State& decoderState,
+  Expr DecoderLayerRNN(std::unordered_map<std::string, Ptr<rnn::RNN>>& perLayerRnn, // @TODO: rewrite this whole organically grown mess
+                       rnn::State& decoderState,
                        const rnn::State& prevDecoderState,
                        std::string prefix,
                        Expr input,
@@ -448,15 +459,18 @@ public:
                        int /*startPos*/) const {
     float dropoutRnn = inference_ ? 0.f : opt<float>("dropout-rnn");
 
-    auto rnn = rnn::rnn(graph_)                                    //
-        ("type", opt<std::string>("dec-cell"))                     //
-        ("prefix", prefix)                                         //
-        ("dimInput", opt<int>("dim-emb"))                          //
-        ("dimState", opt<int>("dim-emb"))                          //
-        ("dropout", dropoutRnn)                                    //
-        ("layer-normalization", opt<bool>("layer-normalization"))  //
-        .push_back(rnn::cell(graph_))                              //
-        .construct();
+    if(!perLayerRnn[prefix]) // lazily create and cache RNNs in the decoder to avoid costly recreation @TODO: turn this into class members
+      perLayerRnn[prefix] = rnn::rnn(
+          "type", opt<std::string>("dec-cell"),
+          "prefix", prefix,
+          "dimInput", opt<int>("dim-emb"),
+          "dimState", opt<int>("dim-emb"),
+          "dropout", dropoutRnn,
+          "layer-normalization", opt<bool>("layer-normalization"))
+          .push_back(rnn::cell())
+          .construct(graph_);
+
+    auto rnn = perLayerRnn[prefix];
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
@@ -475,102 +489,52 @@ public:
 };
 
 class EncoderTransformer : public Transformer<EncoderBase> {
+  typedef Transformer<EncoderBase> Base;
+  using Base::Base;
 public:
-  EncoderTransformer(Ptr<Options> options) : Transformer(options) {}
-
-  // returns the embedding matrix based on options
-  // and based on batchIndex_.
-
-  std::vector<Expr> ULREmbeddings() const {
-    // standard encoder word embeddings
-    int dimSrcVoc = opt<std::vector<int>>("dim-vocabs")[0];  //ULR multi-lingual src
-    int dimTgtVoc = opt<std::vector<int>>("dim-vocabs")[1];  //ULR monon tgt
-    int dimEmb = opt<int>("dim-emb");
-    int dimUlrEmb = opt<int>("ulr-dim-emb");
-    auto embFactory = ulr_embedding(graph_)("dimSrcVoc", dimSrcVoc)("dimTgtVoc", dimTgtVoc)
-                                           ("dimUlrEmb", dimUlrEmb)("dimEmb", dimEmb)
-                                           ("ulrTrainTransform", opt<bool>("ulr-trainable-transformation"))
-                                           ("ulrQueryFile", opt<std::string>("ulr-query-vectors"))
-                                           ("ulrKeysFile", opt<std::string>("ulr-keys-vectors"));
-    return embFactory.construct();
-  }
-
-  Expr wordEmbeddings(size_t subBatchIndex) const {
-    // standard encoder word embeddings
-    int dimVoc = opt<std::vector<int>>("dim-vocabs")[subBatchIndex];
-    int dimEmb = opt<int>("dim-emb");
-    auto embFactory = embedding(graph_)("dimVocab", dimVoc)("dimEmb", dimEmb);
-    if (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all"))
-      embFactory("prefix", "Wemb");
-    else
-      embFactory("prefix", prefix_ + "_Wemb");
-    if (options_->has("embedding-fix-src"))
-      embFactory("fixed", opt<bool>("embedding-fix-src"));
-    if (options_->has("embedding-vectors")) {
-      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
-      embFactory("embFile", embFiles[subBatchIndex])
-                ("normalization", opt<bool>("embedding-normalization"));
-    }
-    return embFactory.construct();
-  }
-
-  Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
-                          Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<EncoderState> build(Ptr<ExpressionGraph> graph,
+                                  Ptr<data::CorpusBatch> batch) override {
     graph_ = graph;
     return apply(batch);
   }
 
   Ptr<EncoderState> apply(Ptr<data::CorpusBatch> batch) {
-    int dimEmb = opt<int>("dim-emb");
     int dimBatch = (int)batch->size();
     int dimSrcWords = (int)(*batch)[batchIndex_]->batchWidth();
     // create the embedding matrix, considering tying and some other options
     // embed the source words in the batch
     Expr batchEmbeddings, batchMask;
-    if (options_->has("ulr") && options_->get<bool>("ulr") == true) {
-      auto embeddings = ULREmbeddings(); // embedding uses ULR
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::ulrLookup(graph_, embeddings, batch);
-    }
-    else
-    {
-      auto embeddings = wordEmbeddings(batchIndex_);
-      std::tie(batchEmbeddings, batchMask)
-        = EncoderBase::lookup(graph_, embeddings, batch);
-    }
-    // apply dropout over source words
-    float dropoutSrc = inference_ ? 0 : opt<float>("dropout-src");
-    if(dropoutSrc) {
-      int srcWords = batchEmbeddings->shape()[-3];
-      batchEmbeddings = dropout(batchEmbeddings, dropoutSrc, {srcWords, 1, 1});
-    }
-    // according to paper embeddings are scaled up by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * batchEmbeddings;
-    scaledEmbeddings = addPositionalEmbeddings(scaledEmbeddings);
+
+    auto embeddingLayer = getEmbeddingLayer(opt<bool>("ulr", false));
+    std::tie(batchEmbeddings, batchMask) = embeddingLayer->apply((*batch)[batchIndex_]);
+    batchEmbeddings = addSpecialEmbeddings(batchEmbeddings, /*start=*/0, batch);
+    
     // reorganize batch and timestep
-    scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
-    batchMask = atleast_nd(batchMask, 4);
-    auto layer = transposeTimeBatch(scaledEmbeddings); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-    auto layerMask
-      = reshape(transposeTimeBatch(batchMask), {1, dimBatch, 1, dimSrcWords}); // [-4: beam depth=1, -3: batch size, -2: vector dim=1, -1: max length]
+    batchEmbeddings = atleast_nd(batchEmbeddings, 4); // [beam depth=1, max length, batch size, vector dim]
+    batchMask       = atleast_nd(batchMask, 4);       // [beam depth=1, max length, batch size, vector dim=1]
+
+    auto layer     = transposeTimeBatch(batchEmbeddings); // [beam depth=1, batch size, max length, vector dim]
+    auto layerMask = transposeTimeBatch(batchMask);       // [beam depth=1, batch size, max length, vector dim=1]
 
     auto opsEmb = opt<std::string>("transformer-postprocess-emb");
-
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     layer = preProcess(prefix_ + "_emb", opsEmb, layer, dropProb);
 
-    layerMask = transposedLogMask(layerMask); // [-4: batch size, -3: 1, -2: vector dim=1, -1: max length]
+    // LayerAttention expects mask in a different layout
+    layerMask = reshape(layerMask, {1, dimBatch, 1, dimSrcWords}); // [1,          batch size,            1,                      max length]
+    layerMask = transposedLogMask(layerMask);                      // [batch size, num heads broadcast=1, max length broadcast=1, max length]
 
     // apply encoder layers
+    // This is the Transformer Encoder stack.
     auto encDepth = opt<int>("enc-depth");
     for(int i = 1; i <= encDepth; ++i) {
       layer = LayerAttention(prefix_ + "_l" + std::to_string(i) + "_self",
                              layer, // query
                              layer, // keys
                              layer, // values
-                             layerMask);
-
+                             layerMask); // [batch size, num heads broadcast=1, max length broadcast=1, max length]
       layer = LayerFFN(prefix_ + "_l" + std::to_string(i) + "_ffn", layer);
+      checkpoint(layer); // sets a manually specified checkpoint if gradient checkpointing is enabled, does nothing otherwise.
     }
 
     // restore organization of batch and time steps. This is currently required
@@ -581,21 +545,30 @@ public:
     return New<EncoderState>(context, batchMask, batch);
   }
 
-  void clear() override {}
+  virtual void clear() override {}
 };
 
 class TransformerState : public DecoderState {
 public:
   TransformerState(const rnn::States& states,
-                   Expr logProbs,
+                   Logits logProbs,
                    const std::vector<Ptr<EncoderState>>& encStates,
                    Ptr<data::CorpusBatch> batch)
       : DecoderState(states, logProbs, encStates, batch) {}
 
-  virtual Ptr<DecoderState> select(const std::vector<IndexType>& selIdx,
+  virtual Ptr<DecoderState> select(const std::vector<IndexType>& hypIndices,   // [beamIndex * activeBatchSize + batchIndex]
+                                   const std::vector<IndexType>& batchIndices, // [batchIndex]
                                    int beamSize) const override {
+
+    // @TODO: code duplication with DecoderState only because of isBatchMajor=true, should rather be a contructor argument of DecoderState?
+    
+    std::vector<Ptr<EncoderState>> newEncStates;
+    for(auto& es : encStates_) 
+      // If the size of the batch dimension of the encoder state context changed, subselect the correct batch entries    
+      newEncStates.push_back(es->getContext()->shape()[-2] == batchIndices.size() ? es : es->select(batchIndices));
+
     // Create hypothesis-selected state based on current state and hyp indices
-    auto selectedState = New<TransformerState>(states_.select(selIdx, beamSize, /*isBatchMajor=*/true), logProbs_, encStates_, batch_);
+    auto selectedState = New<TransformerState>(states_.select(hypIndices, beamSize, /*isBatchMajor=*/true), logProbs_, newEncStates, batch_); 
 
     // Set the same target token position as the current state
     // @TODO: This is the same as in base function.
@@ -605,42 +578,37 @@ public:
 };
 
 class DecoderTransformer : public Transformer<DecoderBase> {
+  typedef Transformer<DecoderBase> Base;
+  using Base::Base;
 private:
-  Ptr<mlp::MLP> output_;
+  Ptr<mlp::Output> output_;
+
+  // This caches RNN objects to avoid reconstruction between batches or deocoding steps.
+  // To be removed after refactoring of transformer.h
+  std::unordered_map<std::string, Ptr<rnn::RNN>> perLayerRnn_;
 
 private:
-  void LazyCreateOutputLayer()
+  // @TODO: move this out for sharing with other models
+  void lazyCreateOutputLayer()
   {
     if(output_) // create it lazily
       return;
 
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs")[batchIndex_];
 
-    auto layerOut = mlp::output(graph_)        //
-        ("prefix", prefix_ + "_ff_logit_out")  //
-        ("dim", dimTrgVoc);
+    auto outputFactory = mlp::OutputFactory(
+        "prefix", prefix_ + "_ff_logit_out",
+        "dim", dimTrgVoc,
+        "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_], // for factored outputs
+        "lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
 
-    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all")) {
-      std::string tiedPrefix = prefix_ + "_Wemb";
-      if(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src"))
-        tiedPrefix = "Wemb";
-      layerOut.tie_transposed("W", tiedPrefix);
-    }
+    if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all"))
+      outputFactory.tieTransposed(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src") ? "Wemb" : prefix_ + "_Wemb");
 
-    if(shortlist_)
-      layerOut.set_shortlist(shortlist_);
-
-    // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
-    // assemble layers into MLP and apply to embeddings, decoder context and
-    // aligned source context
-    output_ = mlp::mlp(graph_)      //
-                  .push_back(layerOut)  //
-                  .construct();
+    output_ = std::dynamic_pointer_cast<mlp::Output>(outputFactory.construct(graph_)); // (construct() returns only the underlying interface)
   }
 
 public:
-  DecoderTransformer(Ptr<Options> options) : Transformer(options) {}
-
   virtual Ptr<DecoderState> startState(
       Ptr<ExpressionGraph> graph,
       Ptr<data::CorpusBatch> batch,
@@ -652,54 +620,41 @@ public:
       int dimBatch = (int)batch->size();
       int dim = opt<int>("dim-emb");
 
-      auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros);
+      auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros());
       rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
       // don't use TransformerState for RNN layers
-      return New<DecoderState>(startStates, nullptr, encStates, batch);
+      return New<DecoderState>(startStates, Logits(), encStates, batch);
     }
     else {
       rnn::States startStates;
-      return New<TransformerState>(startStates, nullptr, encStates, batch);
+      return New<TransformerState>(startStates, Logits(), encStates, batch);
     }
   }
 
   virtual Ptr<DecoderState> step(Ptr<ExpressionGraph> graph,
                                  Ptr<DecoderState> state) override {
     ABORT_IF(graph != graph_, "An inconsistent graph parameter was passed to step()");
-    LazyCreateOutputLayer();
+    lazyCreateOutputLayer();
     return step(state);
   }
 
   Ptr<DecoderState> step(Ptr<DecoderState> state) {
-    auto embeddings  = state->getTargetEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
-    auto decoderMask = state->getTargetMask();       // [max length, batch size, 1]  --this is a hypothesis
-
-    // dropout target words
-    float dropoutTrg = inference_ ? 0 : opt<float>("dropout-trg");
-    if(dropoutTrg) {
-      int trgWords = embeddings->shape()[-3];
-      embeddings = dropout(embeddings, dropoutTrg, {trgWords, 1, 1});
-    }
+    auto embeddings  = state->getTargetHistoryEmbeddings(); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
+    auto decoderMask = state->getTargetMask();              // [max length, batch size, 1]  --this is a hypothesis
 
     //************************************************************************//
 
-    int dimEmb = embeddings->shape()[-1];
     int dimBeam = 1;
     if(embeddings->shape().size() > 3)
       dimBeam = embeddings->shape()[-4];
-
-    // according to paper embeddings are scaled by \sqrt(d_m)
-    auto scaledEmbeddings = std::sqrt((float)dimEmb) * embeddings;
 
     // set current target token position during decoding or training. At training
     // this should be 0. During translation the current length of the translation.
     // Used for position embeddings and creating new decoder states.
     int startPos = (int)state->getPosition();
 
-    scaledEmbeddings
-      = addPositionalEmbeddings(scaledEmbeddings, startPos);
-
+    auto scaledEmbeddings = addSpecialEmbeddings(embeddings, startPos);
     scaledEmbeddings = atleast_nd(scaledEmbeddings, 4);
 
     // reorganize batch and timestep
@@ -722,25 +677,33 @@ public:
 
     std::vector<Expr> encoderContexts;
     std::vector<Expr> encoderMasks;
-
     for(auto encoderState : state->getEncoderStates()) {
-      auto encoderContext = encoderState->getContext();
-      auto encoderMask = encoderState->getMask();
+      auto encoderContext = encoderState->getContext(); // encoder output
+      auto encoderMask = encoderState->getMask(); // note: may differ from Encoder self-attention mask in that additional positions are banned for cross-attention
+      encoderMask = atleast_nd(encoderMask, 4);
 
-      encoderContext = transposeTimeBatch(encoderContext); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+      encoderContext = transposeTimeBatch(encoderContext); // [beam depth=1, batch size, max length, vector dim]
+      encoderMask    = transposeTimeBatch(encoderMask);    // [beam depth=1, max length, batch size, vector dim=1]
 
       int dimSrcWords = encoderContext->shape()[-2];
 
-      //int dims = encoderMask->shape().size();
-      encoderMask = atleast_nd(encoderMask, 4);
-      encoderMask = reshape(transposeTimeBatch(encoderMask),
-                            {1, dimBatch, 1, dimSrcWords});
-      encoderMask = transposedLogMask(encoderMask);
+      // This would happen if something goes wrong during batch pruning.
+      ABORT_IF(encoderContext->shape()[-3] != dimBatch,
+               "Context and query batch dimension do not match {} != {}", 
+               encoderContext->shape()[-3], 
+               dimBatch);
+
+      // LayerAttention expects mask in a different layout
+      encoderMask = reshape(encoderMask, { 1, dimBatch, 1, dimSrcWords }); // [1,          batch size,            1,                      max length]
+      encoderMask = transposedLogMask(encoderMask);                        // [batch size, num heads broadcast=1, max length broadcast=1, max length]
       if(dimBeam > 1)
         encoderMask = repeat(encoderMask, dimBeam, /*axis=*/ -4);
 
       encoderContexts.push_back(encoderContext);
       encoderMasks.push_back(encoderMask);
+
+      checkpoint(encoderContext);
+      checkpoint(encoderMask);
     }
 
     rnn::States prevDecoderStates = state->getStates();
@@ -771,10 +734,12 @@ public:
       else if(layerType == "average-attention")
         query = DecoderLayerAAN(decoderState, prevDecoderState, prefix_ + "_l" + layerNo + "_aan", query, selfMask, startPos);
       else if(layerType == "rnn")
-        query = DecoderLayerRNN(decoderState, prevDecoderState, prefix_ + "_l" + layerNo + "_rnn", query, selfMask, startPos);
+        query = DecoderLayerRNN(perLayerRnn_, decoderState, prevDecoderState, prefix_ + "_l" + layerNo + "_rnn", query, selfMask, startPos);
       else
         ABORT("Unknown auto-regressive layer type in transformer decoder {}",
               layerType);
+
+      checkpoint(query);
 
       // source-target attention
       // Iterate over multiple encoders and simply stack the attention blocks
@@ -789,7 +754,7 @@ public:
           // decoding or scoring return the attention weights of one head of the last layer.
           // @TODO: maybe allow to return average or max over all heads?
           bool saveAttentionWeights = false;
-          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->has("alignment"))) {
+          if(j == 0 && (options_->get("guided-alignment", std::string("none")) != "none" || options_->hasAndNotEmpty("alignment"))) {
             size_t attLayer = decDepth - 1;
             std::string gaStr = options_->get<std::string>("transformer-guided-alignment-layer", "last");
             if(gaStr != "last")
@@ -812,10 +777,14 @@ public:
         }
       }
 
+      checkpoint(query);
+
       // remember decoder state
       decoderStates.push_back(decoderState);
 
       query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+
+      checkpoint(query);
     }
 
     auto decoderContext = transposeTimeBatch(query); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vector dim]
@@ -823,16 +792,18 @@ public:
     //************************************************************************//
 
     // final feed-forward layer (output)
-    Expr logits = output_->apply(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab dim]
-
+    if(shortlist_)
+      output_->setShortlist(shortlist_);
+    auto logits = output_->applyAsLogits(decoderContext); // [-4: beam depth=1, -3: max length, -2: batch size, -1: vocab or shortlist dim]
+    
     // return unormalized(!) probabilities
     Ptr<DecoderState> nextState;
     if (opt<std::string>("transformer-decoder-autoreg", "self-attention") == "rnn") {
       nextState = New<DecoderState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     } else {
       nextState = New<TransformerState>(
-          decoderStates, logits, state->getEncoderStates(), state->getBatch());
+        decoderStates, logits, state->getEncoderStates(), state->getBatch());
     }
     nextState->setPosition(state->getPosition() + 1);
     return nextState;
@@ -841,26 +812,20 @@ public:
   // helper function for guided alignment
   // @TODO: const vector<> seems wrong. Either make it non-const or a const& (more efficient but dangerous)
   virtual const std::vector<Expr> getAlignments(int /*i*/ = 0) override {
-    return alignments_;
+    return alignments_; // [tgt index][beam depth, max src length, batch size, 1]
   }
 
   void clear() override {
-    output_ = nullptr;
+    if (output_)
+      output_->clear();
     cache_.clear();
     alignments_.clear();
+    perLayerRnn_.clear(); // this needs to be cleared between batches. 
+    // @TODO: figure out how to detect stale nodes i.e. nodes that are referenced, 
+    // but where underlying memory has been deallocated by dropping all tensors 
+    // from a TensorAllocator object. This can happen during ExpressionGraph::clear()
   }
 };
-
-// factory functions
-Ptr<EncoderBase> NewEncoderTransformer(Ptr<Options> options)
-{
-  return New<EncoderTransformer>(options);
-}
-
-Ptr<DecoderBase> NewDecoderTransformer(Ptr<Options> options)
-{
-  return New<DecoderTransformer>(options);
-}
 
 // clang-format on
 

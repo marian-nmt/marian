@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   using namespace marian;
 
   // Initialize translation task
-  auto options = parseOptions(argc, argv, cli::mode::translation, true);
+  auto options = parseOptions(argc, argv, cli::mode::server, true);
   auto task = New<TranslateService<BeamSearch>>(options);
 
   // Initialize web server
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
   // Error Codes for error code meanings
   // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html
-  translate.on_error = [](Ptr<WSServer::Connection> connection,
+  translate.on_error = [](Ptr<WSServer::Connection> /*connection*/,
                           const SimpleWeb::error_code &ec) {
     LOG(error, "Connection error: ({}) {}", ec.value(), ec.message());
   };

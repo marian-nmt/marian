@@ -8,9 +8,7 @@ namespace data {
 
 WordAlignment::WordAlignment() {}
 
-WordAlignment::WordAlignment(
-    const std::vector<Point>& align)
-    : data_(align) {}
+WordAlignment::WordAlignment(const std::vector<Point>& align) : data_(align) {}
 
 WordAlignment::WordAlignment(const std::string& line) {
   std::vector<std::string> atok = utils::splitAny(line, " -");

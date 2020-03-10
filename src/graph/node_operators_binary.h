@@ -42,7 +42,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -63,7 +63,6 @@ public:
     // df/dB += alpha * dot(op(A).T, D)
     // beta set to 1.0 in gemm, C = alpha * dot(op(A), op(B)) + beta * C
     // to sum gradients from different graph parts
-
     if(!transA_ && transB_)
       return {NodeOp(Prod(child(0)->grad(),
                           adj_,
@@ -128,7 +127,30 @@ public:
                         scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "dot"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, transA_);
+    util::hash_combine(seed, transB_);
+    util::hash_combine(seed, scalar_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<DotNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(transA_ != cnode->transA_)
+      return false;
+    if(transB_ != cnode->transB_)
+      return false;
+    if(scalar_ != cnode->scalar_)
+      return false;
+    return true;
+  }
 
   const std::string color() override { return "orange"; }
 };
@@ -165,7 +187,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "matrix product requires dimensions to match");
+             "Matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -211,7 +233,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && !transB_)
@@ -232,7 +253,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     if(transA_ && transB_)
@@ -253,7 +273,6 @@ public:
                       scalar_)),
           NodeOp(Prod(
               child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-          // NodeOp(Add(_1, child(2)->grad(), adj_))
       };
 
     return {
@@ -273,11 +292,34 @@ public:
                     scalar_)),
         NodeOp(Prod(
             child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f))
-        // NodeOp(Add(_1, child(2)->grad(), adj_))
     };
   }
 
   const std::string type() override { return "affine"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, transA_);
+    util::hash_combine(seed, transB_);
+    util::hash_combine(seed, scalar_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<AffineNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(transA_ != cnode->transA_)
+      return false;
+    if(transB_ != cnode->transB_)
+      return false;
+    if(scalar_ != cnode->scalar_)
+      return false;
+    return true;
+  }
+
 };
 
 class DotBatchedNodeOp : public NaryNodeOp {
@@ -309,7 +351,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "matrix product requires dimensions to match");
+             "Batched matrix product requires inner dimensions to match");
     return outShape;
   }
 
@@ -404,7 +446,110 @@ public:
                                scalar_))};
   }
 
-  const std::string type() override { return "•"; }
+  const std::string type() override { return "bdot"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, transA_);
+    util::hash_combine(seed, transB_);
+    util::hash_combine(seed, scalar_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<DotBatchedNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(transA_ != cnode->transA_)
+      return false;
+    if(transB_ != cnode->transB_)
+      return false;
+    if(scalar_ != cnode->scalar_)
+      return false;
+    return true;
+  }
+
+  const std::string color() override { return "orange"; }
+};
+
+// Note: To reduce code duplication, we use the same NodeOp for C = op(S) x D and C = D x op(S).
+// Set swapOperands to select the latter.
+class CSRDotNodeOp : public NaryNodeOp {
+  bool transS_;
+  bool swapOperands_;
+public:
+  CSRDotNodeOp(const Shape& S_shape, Expr S_values, Expr S_indices,
+               Expr S_offsets, Expr D, bool transS, bool swapOperands)
+    : NaryNodeOp({ S_values, S_indices, S_offsets, D },
+                 newShape(S_shape, S_values, S_indices, S_offsets, D, transS, swapOperands),
+                 NaryNodeOp::commonType({S_values, D})),
+      transS_(transS), swapOperands_(swapOperands) {
+    matchOrAbort<IndexType>(S_indices->value_type());
+    matchOrAbort<IndexType>(S_offsets->value_type());
+  }
+
+  Shape newShape(const Shape& S_shape, Expr S_values, Expr S_indices, Expr S_offsets, Expr D, bool transS, bool swapOperands) {
+    ABORT_IF(S_values->shape().size() != 1 || S_indices->shape().size() != 1 || S_offsets->shape().size() != 1,
+        "Sparse matrix components must all be vectors");
+    ABORT_IF(S_values->shape() != S_indices->shape(),
+        "Sparse matrix values and indices must have the same shape");
+    ABORT_IF(S_shape.size() != 2,
+        "Sparse matrix must have rank 2");
+    ABORT_IF(S_offsets->shape()[0] - 1 != S_shape[0],
+        "Sparse matrix offset vector has incorrect size");
+    auto outShape = D->shape();
+    ABORT_IF(S_shape[transS == swapOperands ? 1 : 0] != outShape[-(int)swapOperands],
+             "Matrix product requires inner dimensions to match");
+    outShape.set(-(int)swapOperands, S_shape[transS != swapOperands]);
+    return outShape;
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(CSRProd(val_,
+                           graph()->allocator(),
+                           child(0)->val(), child(1)->val(), child(2)->val(),
+                           child(3)->val(),
+                           /*transS=*/transS_, /*swapOperands=*/swapOperands_, /*beta=*/0))};
+  }
+
+  NodeOps backwardOps() override {
+    return { nullptr, // can't backprop into the sparse matrix (the gradient is dense)
+             nullptr,
+             nullptr,
+             NodeOp(CSRProd(child(3)->grad(), // child(3) = D
+                            graph()->allocator(),
+                            child(0)->val(), child(1)->val(), child(2)->val(), // children(0..2) = A
+                            adj_,
+                            /*transS=*/!transS_, /*swapOperands=*/swapOperands_, /*beta=*/1))};
+  }
+
+  const std::string type() override { return "csr_dot"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    for(auto s : shape())
+      util::hash_combine(seed, s);
+    util::hash_combine(seed, transS_);
+    util::hash_combine(seed, swapOperands_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<CSRDotNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(transS_ != cnode->transS_)
+      return false;
+    if(shape() != cnode->shape())
+      return false;
+    if(swapOperands_ != cnode->swapOperands_)
+      return false;
+    return true;
+  }
 
   const std::string color() override { return "orange"; }
 };
@@ -460,7 +605,7 @@ struct ScalarProductNodeOp : public NaryNodeOp {
 
 struct RowsNodeOp : public NaryNodeOp {
   RowsNodeOp(Expr a, Expr indices)
-      : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+    : NaryNodeOp({a, indices}, newShape(a, indices), a->value_type()) {
       matchOrAbort<IndexType>(indices->value_type());
   }
 
@@ -473,12 +618,11 @@ struct RowsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteRows(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, size_t num) {
+  Shape newShape(Expr a, Expr indices) {
     Shape shape = a->shape();
     ABORT_IF(shape.size() != 2,
              "rows operator can only be used with 2-dimensional tensors");
-    shape.set(0, num);
+    shape.set(0, (int)indices->shape().elements());
     return shape;
   }
 
@@ -487,10 +631,10 @@ struct RowsNodeOp : public NaryNodeOp {
   const std::string color() override { return "orange"; }
 };
 
-// This operation indexes a tensor along an axis.
-// This is similar to the common gather() operation in other toolkits.
+// This operation gathers elements of a tensor along an axis.
+// This is like PyTorch gather().
 // For example, this can be used for:
-//  - Same index applied to all batch items (today's select()):
+//  - Same index applied to all batch items:
 //    'index' has 1 in the axes that match batch axes in the input, and axis set to the one axis that gets selected over.
 //    Example: Selecting Transformer head 0, i.e. return a[:,1,:,:]
 //      axis = -3
@@ -505,7 +649,7 @@ struct RowsNodeOp : public NaryNodeOp {
 //      idx: (#(B*S)#, 1)        B=batch size, S=source length, idx values are in range 0..V-1
 //      out: ( (B*S) , E)        out[b, s, e] == e[/*0,*/ idx[b, s, 0], e]
 //  - Batched selection (x-ent scenario): Both 'index' and 'data' have matching batch axes.
-//    Example: Cross-entropy loss as -select(logSoftmax(logits), groundTruth, axis=-1):
+//    Example: Cross-entropy loss as -gather(logSoftmax(logits), groundTruth, axis=-1):
 //      axis = -1
 //      lp : (B, T,  V )        B=batch size, T=trg length, V=vocab size
 //      idx: (B, T, #1#)        idx values are in range 0..V-1
@@ -520,14 +664,10 @@ struct RowsNodeOp : public NaryNodeOp {
 //  out[i][j][k] = input[index[i][j][k]][j][k]  # if dim == 0
 //  out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
 //  out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
-// If 'a' and 'indices' do not have the same rank, then negative 'axis' is
-// interpreted relative to 'a', and 'indices' must have the resulting axis.
-// Broadcasting is supported as usual.
-// @TODO: The current implementation does not support batched indices (third scenario above).
-//        I.e. all axes of 'indices' except 'axis' must have dimension 1.
-struct SelectNodeOp : public NaryNodeOp {
-  SelectNodeOp(Expr a, Expr indices, int axis)
-      : NaryNodeOp({a, indices}, newShape(a, indices, axis), a->value_type()),
+// 'a' and 'indices' must have the same rank.
+struct GatherNodeOp : public NaryNodeOp {
+  GatherNodeOp(Expr a, int axis, Expr indices)
+      : NaryNodeOp({a, indices}, newShape(a, axis, indices), a->value_type()),
         axis_(a->shape().axis(axis)) {
     matchOrAbort<IndexType>(indices->value_type());
   }
@@ -542,24 +682,23 @@ struct SelectNodeOp : public NaryNodeOp {
         Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
-  Shape newShape(Expr a, Expr indices, int axis) {
-    axis = a->shape().axis(axis);
-    auto indicesRank = indices->shape().size();
-    ABORT_IF(axis >= indicesRank, "Axis {} is invalid for indices shape {}", axis, std::string(indices->shape()));
+  Shape newShape(Expr a, int axis, Expr indices) {
     Shape shape = a->shape();
-    if (shape.size() < indicesRank) // pad
-      shape.resize(indicesRank);
+    axis = shape.axis(axis);
+    auto rank = shape.size();
+    ABORT_IF(rank != indices->shape().size(), "Mismatching ranks for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+    axis = a->shape().axis(axis);
     shape.set(axis, indices->shape()[axis]);
-#if 1 // presently, this implementation does not support batched indices
-    for (size_t i = 0; i < indicesRank; ++i) {
-      ABORT_IF(indices->shape()[i] != 1 && i + shape.size() - indicesRank != axis,
-               "Presently, select() does not implement batched indices");
+    for (size_t i = 0; i < rank; ++i) {
+      if (i != axis) {
+        ABORT_IF(indices->shape()[i] != shape[i] && indices->shape()[i] != 1,
+            "Dimensions must match or broadcast for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
+      }
     }
-#endif
     return shape;
   }
 
-  const std::string type() override { return "select"; }
+  const std::string type() override { return "gather"; }
 
   const std::string color() override { return "orange"; }
 
@@ -575,7 +714,7 @@ struct SelectNodeOp : public NaryNodeOp {
   virtual bool equal(Expr node) override {
     if(!NaryNodeOp::equal(node))
       return false;
-    Ptr<SelectNodeOp> cnode = std::dynamic_pointer_cast<SelectNodeOp>(node);
+    auto cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_)
@@ -588,7 +727,7 @@ struct SelectNodeOp : public NaryNodeOp {
 
 struct ColsNodeOp : public NaryNodeOp {
   ColsNodeOp(Expr a, Expr indices)
-    : NaryNodeOp({a, indices}, newShape(a, indices->shape().elements())) {
+    : NaryNodeOp({a, indices}, newShape(a, indices), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
   }
 
@@ -600,10 +739,9 @@ struct ColsNodeOp : public NaryNodeOp {
     return {NodeOp(PasteCols(child(0)->grad(), adj_, child(1)->val()))};
   }
 
-  template <class... Args>
-  Shape newShape(Expr a, size_t num) {
+  Shape newShape(Expr a, Expr indices) {
     Shape shape = a->shape();
-    shape.set(1, num);
+    shape.set(1, (int)indices->shape().elements());
     return shape;
   }
 
@@ -614,7 +752,8 @@ struct ColsNodeOp : public NaryNodeOp {
 
 
 struct ElementBinaryNodeOp : public NaryNodeOp {
-  ElementBinaryNodeOp(Expr a, Expr b) : NaryNodeOp({a, b}, newShape(a, b)) {}
+  ElementBinaryNodeOp(Expr a, Expr b)
+   : NaryNodeOp({a, b}, newShape(a, b)) {}
 
   Shape newShape(Expr a, Expr b) { return Shape::broadcast({a, b}); }
 
@@ -814,13 +953,71 @@ struct MinimumNodeOp : public ElementBinaryNodeOp {
   const std::string type() override { return "min"; }
 };
 
+struct CmpNodeOp : public ElementBinaryNodeOp {
+  CmpNodeOp(Expr a, Expr b, int cmp_, bool not_) : ElementBinaryNodeOp(a, b), cmp_(cmp_), not_(not_) {
+    //setTrainable(false); // has no gradient
+    // Note: ^^ Disabled because it currently causing Marian to choke, for unknown reasons.
+    //       Not setting this will not change the result since the vector of gradient functions is empty.
+  }
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+
+    return {
+      NodeOp(Element(_1 = ((((_2 > _3) - (_2 < _3)) == (float)cmp_) != not_),
+             val_, child(0)->val(), child(1)->val()))};
+  }
+
+  NodeOps backwardOps() override { return {}; }
+
+  const std::string type() override {
+    switch (cmp_) {
+    case -1: return not_ ? "ge" : "lt";
+    case  0: return not_ ? "ne" : "eq";
+    case  1: return not_ ? "le" : "gt";
+    }
+    ABORT("Should not get here??");
+  }
+
+  virtual size_t hash() override {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      util::hash_combine(seed, cmp_);
+      util::hash_combine(seed, not_);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<CmpNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(cmp_ != cnode->cmp_)
+      return false;
+    if(not_ != cnode->not_)
+      return false;
+    return true;
+  }
+
+private:
+  int cmp_;  // -1: less; 0: equal; 1: greater
+  bool not_; // invert result if true
+};
+
 // In each j-th row, take the corresponding j-th label index i from indices and compute:
 // For each vocabulary item v, the only non-zero element in a row in the sum is the item
 // that matches the label indexed by i (the picked element).
 // C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i]
 struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr indices) : NaryNodeOp({a, indices}, newShape(a)) {
+  CrossEntropyNodeOp(Expr a, Expr indices)
+    : NaryNodeOp({a, indices}, newShape(a), a->value_type()) {
     matchOrAbort<IndexType>(indices->value_type());
+    int rows   = a->shape().elements() / a->shape()[-1];
+    int labels = indices->shape().elements();
+    ABORT_IF(rows != labels, "Number of examples and labels does not match: {} != {}", rows, labels);
   }
 
   Shape newShape(Expr a) {
@@ -847,12 +1044,21 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   }
 
   Shape newShape(const std::vector<Expr>& nodes, int ax) {
-    Shape shape = nodes.back()->shape();
+    ABORT_IF(nodes.empty(), "No child nodes given");
+
+    Shape shape = nodes[0]->shape();
     ax_ = shape.axis(ax);
 
     int sum = 0;
-    for(auto child : nodes)
+    auto checkShape = shape;
+    for(auto child : nodes) {
+      checkShape.set(ax_, child->shape()[ax_]); // don't abort on different sizes on axis dim.
+      ABORT_IF(checkShape != child->shape(),
+               "Child shapes {} and {} cannot be concatenated along axis {}",
+               shape, child->shape(), ax);
+
       sum += child->shape()[ax_];
+    }
     shape.set(ax_, sum);
 
     return shape;
@@ -869,8 +1075,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> deconcatenees;
     for(size_t i = 0; i < children_.size(); ++i) {
       auto childPtr = child(i);
-      childPtr
-          ->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
+      childPtr->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(childPtr->grad());
     }
     Deconcatenate(deconcatenees, adj_, ax_);
@@ -913,7 +1118,9 @@ public:
   }
 
   NodeOps backwardOps() override {
-    return {NodeOp(LayerNormalizationGrad(
+    return {NodeOp(
+      LayerNormalizationGrad(
+        graph()->allocator(),
         child(0)->grad(),
         child(1)->grad(),
         (children_.size() == 3) ? child(2)->grad() : nullptr,
@@ -926,6 +1133,23 @@ public:
   }
 
   const std::string type() override { return "layer_normalization"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, eps_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<LayerNormalizationOp>(node);
+    if(!cnode)
+      return false;
+    if(eps_ != cnode->eps_)
+      return false;
+    return true;
+  }
 
 private:
   float eps_;

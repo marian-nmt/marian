@@ -43,6 +43,23 @@ struct GRUFastNodeOp : public NaryNodeOp {
   const std::string type() override { return "GRU-ops"; }
 
   const std::string color() override { return "yellow"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, final_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<GRUFastNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(final_ != cnode->final_)
+      return false;
+    return true;
+  }
 };
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final) {

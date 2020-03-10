@@ -19,23 +19,23 @@ using namespace data;
 
 class Rescorer {
 private:
-  Ptr<models::ModelBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
 
 public:
   Rescorer(Ptr<Options> options)
-      : builder_(models::from_options(options, models::usage::scoring)) {}
+      : builder_(models::createCriterionFunctionFromOptions(options, models::usage::scoring)) {}
 
   void load(Ptr<ExpressionGraph> graph, const std::string& modelFile) {
     builder_->load(graph, modelFile);
   }
 
-  Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
+  Ptr<RationalLoss> build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     return builder_->build(graph, batch);
   }
 
   data::SoftAlignment getAlignment() {
-    auto model = std::static_pointer_cast<models::Scorer>(builder_)->getModel();
-    return std::static_pointer_cast<EncoderDecoderBase>(model)->getAlignment();
+    auto model = std::static_pointer_cast<models::Trainer>(builder_)->getModel();
+    return std::static_pointer_cast<IEncoderDecoder>(model)->getAlignment();
   }
 };
 
@@ -49,15 +49,15 @@ private:
 
 public:
   Rescore(Ptr<Options> options) : options_(options) {
-    ABORT_IF(options_->has("summary") && options_->has("alignment"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->hasAndNotEmpty("alignment"),
              "Alignments can not be produced with summarized score");
 
-    ABORT_IF(options_->has("summary") && options_->get<bool>("normalize"),
+    ABORT_IF(options_->hasAndNotEmpty("summary") && options_->get<bool>("normalize"),
              "Normalization by length cannot be used with summary scores");
 
     options_->set("inference", true);
-    // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
-    options_->set("cost-type", options_->get<bool>("normalize") ? "ce-rescore-mean" : "ce-rescore");
+    options_->set("shuffle", "none");
+    options_->set("cost-type", "ce-rescore"); // indicates that to keep separate per-batch-item scoresForSummary
 
     if(options_->get<bool>("n-best"))
       corpus_ = New<CorpusNBest>(options_);
@@ -68,8 +68,16 @@ public:
     auto devices = Config::getDevices(options_);
 
     for(auto device : devices) {
-      auto graph = New<ExpressionGraph>(true, options_->get<bool>("optimize"));
+      auto graph = New<ExpressionGraph>(true);
+
+      auto precison = options_->get<std::vector<std::string>>("precision", {"float32"});
+      graph->setDefaultElementType(typeFromString(precison[0])); // only use first type, used for parameter type in graph
       graph->setDevice(device);
+      graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
+      if (device.type == DeviceType::cpu) {
+        graph->getBackend()->setOptimized(options_->get<bool>("optimize"));
+      }
+
       graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
       graphs_.push_back(graph);
     }
@@ -92,20 +100,20 @@ public:
     LOG(info, "Scoring");
 
     auto batchGenerator = New<BatchGenerator<CorpusBase>>(corpus_, options_);
-    batchGenerator->prepare(false);
+    batchGenerator->prepare();
 
     Ptr<ScoreCollector> output = options_->get<bool>("n-best")
                                      ? std::static_pointer_cast<ScoreCollector>(
                                            New<ScoreCollectorNBest>(options_))
                                      : New<ScoreCollector>(options_);
 
-    std::string alignment = options_->get<std::string>("alignment", "");
-    bool summarize = options_->has("summary");
+    auto alignment = options_->get<std::string>("alignment", "");
+    auto summary = options_->get<std::string>("summary", "");
+    bool summarize = !summary.empty();
+    // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
     bool normalize = options_->get<bool>("normalize");
 
-    std::string summary = summarize ? options_->get<std::string>("summary") : "cross-entropy";
-
-    float sumCost = 0;
+    float sumLoss = 0;
     size_t sumWords = 0;
     size_t sumSamples = 0;
     size_t batchId = 0;
@@ -115,7 +123,7 @@ public:
       ThreadPool pool(graphs_.size(), graphs_.size());
 
       for(auto batch : *batchGenerator) {
-        auto task = [=, &sumCost, &sumWords, &sumSamples, &smutex](size_t id) {
+        auto task = [=, &sumLoss, &sumWords, &sumSamples, &smutex](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;
 
@@ -126,29 +134,41 @@ public:
 
           // @TODO: normalize by length as in normalize
           // Once we have Frank's concept of ce-sum with sample size by words we will return a pair
-          // here which will make it trivial to report all variants. 
-          auto costNode = builder->build(graph, batch);
+          // here which will make it trivial to report all variants.
+          auto dynamicLoss = builder->build(graph, batch);
 
           graph->forward();
 
-          std::vector<float> scores;
-          costNode->val()->get(scores);
+          // get loss
+          std::vector<float> scoresForSummary;
+          dynamicLoss->loss(scoresForSummary);
+          std::vector<float> sentScores(scoresForSummary); // if '--normalize' then report scoresForSummary length-normalized
+          if (normalize) {
+            std::vector<float> sentLengths;
+            dynamicLoss->count(sentLengths);
+            for (size_t i = 0; i < scoresForSummary.size(); i++) {
+              if (sentScores[i] != 0) // (avoid 0/0)
+                sentScores[i] /= (sentLengths.size() == 1 ? sentLengths[0] : sentLengths[i]); // emulate broadcasting semantics
+            }
+          }
 
           // soft alignments for each sentence in the batch
-          std::vector<data::SoftAlignment> aligns(batch->size());
+          std::vector<data::SoftAlignment> aligns(batch->size()); // @TODO: do this resize inside getAlignmentsForBatch()
           if(!alignment.empty()) {
             getAlignmentsForBatch(builder->getAlignment(), batch, aligns);
           }
 
           std::unique_lock<std::mutex> lock(smutex);
-          for(auto s : scores)
-            sumCost += s;
+          for(auto s : scoresForSummary)
+            sumLoss += s;
           sumWords += batch->back()->batchWords();
           sumSamples += batch->size();
 
           if(!summarize) {
             for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write((long)batch->getSentenceIds()[i], scores[i], aligns[i]);
+              output->Write((long)batch->getSentenceIds()[i],
+                             -1.f * sentScores[i], // report logProb while score is CE, hence negate
+                             aligns[i]);
             }
           }
 
@@ -168,22 +188,22 @@ public:
     }
 
     if(normalize) {
-      LOG(info, "Total normalized log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
+      LOG(info, "Total normalized log probs {} : Total sentences {} : Total words {}", sumLoss, sumSamples, sumWords);
       LOG(warn, "Sum of normalized log probs is a sum of averages");
     } else {
-      LOG(info, "Total log probs {} : Total sentences {} : Total words {}", sumCost, sumSamples, sumWords);
+      LOG(info, "Total log probs {} : Total sentences {} : Total words {}", sumLoss, sumSamples, sumWords);
     }
 
-    if(summarize) {
+    if(summarize) { // @TODO: use one function from loss
       float cost = 0;
       if(summary == "perplexity")
-        cost = std::exp(-(float)sumCost / (float)sumWords);
+        cost = std::exp(sumLoss / (float)sumWords);
       else if(summary == "ce-sum")
-        cost = -sumCost;
+        cost = sumLoss;
       else if(summary == "ce-mean-words")
-        cost = -(float)sumCost / (float)sumWords;
+        cost = sumLoss / (float)sumWords;
       else
-        cost = -sumCost / sumSamples;
+        cost = sumLoss / sumSamples;
 
       LOG(info, "Reporting {} summary", summary);
       std::cout << cost << std::endl;

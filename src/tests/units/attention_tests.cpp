@@ -1,18 +1,33 @@
 #include "catch.hpp"
 #include "marian.h"
 
+#ifdef CUDA_FOUND
+#include "tensors/gpu/backend.h"
+#endif
+
 #include "rnn/rnn.h"
 #include "rnn/constructors.h"
 #include "rnn/attention.h"
 
 using namespace marian;
 
-void tests(DeviceType type) {
-  auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
+template <typename T>
+void tests(DeviceType type, Type floatType = Type::float32) {
+
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  if(type == DeviceType::gpu && floatType == Type::float16) {
+    auto gpuBackend = New<gpu::Backend>(DeviceId({0, type}), /*seed=*/1234);
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6) return;
+  }
+#endif
+
+  auto floatApprox = [](T x, T y) { return x == Approx(y).epsilon(0.01); };
 
   Config::seed = 1234;
 
-  Words vWords = {
+  std::vector<IndexType> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,
@@ -23,7 +38,7 @@ void tests(DeviceType type) {
     0, 0, 0, 0
   };
 
-  std::vector<float> vMask = {
+  std::vector<T> vMask = {
     1, 1, 1, 1,
     1, 1, 1, 1,
     1, 1, 1, 1,
@@ -36,10 +51,11 @@ void tests(DeviceType type) {
 
   SECTION("Attention over encoder context") {
     auto graph = New<ExpressionGraph>();
+    graph->setDefaultElementType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
-    std::vector<float> values;
+    std::vector<T> values;
 
     int dimEmb = 16;
     int dimBatch = 4;
@@ -47,19 +63,19 @@ void tests(DeviceType type) {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            inits::glorot_uniform);
+                            inits::glorotUniform());
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                inits::from_vector(vMask));
+                                inits::fromVector(vMask));
 
-    auto rnn = rnn::rnn(graph)         //
+    auto rnn = rnn::rnn()         //
           ("prefix", "rnntest")        //
           ("type", "gru")              //
           ("dimInput", 16)             //
           ("dimState", 8)              //
-          .push_back(rnn::cell(graph)) //
-          .construct();
+          .push_back(rnn::cell()) //
+          .construct(graph);
 
     auto context = rnn->transduce(input, mask);
 
@@ -71,12 +87,12 @@ void tests(DeviceType type) {
 
     auto att = New<rnn::Attention>(graph, options, encState);
 
-    std::vector<float> vState(64);
+    std::vector<T> vState(64);
     std::generate(vState.begin(), vState.end(),
                   [](){ static int n = -32; return n++ / 64.f; });
 
     rnn::State state({graph->constant({1, 1, 4, 16},
-                                     inits::from_vector(vState)),
+                                     inits::fromVector(vState)),
                       nullptr});
 
     auto aligned = att->apply(state);
@@ -86,7 +102,7 @@ void tests(DeviceType type) {
     CHECK(aligned->shape() == Shape({1, 1, 4, 8}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vAligned({
+    std::vector<T> vAligned({
       0.0396688, -0.0124071, -0.0159668, -0.00080064,
       -0.0132853, 0.0240206, 0.0744701, -0.0248388,
       0.0258906, -0.00868394, -0.0374499, 0.0357639,
@@ -97,7 +113,7 @@ void tests(DeviceType type) {
       -0.0330807, 0.018745, 0.0341848, -0.0111661
     });
 #else
-    std::vector<float> vAligned({
+    std::vector<T> vAligned({
       -0.061056, 0.0262615, -0.0393096, 0.115902,
       0.0941305, 0.00475613, -0.0159573, 0.00293181,
       -0.0919751, -0.018913, 0.00927365, -0.000343846,
@@ -116,12 +132,18 @@ void tests(DeviceType type) {
 
 #ifdef CUDA_FOUND
 TEST_CASE("Model components, Attention (gpu)", "[attention]") {
-  tests(DeviceType::gpu);
+  tests<float>(DeviceType::gpu);
 }
+
+#if COMPILE_FP16
+TEST_CASE("Model components, Attention (gpu, fp16)", "[attention]") {
+  tests<float16>(DeviceType::gpu, Type::float16);
+}
+#endif
 #endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Model components, Attention (cpu)", "[attention]") {
-  tests(DeviceType::cpu);
+  tests<float>(DeviceType::cpu);
 }
 #endif

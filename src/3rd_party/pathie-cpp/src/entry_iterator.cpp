@@ -31,7 +31,7 @@
 #include "../include/path.hpp"
 #include "../include/errors.hpp"
 
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
@@ -178,7 +178,7 @@ entry_iterator& entry_iterator::operator++(int)
 /// Same as the other operator++().
 entry_iterator& entry_iterator::operator++()
 {
-  return (operator++());
+  return (operator++(0));
 }
 
 /**

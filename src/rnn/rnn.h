@@ -35,7 +35,7 @@ protected:
 public:
   BaseRNN(Ptr<ExpressionGraph> graph, Ptr<Options> options)
       : graph_(graph), options_(options) {}
-
+  virtual ~BaseRNN() {}
   virtual Expr transduce(Expr, Expr = nullptr) = 0;
   virtual Expr transduce(Expr, State, Expr = nullptr) = 0;
   virtual Expr transduce(Expr, States, Expr = nullptr) = 0;
@@ -75,11 +75,11 @@ private:
 
       std::vector<Expr> steps(xWs.size());
       std::transform(xWs.begin(), xWs.end(), steps.begin(), [j](Expr e) {
-        return step(e, j, -3);
+        return slice(e, -3, j);
       });
 
       if(mask)
-        state = cell_->applyState(steps, state, step(mask, j, -3));
+        state = cell_->applyState(steps, state, slice(mask, -3, j));
       else
         state = cell_->applyState(steps, state);
 
@@ -113,6 +113,7 @@ private:
 
 public:
   friend RNN;
+  virtual ~SingleLayerRNN() {}
 
   // @TODO: benchmark whether this concatenation is a good idea
   virtual Expr transduce(Expr input, Expr mask = nullptr) override {

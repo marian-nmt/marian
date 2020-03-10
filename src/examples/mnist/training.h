@@ -28,16 +28,19 @@ public:
     // Prepare scheduler with validators
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
     auto scheduler = New<Scheduler>(options_, trainState);
-    scheduler->addValidator(New<AccuracyValidator>(options_));
+    scheduler->addValidator(New<MNISTAccuracyValidator>(options_));
+
+    // Multi-node training
+    auto mpi = initMPI(/*multiThreaded=*/false);
 
     // Prepare model
-    auto model = New<ModelWrapper>(options_);
+    auto model = New<ModelWrapper>(options_, mpi);
     model->setScheduler(scheduler);
     model->load();
 
     // Run training
     while(scheduler->keepGoing()) {
-      batchGenerator->prepare(!options_->get<bool>("no-shuffle"));
+      batchGenerator->prepare();
       for(auto batch : *batchGenerator) {
         if(!scheduler->keepGoing())
            break;
@@ -47,6 +50,8 @@ public:
         scheduler->increaseEpoch();
     }
     scheduler->finished();
+    model = nullptr;
+    finalizeMPI(std::move(mpi));
   }
 };
 }  // namespace marian

@@ -10,7 +10,10 @@ bool ConfigValidator::has(const std::string& key) const {
   return config_[key];
 }
 
-ConfigValidator::ConfigValidator(const YAML::Node& config) : config_(config) {}
+ConfigValidator::ConfigValidator(const YAML::Node& config)
+    : config_(config),
+      dumpConfigOnly_(config["dump-config"] && !config["dump-config"].as<std::string>().empty()
+                      && config["dump-config"].as<std::string>() != "false") {}
 
 ConfigValidator::~ConfigValidator() {}
 
@@ -28,6 +31,9 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
       validateOptionsParallelData();
       validateOptionsTraining();
       break;
+    default:
+      ABORT("wrong CLI mode");
+      break;
   }
   // clang-format on
 
@@ -42,16 +48,25 @@ void ConfigValidator::validateOptionsTranslation() const {
   ABORT_IF(models.empty() && configs.empty(),
            "You need to provide at least one model file or a config file");
 
-  auto vocabs = get<std::vector<std::string>>("vocabs");
-  ABORT_IF(vocabs.empty(), "Translating, but vocabularies are not given!");
-
   for(const auto& modelFile : models) {
     filesystem::Path modelPath(modelFile);
     ABORT_IF(!filesystem::exists(modelPath), "Model file does not exist: " + modelFile);
   }
+
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  ABORT_IF(vocabs.empty(), "Translating, but vocabularies are not given");
+
+  for(const auto& vocabFile : vocabs) {
+    filesystem::Path vocabPath(vocabFile);
+    ABORT_IF(!filesystem::exists(vocabPath), "Vocabulary file does not exist: " + vocabFile);
+  }
 }
 
 void ConfigValidator::validateOptionsParallelData() const {
+  // Do not check these constraints if only goal is to dump config
+  if(dumpConfigOnly_)
+    return;
+
   auto trainSets = get<std::vector<std::string>>("train-sets");
   ABORT_IF(trainSets.empty(), "No train sets given in config file or on command line");
 
@@ -62,17 +77,23 @@ void ConfigValidator::validateOptionsParallelData() const {
 
 void ConfigValidator::validateOptionsScoring() const {
   filesystem::Path modelPath(get<std::string>("model"));
-
   ABORT_IF(!filesystem::exists(modelPath), "Model file does not exist: " + modelPath.string());
-  ABORT_IF(get<std::vector<std::string>>("vocabs").empty(),
-           "Scoring, but vocabularies are not given!");
+
+  auto vocabs = get<std::vector<std::string>>("vocabs");
+  ABORT_IF(vocabs.empty(), "Scoring, but vocabularies are not given");
+
+  for(const auto& vocabFile : vocabs) {
+    filesystem::Path vocabPath(vocabFile);
+    ABORT_IF(!filesystem::exists(vocabPath), "Vocabulary file does not exist: " + vocabFile);
+  }
 }
 
 void ConfigValidator::validateOptionsTraining() const {
   auto trainSets = get<std::vector<std::string>>("train-sets");
 
   ABORT_IF(has("embedding-vectors")
-               && get<std::vector<std::string>>("embedding-vectors").size() != trainSets.size(),
+               && get<std::vector<std::string>>("embedding-vectors").size() != trainSets.size()
+               && !get<std::vector<std::string>>("embedding-vectors").empty(),
            "There should be as many embedding vector files as training sets");
 
   filesystem::Path modelPath(get<std::string>("model"));
@@ -84,12 +105,13 @@ void ConfigValidator::validateOptionsTraining() const {
   ABORT_IF(!modelDir.empty() && !filesystem::isDirectory(modelDir),
            "Model directory does not exist");
 
-  ABORT_IF(
-      has("valid-sets") && get<std::vector<std::string>>("valid-sets").size() != trainSets.size(),
-      "There should be as many validation sets as training sets");
+  ABORT_IF(has("valid-sets")
+               && get<std::vector<std::string>>("valid-sets").size() != trainSets.size()
+               && !get<std::vector<std::string>>("valid-sets").empty(),
+           "There should be as many validation sets as training sets");
 
   // validations for learning rate decaying
-  ABORT_IF(get<double>("lr-decay") > 1.0, "Learning rate decay factor greater than 1.0 is unusual");
+  ABORT_IF(get<float>("lr-decay") > 1.f, "Learning rate decay factor greater than 1.0 is unusual");
 
   auto strategy = get<std::string>("lr-decay-strategy");
 

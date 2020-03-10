@@ -63,7 +63,7 @@ public:
       tensors_->allocate(node->grad(), node->shape(), node->value_type());
   }
 
-  void free(Tensor& tensor) { tensors_->free(tensor); }
+  void free(const Tensor& tensor) { tensors_->free(tensor); }
 
   // @TODO: get rid of this, not really used or can be done better
   Ptr<Allocator> allocator() { return tensors_->allocator(); }
@@ -90,14 +90,13 @@ public:
 
     auto it = shortterm_->find(hash);
     if(it != shortterm_->end()) {
-      for(auto foundWeak : it->second) {
-        auto found = foundWeak.lock();
+      for(auto found : it->second) {
         if(node->equal(found)) {
           return found;
         }
       }
     }
-    (*shortterm_)[hash].push_back(node);
+    (*shortterm_)[hash].push_back(node.get()); // weakPtr
     return nullptr;
   }
 
@@ -111,8 +110,9 @@ public:
   void clearLongtermMemory() { longterm_->clear(); }
 };
 
+typedef std::map<Type, Ptr<Parameters>> ElementTypeParamsMap; // keep it sorted, hence map not unordered map
+
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
-private:
   size_t count_{0};
 
   std::list<Expr> nodesForward_;
@@ -120,21 +120,19 @@ private:
 
   std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
 
-  // Holds memory and expressions that correspond to graph parameters
-  Ptr<Parameters> params_;
-
   // Holds memory and expressions that correspond to temporary expressions.
   // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
+  Type defaultElementType_{Type::float32}; // Type used for storing parameters, currently all parameters have to have the same type
+
   bool inferenceOnly_{false};
-  bool optimized_{false};
-  Ptr<Backend> backend_;
+
+  bool checkpointing_{false}; // use gradient checkpointing if true
 
   bool reloaded_{false};
-  std::string namespace_;
 
   bool throwNaN_{false};
 
@@ -143,40 +141,51 @@ protected:
   ExpressionGraph(const ExpressionGraph&) = delete;
   ExpressionGraph(ExpressionGraph&&) = delete;
 
+  // Holds memory and expressions that correspond to graph parameters
+  // Now we can have multiple types of parameters in a separate parameters object per value type. 
+  // This is currently only accessible through private functions during loading, will abort during training
+  // when params() is called (e.g. optimizer) and there is more or other types than the default parameter type.
+  // Currently the only usecase is inference. Trying to access params() for non-default parameter type is going
+  // to abort. Inference does not need to access a whole set of parameters.
+  ElementTypeParamsMap paramsByElementType_;
+  Ptr<Backend> backend_;
+
+  std::string namespace_;
+
 public:
   /** @brief Constructs a new expression graph
    *
    * Constructor should be used as New<ExpressionGraph>()
    */
-  ExpressionGraph(bool inference = false, bool optimized = false);
+  ExpressionGraph(bool inference = false);
 
-  void setInference(bool inference) { inferenceOnly_ = inference; }
-  bool isInference() { return inferenceOnly_; }
-
-  ~ExpressionGraph() {
+  virtual ~ExpressionGraph() {
     clear();
-    params_->clear();
+    for(auto kvParams : paramsByElementType_)
+      kvParams.second->clear();
   }
 
-  void setDevice(DeviceId deviceId = {0, DeviceType::gpu},
-                 Ptr<Device> device = nullptr);
+  virtual void setDevice(DeviceId deviceId = {0, DeviceType::gpu},
+                         Ptr<Device> device = nullptr);
 
   DeviceId getDeviceId() { return backend_->getDeviceId(); }
 
   Ptr<Backend> getBackend() { return backend_; }
 
-  void setOptimized(bool optimized) { optimized_ = optimized; }
-  bool isOptimized() { return (optimized_ && inferenceOnly_); }
+  void setInference(bool inference) { inferenceOnly_ = inference; }
+  bool isInference() { return inferenceOnly_; }
+
+  void setCheckpointing(bool checkpointing) { checkpointing_ = checkpointing; }
+  bool isCheckpointing() { return checkpointing_; }
 
   void switchParams(const std::string& newNamespace) {
     namespace_ = newNamespace;
   }
 
-  void copyParams(Ptr<ExpressionGraph> graph) {
+  virtual void copyParams(Ptr<ExpressionGraph> graph) {
     for(auto p : *graph->params())
-      param(p->name(), p->shape(), inits::dummy);
-    params()->allocateForward();
-    params()->vals()->copyFrom(graph->params()->vals());
+      param(p->name(), p->shape(), inits::fromTensor(p->val()), p->value_type());
+    forward(); // this will allocate parameters, execute the intializers and therefore copy parameter values
   }
 
   void reserveWorkspaceMB(size_t num) {
@@ -212,86 +221,18 @@ public:
     return true;
   }
 
+  void checkNaN(Tensor t, bool& isNaN, bool& isInf);
+
   void forward() {
-    params_->allocateForward();
+    for(auto kvParams : paramsByElementType_)
+      kvParams.second->allocateForward();
     forwardNext();
   }
 
-  void checkNan(Tensor t);
+  void forwardNext();
+  void forward(std::list<Expr>& forwardTape, bool finalPass);
 
-  void forwardNext() {
-    // @TODO: check if allocation works properly
-    tensors_->clearShorttermMemory();
-
-    while(!nodesForward_.empty()) {
-      auto v = nodesForward_.front();
-      v->allocate();
-      v->init();
-      v->forward();
-
-      checkNan(v->val());
-
-      if(v->marked_for_debug()) {
-        std::cerr << "Debug: " << v->debug_message() << " op=" << v->type()
-                  << std::endl;
-        std::cerr << v->val()->debug() << std::endl;
-      }
-
-      if(inferenceOnly_)
-        v->children().clear();
-      nodesForward_.pop_front();
-    }
-  }
-
-  void backward(bool zero = true) {
-    if(topNodes_.size() > 1) {
-      LOG(critical, "There are more ({}) than one top most node for backward step:", topNodes_.size());
-      for(auto node : topNodes_) {
-        LOG(critical,
-            "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
-            node->type(),
-            node->shape(),
-            node->name(),
-            node->getId(),
-            node->hash());
-      }
-      ABORT("Aborting");
-    }
-
-    params_->allocateBackward();
-    if(zero)
-      params_->set_zero_adjoint();
-
-    for(auto&& v : topNodes_)
-      v->init_dependent();
-
-    // named_.clear();
-    topNodes_.clear();
-
-    tensors_->clearShorttermMemory();
-
-    while(!nodesBackward_.empty()) {
-      auto v = nodesBackward_.back();
-      nodesBackward_.pop_back();
-
-      for(auto&& child : v->children()) {
-        if(child->trainable() && child->type() != "param")
-          child->set_zero_adjoint();
-      }
-
-      if(v->trainable())
-        v->backward();
-
-      checkNan(v->grad());
-
-      if(v->trainable() && v->marked_for_debug()) {
-        std::cerr << "Debug Grad: " << v->debug_message() << std::endl;
-        std::cerr << v->grad()->debug() << std::endl;
-      }
-
-      v->children().clear();
-    }
-  }
+  void backward(bool reset = true, float clipValue = 0.f);
 
   std::string graphviz() {
     std::stringstream ss;
@@ -316,50 +257,118 @@ public:
     dot.close();
   }
 
+private:
+
+  // Find the named parameter and its typed parent parameter object (params) and return both.
+  // If the parameter is not found return the parent parameter object that the parameter should be added to.
+  // Return [nullptr, nullptr] if no matching parent parameter object exists. 
+  std::tuple<Expr, Ptr<Parameters>> findParams(const std::string& name, 
+                                               Type elementType, 
+                                               bool typeSpecified) const {
+    Expr p; Ptr<Parameters> params;
+    if(typeSpecified) { // type has been specified, so we are only allowed to look for a parameter with that type
+      auto it = paramsByElementType_.find(elementType);
+      if(it != paramsByElementType_.end()) {
+        params = it->second;
+        p = params->get(name);
+      }
+    } else { // type has not been specified, so we take any type as long as the name matches
+      for(auto kvParams : paramsByElementType_) {
+        p = kvParams.second->get(name);
+        
+        if(p) { // p has been found, return with matching params object
+          params = kvParams.second;
+          break;
+        }
+        
+        if(kvParams.first == elementType) // even if p has not been found, set the params object to be returned
+          params = kvParams.second;
+      }
+    }
+
+    return std::make_tuple(p, params);
+  }
+
   Expr param(const std::string& pname,
              const Shape& shape,
-             const NodeInitializer& init,
-             bool fixed = false) {
+             const Ptr<inits::NodeInitializer>& init,
+             const Type elementType,
+             bool fixed,
+             bool typeSpecified) {
     std::string name = pname;
     if(!namespace_.empty())
       name = namespace_ + "::" + name;
 
-    // check first if parameter already exists
-    auto p = params_->get(name);
-    if(p) {
-      // if yes add to tape and return
-      ABORT_IF(shape != p->shape(),
-               "Requested shape {} for existing parameter '{}' does not match "
-               "original shape {}",
-               shape,
-               name,
-               p->shape());
+    Expr p; Ptr<Parameters> params; std::tie
+    (p, params) = findParams(name, elementType, typeSpecified);
+    
+    if(!params) { 
+      params = New<Parameters>(elementType);
+      params->init(backend_);
+      paramsByElementType_.insert({elementType, params});
+    } else {
+      if(p) {
+        // if yes add to tape and return
+        ABORT_IF(shape != p->shape(),
+                 "Requested shape {} for existing parameter '{}' does not match "
+                 "original shape {}",
+                 shape,
+                 name,
+                 p->shape());
 
-      p->setTrainable(!fixed);
-      add(p);
-      return p;
+        p->setTrainable(!fixed);
+        add(p);
+        return p;
+      }
     }
 
     // if graph was reloaded do not allow creation of new parameters
     ABORT_IF(reloaded_,
-             "Graph was reloaded and parameter '{}' is newly created",
-             name);
+             "Graph was reloaded and parameter '{}' with type {} (specified: {}) is newly created",
+             name, elementType, typeSpecified);
 
     // if not check if name is not taken by other node
-    ABORT_IF(get(name), "Non-parameter with name '{}' already exists", name);
+    auto other = get(name);
+    ABORT_IF(other, "Parameter with name '{}' already exists and has type {}", name, other->value_type());
 
     // create parameter node (adds to tape)
-    p = Expression<ParamNode>(shared_from_this(), shape, init, fixed);
+    p = Expression<ParamNode>(shared_from_this(), shape, init, elementType, fixed);
+    LOG(debug, "Created parameter {} with shape {} and type {}", name, shape, elementType);
 
     // set name and id and add to list of parameters
     p->set_name(name);
-    params_->add(p, name);
+    params->add(p, name);
 
     return p;
   }
 
-  Expr constant(const Shape& shape, const NodeInitializer& init, Type value_type = Type::float32) {
-    return Expression<ConstantNode>(shared_from_this(), shape, init, value_type);
+public:
+  Expr param(const std::string& pname,
+             const Shape& shape,
+             const Ptr<inits::NodeInitializer>& init,
+             const Type elementType,
+             bool fixed = false) {
+    // this param is called with a specified type
+    return param(pname, shape, init, elementType, fixed, /*typeSpecified=*/true);
+  }
+
+  Expr param(const std::string& pname,
+             const Shape& shape,
+             const Ptr<inits::NodeInitializer>& init,
+             bool fixed = false) {
+    // since this param is called without a specified type, we assume defaultElementType but allow to check for a different type
+    return param(pname, shape, init, defaultElementType_, fixed, /*typeSpecified=*/false);
+  }
+
+  Expr constant(const Shape& shape,
+                const Ptr<inits::NodeInitializer>& init,
+                Type elementType) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, elementType);
+  }
+
+  Expr constant(const Shape& shape,
+                const Ptr<inits::NodeInitializer>& init) {
+    return Expression<ConstantNode>(shared_from_this(), shape, init, defaultElementType_);
   }
 
   // @TODO: add version with iterators
@@ -367,65 +376,77 @@ public:
   // like rows or select
   Expr indices(const std::vector<IndexType>& indicesVector) {
     return constant({(int)indicesVector.size()},
-                    inits::from_vector(indicesVector),
+                    inits::fromVector(indicesVector),
                     Type::uint32);
   }
   // this version sets up the shape such that the indices are in a given axis
-  // Use this if you want to pass these indices to select().
+  // Use this if you want to pass these indices to gather().
   // indexee shape = (3, 2, 5, 2); axis = 1 -> resulting shape = (1, size of indicesVector, 1, 1)
   Expr indices(const std::vector<IndexType>& indicesVector, Expr indexee, int axis = -1) {
     Shape shape;
     shape.resize(indexee->shape().size());
     shape.set(axis, indicesVector.size());
     return constant(Shape(shape),
-                    inits::from_vector(indicesVector),
+                    inits::fromVector(indicesVector),
                     Type::uint32);
   }
 
+  Expr ones(const Shape& shape, Type elementType) {
+    return constant(shape, inits::ones(), elementType);
+  }
   Expr ones(const Shape& shape) {
-    return constant(shape, inits::ones);
+    return constant(shape, inits::ones(), defaultElementType_);
   }
 
+  Expr zeros(const Shape& shape, Type elementType) {
+    return constant(shape, inits::zeros(), elementType);
+  }
   Expr zeros(const Shape& shape) {
-    return constant(shape, inits::zeros);
+    return constant(shape, inits::zeros(), defaultElementType_);
   }
 
   // prob = dropProb, e.g. 0.1 means 90% of values are kept
-  Expr dropout(float dropProb, const Shape& shape);
+  Expr dropoutMask(float dropProb, const Shape& shape, Type elementType);
+  Expr dropoutMask(float dropProb, const Shape& shape);
 
   Expr get(std::string name) {
     if(!namespace_.empty())
       name = namespace_ + "::" + name;
-
-    auto e = params_->get(name);
-    if(e)
-      return e;
-    return Expr();
+    Expr p; Ptr<Parameters> params; std::tie
+    (p, params) = findParams(name, defaultElementType_, /*specifiedType=*/false);
+    return p;
   }
 
-  Ptr<Parameters>& params() { return params_; }
-
-  Expr add(Expr node) {
-    auto found = tensors_->findOrRemember(node);
-    if(found) {
-      return found;
-    } else {
-      node->setId(count_++);
-
-      // record in foward graph
-      nodesForward_.push_back(node);
-
-      // record in backward graph if training, and keep track of roots
-      if(!inferenceOnly_ && node->trainable()) {
-        nodesBackward_.push_back(node);
-        topNodes_.insert(node); // opportunistically record all new nodes as roots (gets removed once consumed)
-      }
-      for(auto child : node->children())
-        topNodes_.erase(child); // this child is consumed and therefore not a root
-
-      return node;
-    }
+  Expr get(std::string name, Type specifiedElementType) {
+    if(!namespace_.empty())
+      name = namespace_ + "::" + name;
+    Expr p; Ptr<Parameters> params; std::tie
+    (p, params) = findParams(name, specifiedElementType, /*specifiedType=*/true);
+    return p;
   }
+
+  Ptr<Parameters>& params() { 
+    // There are no parameter objects, that's weird.
+    ABORT_IF(paramsByElementType_.empty(), "No parameter object has been created");
+    
+    // Safeguard against accessing parameters from the outside with multiple parameter types, not yet supported
+    ABORT_IF(paramsByElementType_.size() > 1, "Calling of params() is currently not supported with multiple ({}) parameters", paramsByElementType_.size());
+    
+    // Safeguard against accessing parameters from the outside with other than default parameter type, not yet supported
+    auto it = paramsByElementType_.find(defaultElementType_);
+    ABORT_IF(it == paramsByElementType_.end(), "Parameter object for type {} does not exist", defaultElementType_);
+
+    return it->second;
+  }
+
+  void setDefaultElementType(Type defaultElementType) {
+    ABORT_IF(!paramsByElementType_.empty() && defaultElementType != defaultElementType_, 
+             "Parameter objects already exist, cannot change default type from {} to {}", 
+             defaultElementType_, defaultElementType);
+    defaultElementType_ = defaultElementType;
+  }
+
+  Expr add(Expr node);
 
   void allocateForward(Expr node) {
     if(tensors_)
@@ -437,7 +458,7 @@ public:
       tensors_->allocateBackward(node);
   }
 
-  void free(Tensor& tensor) {
+  void free(const Tensor& tensor) {
     if(tensors_)
       tensors_->free(tensor);
   }
@@ -456,22 +477,26 @@ public:
     tensors_->clear();
   }
 
-  void clearParameters() { params_->clear(); }
-
   void setReloaded(bool reloaded) { reloaded_ = reloaded; }
 
   void setThrowNaN(bool throwNaN) { throwNaN_ = throwNaN; }
+  bool getThrowNaN() { return throwNaN_; }
 
 public:
-  // convert all parameters into an array of IoItem elements, for loading
-  void load(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
+  // loading from array of io::Items
+  void load(std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-      param(pName, item.shape, inits::from_item(item));
+      
+      // if during loading the loaded type is of the same type class as the default element type, allow conversion;
+      // otherwise keep the loaded type. This is used when e.g. loading a float32 model as a float16 model as both
+      // have type class TypeClass::float_type.
+      auto loadElementType = isSameTypeClass(item.type, defaultElementType_) ? defaultElementType_ : item.type;
+      param(pName, item.shape, inits::fromItem(item), loadElementType, /*fixed=*/false);
     }
     if(markReloaded)
       setReloaded(true);
@@ -479,39 +504,62 @@ public:
 
   void load(const std::string& name, bool markReloaded = true) {
     LOG(info, "Loading model from {}", name);
-    load(io::loadItems(name), markReloaded);
+    auto items = io::loadItems(name);
+    load(items, markReloaded);
   }
 
   void load(const void* ptr, bool markReloaded = true) {
     LOG(info, "Loading model from buffer at {}", ptr);
-    load(io::loadItems(ptr), markReloaded);
+    auto items = io::loadItems(ptr);
+    load(items, markReloaded);
   }
 
   void mmap(const void* ptr, bool markReloaded = true) {
     ABORT_IF(backend_->getDeviceId().type != DeviceType::cpu || !inferenceOnly_,
              "Memory mapping only supported for CPU inference mode");
 
-    params_ = New<MappedParameters>();
-    params_->init(backend_);
-
     LOG(info, "Memory mapping model at {}", ptr);
-    load(io::mmapItems(ptr), markReloaded);
+    auto items = io::mmapItems(ptr);
+    
+    // Deal with default parameter set object that might not be a mapped object.
+    // This gets assigned during ExpressionGraph::setDevice(...) and by default 
+    // would contain allocated tensors. Here we replace it with a mmapped version.
+    auto it = paramsByElementType_.find(defaultElementType_);
+    if(it != paramsByElementType_.end()) {
+      // there is parameter object for that type
+      auto defaultParams = std::dynamic_pointer_cast<MappedParameters>(it->second);
+      if(!defaultParams) {
+        // but it's not mapped, so delete it and replace it with a mapped version
+        defaultParams = New<MappedParameters>(defaultElementType_);
+        defaultParams->init(backend_);
+        paramsByElementType_[defaultElementType_] = defaultParams;
+      }
+    }
+
+
+    // pre-populate parameters by type
+    for(auto& item : items) {
+      auto it1 = paramsByElementType_.find(item.type);
+      if(it1 == paramsByElementType_.end()) {
+        auto params = New<MappedParameters>(item.type);
+        params->init(backend_);
+        paramsByElementType_.insert({item.type, params});
+      }
+    }
+
+    load(items, markReloaded);
   }
 
 public:
   // convert all parameters into an array of io::Item elements, for saving
-  void save(std::vector<io::Item>& ioItems);
+  void save(std::vector<io::Item>& ioItems, Type saveElementType = Type::float32);
 
-  void save(const std::string& name, const std::string& meta = "") {
-    // LOG(info, "Saving model to {}", name);
-
+  void save(const std::string& name, const std::string& meta = "", Type saveElementType = Type::float32) {
     std::vector<io::Item> ioItems;
-    save(ioItems);
+    save(ioItems, saveElementType);
     if(!meta.empty())
       io::addMetaToItems(meta, "special:model.yml", ioItems);
     io::saveItems(name, ioItems);
-
-    // LOG(info, "Saved {} items.", ioItems.size());
   }
 };
 

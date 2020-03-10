@@ -15,6 +15,7 @@
 #include "translator/output_collector.h"
 #include "translator/output_printer.h"
 #include "translator/scorers.h"
+#include "models/bert.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -35,29 +36,23 @@ protected:
 
 public:
   ValidatorBase(bool lowerIsBetter) : lowerIsBetter_(lowerIsBetter), lastBest_{initScore()} {}
+  virtual ~ValidatorBase() {}
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) = 0;
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) = 0;
   virtual std::string type() = 0;
 
   float lastBest() { return lastBest_; }
   size_t stalled() { return stalled_; }
 
-  virtual float initScore() {
-    return lowerIsBetter_ ? std::numeric_limits<float>::max()
-                          : std::numeric_limits<float>::lowest();
-  }
-
-  virtual void actAfterLoaded(TrainingState& state) override {
-    if(state.validators[type()]) {
-      lastBest_ = state.validators[type()]["last-best"].as<float>();
-      stalled_ = state.validators[type()]["stalled"].as<size_t>();
-    }
-  }
+  virtual float initScore();
+  virtual void actAfterLoaded(TrainingState& state) override;
 };
 
-template <class DataSet>
+template <class DataSet, class BuilderType> // @TODO: BuilderType doesn't really serve a purpose here? Review and remove.
 class Validator : public ValidatorBase {
 public:
+  virtual ~Validator() {}
   Validator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool lowerIsBetter = true)
       : ValidatorBase(lowerIsBetter),
         vocabs_(vocabs),
@@ -65,50 +60,38 @@ public:
         options_(New<Options>(options->clone())) {
     // set options common for all validators
     options_->set("inference", true);
-    if(options_->has("valid-max-length"))
+    options_->set("shuffle", "none"); // don't shuffle validation sets
+
+    if(options_->has("valid-max-length")) {
       options_->set("max-length", options_->get<size_t>("valid-max-length"));
+      options_->set("max-length-crop", true); // @TODO: make this configureable
+    }
     if(options_->has("valid-mini-batch"))
       options_->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
     options_->set("mini-batch-sort", "src");
     options_->set("maxi-batch", 10);
   }
 
+  typedef typename DataSet::batch_ptr BatchPtr;
+
 protected:
-  void createBatchGenerator(bool isTranslating) {
-    // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
-
-    // Update validation options
-    auto opts = New<Options>();
-    opts->merge(options_);
-    opts->set("inference", true);
-
-    if (isTranslating) { // TranslationValidator and BleuValidator
-      opts->set("max-length", 1000);
-      opts->set("mini-batch", options_->get<int>("valid-mini-batch"));
-      opts->set("maxi-batch", 10);
-    }
-    else { // CrossEntropyValidator
-      opts->set("max-length", options_->get<size_t>("valid-max-length"));
-      if(options_->has("valid-mini-batch"))
-        opts->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
-      opts->set("mini-batch-sort", "src");
-    }
-
+  // Create the BatchGenerator. Note that ScriptValidator does not use batchGenerator_.
+  void createBatchGenerator(bool /*isTranslating*/) {
     // Create corpus
     auto validPaths = options_->get<std::vector<std::string>>("valid-sets");
     auto corpus = New<DataSet>(validPaths, vocabs_, options_);
 
     // Create batch generator
-    batchGenerator_ = New<data::BatchGenerator<DataSet>>(corpus, opts);
+    batchGenerator_ = New<data::BatchGenerator<DataSet>>(corpus, options_);
   }
 public:
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> /*ignored*/) override {
     for(auto graph : graphs)
       graph->setInference(true);
 
-    batchGenerator_->prepare(false);
+    batchGenerator_->prepare();
 
     // Validate on batches
     float val = validateBG(graphs);
@@ -123,7 +106,7 @@ public:
 protected:
   std::vector<Ptr<Vocab>> vocabs_;
   Ptr<Options> options_;
-  Ptr<models::ModelBase> builder_;
+  Ptr<BuilderType> builder_; // @TODO: remove, this is not guaranteed to be state-free, hence not thread-safe, but we are using validators with multi-threading.
   Ptr<data::BatchGenerator<DataSet>> batchGenerator_;
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>&)
@@ -137,108 +120,72 @@ protected:
       lastBest_ = val;
       if(options_->get<bool>("keep-best"))
         keepBest(graphs);
-    } else {
+    } else /* if (lastBest_ != val) */ { // (special case 0 at start)  @TODO: needed? Seems stall count gets reset each time it does improve. If not needed, remove "if(...)" again.
       stalled_++;
     }
   }
 
   virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) {
     auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".best-" + type() + ".npz", true);
+    std::string suffix = model.substr(model.size() - 4);
+    ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
+
+    builder_->save(graphs[0], model + ".best-" + type() + suffix, true);
   }
 };
 
-class CrossEntropyValidator : public Validator<data::Corpus> {
-public:
-  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
-      : Validator(vocabs, options) {
-    createBatchGenerator(/*isTranslating=*/false);
+class CrossEntropyValidator : public Validator<data::Corpus, models::ICriterionFunction> {
+  using Validator::BatchPtr;
 
-    // @TODO: check if this is required.
-    Ptr<Options> opts = New<Options>();
-    opts->merge(options);
-    opts->set("inference", true);
-    opts->set("cost-type", "ce-sum");
-    builder_ = models::from_options(opts, models::usage::scoring);
-  }
+public:
+  CrossEntropyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
+  virtual ~CrossEntropyValidator() {}
 
   std::string type() override { return options_->get<std::string>("cost-type"); }
 
 protected:
-  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-
-    auto ctype = options_->get<std::string>("cost-type");
-    options_->set("cost-type", "ce-sum");
-
-    float cost = 0;
-    size_t samples = 0;
-    size_t words = 0;
-    size_t batchId = 0;
-
-    {
-      threadPool_.reserve(graphs.size());
-
-      TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=, &cost, &samples, &words](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local auto builder = models::from_options(options_, models::usage::scoring);
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
-          }
-
-          builder->clear(graph);
-          auto costNode = builder->build(graph, batch);
-          graph->forward();
-
-          std::unique_lock<std::mutex> lock(mutex_);
-          cost += costNode->scalar();
-          samples += batch->size();
-          words += batch->back()->batchWords();
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, batchId));
-        batchId++;
-      }
-      // ~TaskBarrier waits until all are done
-    }
-
-    // get back to the original cost type
-    options_->set("cost-type", ctype);
-
-    if(ctype == "perplexity")
-      return std::exp(cost / words);
-    if(ctype == "ce-mean-words")
-      return cost / words;
-    if(ctype == "ce-sum")
-      return cost;
-    else
-      return cost / samples;
-  }
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
 };
 
-class ScriptValidator : public Validator<data::Corpus> {
+// Used for validating with classifiers. Compute prediction accuracy versus ground truth for a set of classes
+class AccuracyValidator : public Validator<data::Corpus, models::IModel> {
 public:
-  ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
-      : Validator(vocabs, options, false) {
-    builder_ = models::from_options(options_, models::usage::raw);
+  AccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
+  virtual ~AccuracyValidator() {}
 
-    ABORT_IF(!options_->has("valid-script-path"), "valid-script metric but no script given");
+  std::string type() override { return "accuracy"; }
+
+protected:
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
+};
+
+class BertAccuracyValidator : public Validator<data::Corpus, models::IModel> {
+private:
+  bool evalMaskedLM_{true};
+
+public:
+  BertAccuracyValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool evalMaskedLM);
+  virtual ~BertAccuracyValidator() {}
+
+  std::string type() override {
+    if(evalMaskedLM_)
+      return "bert-lm-accuracy";
+    else
+      return "bert-sentence-accuracy";
   }
 
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-    using namespace data;
-    auto model = options_->get<std::string>("model");
-    builder_->save(graphs[0], model + ".dev.npz", true);
+protected:
+  virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& graphs) override;
+};
 
-    auto command = options_->get<std::string>("valid-script-path");
-    auto valStr = utils::exec(command);
-    float val = (float)std::atof(valStr.c_str());
-    updateStalled(graphs, val);
 
-    return val;
-  };
+class ScriptValidator : public Validator<data::Corpus, models::IModel> {
+public:
+  ScriptValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
+  virtual ~ScriptValidator() {}
+
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> /*ignored*/) override;
 
   std::string type() override { return "valid-script"; }
 
@@ -248,125 +195,14 @@ protected:
   }
 };
 
-class TranslationValidator : public Validator<data::Corpus> {
+// validator that translates and computes BLEU (or any metric) with an external script
+class TranslationValidator : public Validator<data::Corpus, models::IModel> {
 public:
-  TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options)
-      : Validator(vocabs, options, false),
-        quiet_(options_->get<bool>("quiet-translation")) {
-    builder_ = models::from_options(options_, models::usage::translation);
+  TranslationValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
+  virtual ~TranslationValidator() {}
 
-    if(!options_->has("valid-script-path"))
-      LOG_VALID(warn,
-                "No post-processing script given for validating translator");
-
-    createBatchGenerator(/*isTranslating=*/true);
-  }
-
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-    using namespace data;
-
-    // Generate batches
-    batchGenerator_->prepare(false);
-
-    // Create scorer
-    auto model = options_->get<std::string>("model");
-
-    // Temporary options for translation
-    auto mopts = New<Options>();
-    mopts->merge(options_);
-    mopts->set("inference", true);
-
-    std::vector<Ptr<Scorer>> scorers;
-    for(auto graph : graphs) {
-      auto builder = models::from_options(options_, models::usage::translation);
-      Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
-      scorers.push_back(scorer);
-    }
-
-    // Set up output file
-    std::string fileName;
-    Ptr<io::TemporaryFile> tempFile;
-
-    if(options_->has("valid-translation-output")) {
-      fileName = options_->get<std::string>("valid-translation-output");
-    } else {
-      tempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
-      fileName = tempFile->getFileName();
-    }
-
-    for(auto graph : graphs)
-      graph->setInference(true);
-
-    if(!quiet_)
-      LOG(info, "Translating validation set...");
-
-    timer::Timer timer;
-    {
-      auto printer = New<OutputPrinter>(options_, vocabs_.back());
-      auto collector = options_->has("valid-translation-output")
-                           ? New<OutputCollector>(fileName)
-                           : New<OutputCollector>(*tempFile);
-
-      if(quiet_)
-        collector->setPrintingStrategy(New<QuietPrinting>());
-      else
-        collector->setPrintingStrategy(New<GeometricPrinting>());
-
-      threadPool_.reserve(graphs.size());
-
-      size_t sentenceId = 0;
-      TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local Ptr<Scorer> scorer;
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
-            scorer = scorers[id % graphs.size()];
-          }
-
-          auto search = New<BeamSearch>(options_,
-                                        std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->getEosId(),
-                                        vocabs_.back()->getUnkId());
-          auto histories = search->search(graph, batch);
-
-          for(auto history : histories) {
-            std::stringstream best1;
-            std::stringstream bestn;
-            printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
-                             best1.str(),
-                             bestn.str(),
-                             options_->get<bool>("n-best"));
-          }
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
-        sentenceId++;
-      }
-      // ~TaskBarrier waits until all are done
-    }
-
-    if(!quiet_)
-      LOG(info, "Total translation time: {:.5f}s", timer.elapsed());
-
-    for(auto graph : graphs)
-      graph->setInference(false);
-
-    float val = 0.0f;
-
-    // Run post-processing script if given
-    if(options_->has("valid-script-path")) {
-      auto command = options_->get<std::string>("valid-script-path") + " " + fileName;
-      auto valStr = utils::exec(command);
-      val = (float)std::atof(valStr.c_str());
-      updateStalled(graphs, val);
-    }
-
-    return val;
-  };
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) override;
 
   std::string type() override { return "translation"; }
 
@@ -378,146 +214,22 @@ protected:
   }
 };
 
+// validator that translates and computes BLEU internally, with or without decoding
 // @TODO: combine with TranslationValidator (above) to avoid code duplication
-class BleuValidator : public Validator<data::Corpus> {
-private:
-  bool detok_{false};
-
+class BleuValidator : public Validator<data::Corpus, models::IModel> {
 public:
-  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false)
-      : Validator(vocabs, options, false),
-        detok_(detok),
-        quiet_(options_->get<bool>("quiet-translation")) {
-    builder_ = models::from_options(options_, models::usage::translation);
+  BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok = false);
+  virtual ~BleuValidator() {}
 
-#ifdef USE_SENTENCEPIECE
-    auto vocab = vocabs_.back();
-    ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab",
-             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
-             "Current vocabulary type is {}", vocab->type());
-#else
-    ABORT_IF(detok_,
-             "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab. "
-             "Marian has not been compiled with SentencePieceVocab support");
-#endif
+  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+                         Ptr<const TrainingState> state) override;
 
-    createBatchGenerator(/*isTranslating=*/true);
-  }
-
-  virtual float validate(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
-    using namespace data;
-
-    // Generate batches
-    batchGenerator_->prepare(false);
-
-    // Create scorer
-    auto model = options_->get<std::string>("model");
-
-    // @TODO: check if required - Temporary options for translation
-    auto mopts = New<Options>();
-    mopts->merge(options_);
-    mopts->set("inference", true);
-
-    std::vector<Ptr<Scorer>> scorers;
-    for(auto graph : graphs) {
-      auto builder = models::from_options(options_, models::usage::translation);
-      Ptr<Scorer> scorer = New<ScorerWrapper>(builder, "", 1.0f, model);
-      scorers.push_back(scorer);
-    }
-
-    for(auto graph : graphs)
-      graph->setInference(true);
-
-    if(!quiet_)
-      LOG(info, "Translating validation set...");
-
-    // 0: 1-grams matched, 1: 1-grams total,
-    // ...,
-    // 6: 4-grams matched, 7: 4-grams total,
-    // 8: reference length
-    std::vector<float> stats(9, 0.f);
-
-    timer::Timer timer;
-    {
-      auto printer = New<OutputPrinter>(options_, vocabs_.back());
-
-      Ptr<OutputCollector> collector;
-      if(options_->has("valid-translation-output")) {
-        auto fileName = options_->get<std::string>("valid-translation-output");
-        collector = New<OutputCollector>(fileName); // for debugging
-      }
-      else {
-        collector = New<OutputCollector>(/* null */); // don't print, but log
-      }
-
-      if(quiet_)
-        collector->setPrintingStrategy(New<QuietPrinting>());
-      else
-        collector->setPrintingStrategy(New<GeometricPrinting>());
-
-      threadPool_.reserve(graphs.size());
-
-      size_t sentenceId = 0;
-      TaskBarrier taskBarrier;
-      for(auto batch : *batchGenerator_) {
-        auto task = [=, &stats](size_t id) {
-          thread_local Ptr<ExpressionGraph> graph;
-          thread_local Ptr<Scorer> scorer;
-
-          if(!graph) {
-            graph = graphs[id % graphs.size()];
-            scorer = scorers[id % graphs.size()];
-          }
-
-          auto search = New<BeamSearch>(options_,
-                                        std::vector<Ptr<Scorer>>{scorer},
-                                        vocabs_.back()->getEosId(),
-                                        vocabs_.back()->getUnkId());
-          auto histories = search->search(graph, batch);
-
-          size_t no = 0;
-          std::lock_guard<std::mutex> statsLock(mutex_);
-          for(auto history : histories) {
-            auto result = history->Top();
-            const auto& words = std::get<0>(result);
-            updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
-
-            std::stringstream best1;
-            std::stringstream bestn;
-            printer->print(history, best1, bestn);
-            collector->Write((long)history->GetLineNum(),
-                             best1.str(),
-                             bestn.str(),
-                             /*nbest=*/ false);
-            no++;
-          }
-        };
-
-        taskBarrier.push_back(threadPool_.enqueue(task, sentenceId));
-        sentenceId++;
-      }
-      // ~TaskBarrier waits until all are done
-    }
-
-    if(!quiet_)
-      LOG(info, "Total translation time: {:.5f}s", timer.elapsed());
-
-    for(auto graph : graphs)
-      graph->setInference(false);
-
-    float val = calcBLEU(stats);
-    updateStalled(graphs, val);
-
-    return val;
-  };
-
+  // @TODO: why do we return this string, but not pass it to the constructor?
   std::string type() override { return detok_ ? "bleu-detok" : "bleu"; }
 
 protected:
-  bool quiet_{false};
-
   // Tokenizer function adapted from multi-bleu-detok.pl, corresponds to sacreBLEU.py
-  std::string tokenize(const std::string& text) {
+  static std::string tokenize(const std::string& text) {
     std::string normText = text;
 
     // language-independent part:
@@ -542,13 +254,29 @@ protected:
     return normText;
   }
 
-  std::vector<std::string> decode(const Words& words, bool addEOS = false) {
-    auto vocab = vocabs_.back();
-    auto tokens = utils::splitAny(tokenize(vocab->decode(words)), " ");
-    if(addEOS)
-      tokens.push_back("</s>");
-    return tokens;
+  static std::string tokenizeContinuousScript(const std::string& sUTF8) {
+    // We want BLEU-like scores that are comparable across different tokenization schemes.
+    // For continuous scripts (Chinese, Japanese, Thai), we would need a language-specific
+    // statistical word segmenter, which is outside the scope of Marian. As a practical
+    // compromise, we segment continuous-script sequences into individual characters, while
+    // leaving Western scripts as words. This way we can use the same settings for Western
+    // languages, where Marian would report SacreBLEU scores, and Asian languages, where
+    // scores are not standard but internally comparable across tokenization schemes.
+    // @TODO: Check what sacrebleu.py is doing, and whether we can replicate that here faithfully.
+    auto in = utils::utf8ToUnicodeString(sUTF8);
+    auto out = in.substr(0, 0); // (out should be same type as in, don't want to bother with exact type)
+    for (auto c : in) {
+      auto isCS = utils::isContinuousScript(c);
+      if (isCS) // surround continuous-script chars by spaces on each side
+        out.push_back(' '); // (duplicate spaces are ignored when splitting later)
+      out.push_back(c);
+      if (isCS)
+        out.push_back(' ');
+    }
+    return utils::utf8FromUnicodeString(out);
   }
+
+  std::vector<std::string> decode(const Words& words, bool addEOS = false);
 
   // Update document-wide sufficient statistics for BLEU with single sentence n-gram stats.
   template <typename T>
@@ -593,45 +321,17 @@ protected:
                    const Words& cand,
                    const Ptr<data::Batch> batch,
                    size_t no,
-                   Word eos) {
+                   Word eos);
 
-    auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
-    auto subBatch = corpusBatch->back();
-
-    size_t size = subBatch->batchSize();
-    size_t width = subBatch->batchWidth();
-
-    Words ref;  // fill ref
-    for(size_t i = 0; i < width; ++i) {
-      Word w = subBatch->data()[i * size + no];
-      if(w == eos)
-        break;
-      ref.push_back(w);
-    }
-
-    if(detok_)
-      updateStats(stats, decode(cand, /*addEOS=*/ true), decode(ref));
-    else
-      updateStats(stats, cand, ref);
-  }
-
-  float calcBLEU(const std::vector<float>& stats) {
-    float logbleu = 0;
-    for(int i = 0; i < 8; i += 2) {
-      if(stats[i] == 0.f)
-        return 0.f;
-      logbleu += std::log(stats[i] / stats[i + 1]);
-    }
-
-    logbleu /= 4.f;
-
-    float brev_penalty = 1.f - std::max(stats[8] / stats[1], 1.f);
-    return std::exp(logbleu + brev_penalty) * 100;
-  }
+  float calcBLEU(const std::vector<float>& stats);
 
   virtual float validateBG(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     return 0;
   }
+
+private:
+  bool detok_;
+  bool quiet_{ false };
 };
 
 /**
@@ -645,7 +345,7 @@ protected:
  *
  * @return Vector of validator objects
  */
-std::vector<Ptr<Validator<data::Corpus>>> Validators(
+std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
     std::vector<Ptr<Vocab>> vocabs,
     Ptr<Options> config);
 }  // namespace marian

@@ -8,40 +8,48 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 namespace marian {
 namespace data {
 
 class Shortlist {
 private:
-  std::vector<Word> indices_;
-  std::vector<Word> mappedIndices_;
-  std::vector<Word> reverseMap_;
+  std::vector<WordIndex> indices_;    // // [packed shortlist index] -> word index, used to select columns from output embeddings
 
 public:
-  Shortlist(const std::vector<Word>& indices,
-            const std::vector<Word>& mappedIndices,
-            const std::vector<Word>& reverseMap)
-      : indices_(indices),
-        mappedIndices_(mappedIndices),
-        reverseMap_(reverseMap) {}
+  Shortlist(const std::vector<WordIndex>& indices)
+    : indices_(indices) {}
 
-  std::vector<Word>& indices() { return indices_; }
-  std::vector<Word>& mappedIndices() { return mappedIndices_; }
-  Word reverseMap(Word idx) { return reverseMap_[idx]; }
+  const std::vector<WordIndex>& indices() const { return indices_; }
+  WordIndex reverseMap(int idx) { return indices_[idx]; }
+
+  int tryForwardMap(WordIndex wIdx) {
+    auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
+    if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
+      return (int)std::distance(indices_.begin(), first); // return coordinate if found
+    else
+      return -1;                                          // return -1 if not found
+  }
+
 };
 
 class ShortlistGenerator {
 public:
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) = 0;
+  virtual ~ShortlistGenerator() {}
+
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const = 0;
 
   // Writes text version of (possibly) pruned short list to file
   // with given prefix and implementation-specific suffixes.
-  virtual void dump(const std::string& /*prefix*/) {
+  virtual void dump(const std::string& /*prefix*/) const {
     ABORT("Not implemented");
   }
 };
 
+
+// Intended for use during training in the future, currently disabled
+#if 0
 class SampledShortlistGenerator : public ShortlistGenerator {
 private:
   Ptr<Options> options_;
@@ -54,8 +62,8 @@ private:
   size_t trgIdx_;
   bool shared_{false};
 
-  std::random_device rd_;
-  std::mt19937 gen_;
+  // static thread_local std::random_device rd_;
+  static thread_local std::unique_ptr<std::mt19937> gen_;
 
 public:
   SampledShortlistGenerator(Ptr<Options> options,
@@ -65,68 +73,70 @@ public:
       : options_(options),
         srcIdx_(srcIdx),
         trgIdx_(trgIdx),
-        shared_(shared),
-        gen_(rd_()) {}
+        shared_(shared)
+        { }
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override {
     auto srcBatch = (*batch)[srcIdx_];
     auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
-    std::unordered_set<Word> idxSet;
-    for(Word i = 0; i < firstNum_ && i < maxVocab_; ++i)
-      idxSet.insert(i);
+    std::unordered_set<WordIndex> indexSet;
+    for(WordIndex i = 0; i < firstNum_ && i < maxVocab_; ++i)
+      indexSet.insert(i);
 
     // add all words from ground truth
     for(auto i : trgBatch->data())
-      idxSet.insert(i);
+      indexSet.insert(i.toWordIndex());
 
     // add all words from source
     if(shared_)
       for(auto i : srcBatch->data())
-        idxSet.insert(i);
+        indexSet.insert(i.toWordIndex());
 
     std::uniform_int_distribution<> dis((int)firstNum_, (int)maxVocab_);
-    while(idxSet.size() < total_ && idxSet.size() < maxVocab_)
-      idxSet.insert(dis(gen_));
+    if (gen_ == NULL)
+      gen_.reset(new std::mt19937(std::random_device{}()));
+    while(indexSet.size() < total_ && indexSet.size() < maxVocab_)
+      indexSet.insert(dis(*gen_));
 
     // turn into vector and sort (selected indices)
-    std::vector<Word> idx(idxSet.begin(), idxSet.end());
+    std::vector<WordIndex> idx(indexSet.begin(), indexSet.end());
     std::sort(idx.begin(), idx.end());
 
     // assign new shifted position
-    std::unordered_map<Word, Word> pos;
-    std::vector<Word> reverseMap;
+    std::unordered_map<WordIndex, WordIndex> pos;
+    std::vector<WordIndex> reverseMap;
 
-    for(Word i = 0; i < idx.size(); ++i) {
+    for(WordIndex i = 0; i < idx.size(); ++i) {
       pos[idx[i]] = i;
       reverseMap.push_back(idx[i]);
     }
 
-    std::vector<Word> mapped;
+    Words mapped;
     for(auto i : trgBatch->data()) {
       // mapped postions for cross-entropy
-      mapped.push_back(pos[i]);
+      mapped.push_back(Word::fromWordIndex(pos[i.toWordIndex()]));
     }
 
     return New<Shortlist>(idx, mapped, reverseMap);
   }
 };
+#endif
 
 class LexicalShortlistGenerator : public ShortlistGenerator {
 private:
   Ptr<Options> options_;
-  Ptr<Vocab> srcVocab_;
-  Ptr<Vocab> trgVocab_;
+  Ptr<const Vocab> srcVocab_;
+  Ptr<const Vocab> trgVocab_;
 
   size_t srcIdx_;
-  size_t trgIdx_;
   bool shared_{false};
 
   size_t firstNum_{100};
   size_t bestNum_{100};
 
-  std::vector<std::unordered_map<Word, float>> data_;
+  std::vector<std::unordered_map<WordIndex, float>> data_; // [WordIndex src] -> [WordIndex tgt] -> P_trans(tgt|src) --@TODO: rename data_ accordingly
 
   void load(const std::string& fname) {
     io::InputFileStream in(fname);
@@ -138,8 +148,8 @@ private:
       if(src == "NULL" || trg == "NULL")
         continue;
 
-      Word sId = (*srcVocab_)[src];
-      Word tId = (*trgVocab_)[trg];
+      auto sId = (*srcVocab_)[src].toWordIndex();
+      auto tId = (*trgVocab_)[trg].toWordIndex();
 
       if(data_.size() <= sId)
         data_.resize(sId + 1);
@@ -150,12 +160,12 @@ private:
   void prune(float threshold = 0.f) {
     size_t i = 0;
     for(auto& probs : data_) {
-      std::vector<std::pair<float, Word>> sorter;
+      std::vector<std::pair<float, WordIndex>> sorter;
       for(auto& it : probs)
-        sorter.emplace_back(it.second, (Word)it.first);
+        sorter.emplace_back(it.second, it.first);
 
       std::sort(
-          sorter.begin(), sorter.end(), std::greater<std::pair<float, Word>>());
+          sorter.begin(), sorter.end(), std::greater<std::pair<float, WordIndex>>()); // sort by prob
 
       probs.clear();
       for(auto& it : sorter) {
@@ -171,19 +181,17 @@ private:
 
 public:
   LexicalShortlistGenerator(Ptr<Options> options,
-                            Ptr<Vocab> srcVocab,
-                            Ptr<Vocab> trgVocab,
+                            Ptr<const Vocab> srcVocab,
+                            Ptr<const Vocab> trgVocab,
                             size_t srcIdx = 0,
-                            size_t trgIdx = 1,
+                            size_t /*trgIdx*/ = 1,
                             bool shared = false)
       : options_(options),
         srcVocab_(srcVocab),
         trgVocab_(trgVocab),
         srcIdx_(srcIdx),
-        trgIdx_(trgIdx),
         shared_(shared) {
-    std::vector<std::string> vals
-        = options_->get<std::vector<std::string>>("shortlist");
+    std::vector<std::string> vals = options_->get<std::vector<std::string>>("shortlist");
 
     ABORT_IF(vals.empty(), "No path to filter path given");
     std::string fname = vals[0];
@@ -200,6 +208,7 @@ public:
         bestNum_,
         threshold);
 
+    // @TODO: Load and prune in one go.
     load(fname);
     prune(threshold);
 
@@ -207,90 +216,68 @@ public:
       dump(dumpPath);
   }
 
-  virtual void dump(const std::string& prefix) override {
+  virtual void dump(const std::string& prefix) const override {
     // Dump top most frequent words from target vocabulary
     LOG(info, "[data] Saving shortlist dump to {}", prefix + ".{top,dic}");
     io::OutputFileStream outTop(prefix + ".top");
-    for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
-      outTop << (*trgVocab_)[i] << std::endl;
+    for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
+      outTop << (*trgVocab_)[Word::fromWordIndex(i)] << std::endl;
 
     // Dump translation pairs from dictionary
     io::OutputFileStream outDic(prefix + ".dic");
-    for(Word srcId = 0; srcId < data_.size(); srcId++) {
-      for(auto& it : data_[srcId]) { // @TODO: change data_.first from size_t to Word
-        Word trgId = (Word)it.first;
-        outDic << (*srcVocab_)[srcId] << "\t" << (*trgVocab_)[trgId] << std::endl;
+    for(WordIndex srcId = 0; srcId < data_.size(); srcId++) {
+      for(auto& it : data_[srcId]) {
+        auto trgId = it.first;
+        outDic << (*srcVocab_)[Word::fromWordIndex(srcId)] << "\t" << (*trgVocab_)[Word::fromWordIndex(trgId)] << std::endl;
       }
     }
   }
 
-  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) override {
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override {
     auto srcBatch = (*batch)[srcIdx_];
-    // auto trgBatch = (*batch)[trgIdx_];
 
     // add firstNum most frequent words
-    std::unordered_set<Word> idxSet;
-    for(Word i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
-      idxSet.insert(i);
+    std::unordered_set<WordIndex> indexSet;
+    for(WordIndex i = 0; i < firstNum_ && i < trgVocab_->size(); ++i)
+      indexSet.insert(i);
 
     // add all words from ground truth
     // for(auto i : trgBatch->data())
-    //  idxSet.insert(i);
+    //  indexSet.insert(i.toWordIndex());
 
     // collect unique words form source
-    std::unordered_set<Word> srcSet;
+    std::unordered_set<WordIndex> srcSet;
     for(auto i : srcBatch->data())
-      srcSet.insert(i);
+      srcSet.insert(i.toWordIndex());
 
     // add aligned target words
     for(auto i : srcSet) {
       if(shared_)
-        idxSet.insert(i);
+        indexSet.insert(i);
       for(auto& it : data_[i])
-        idxSet.insert((Word)it.first); // @TODO: change it.first to Word
+        indexSet.insert(it.first);
     }
 
     // turn into vector and sort (selected indices)
-    std::vector<Word> idx(idxSet.begin(), idxSet.end());
-    std::sort(idx.begin(), idx.end());
+    std::vector<WordIndex> indices(indexSet.begin(), indexSet.end());
+    std::sort(indices.begin(), indices.end());
 
-    // assign new shifted position
-    // std::unordered_map<Word, Word> pos;
-    std::vector<Word> reverseMap;
-
-    for(Word i = 0; i < idx.size(); ++i) {
-      // pos[idx[i]] = i;
-      reverseMap.push_back(idx[i]);
-    }
-
-    std::vector<Word> mapped;
-    // for(auto i : trgBatch->data()) {
-    // mapped postions for cross-entropy
-    // mapped.push_back(pos[i]);
-    //}
-
-    return New<Shortlist>(idx, mapped, reverseMap);
+    return New<Shortlist>(indices);
   }
 };
 
 class FakeShortlistGenerator : public ShortlistGenerator {
 private:
-  std::vector<Word> idx_;
-  std::vector<Word> reverseIdx_;
+  std::vector<WordIndex> indices_;
 
 public:
-  FakeShortlistGenerator(const std::unordered_set<Word>& idxSet)
-      : idx_(idxSet.begin(), idxSet.end()) {
-    std::sort(idx_.begin(), idx_.end());
-    // assign new shifted position
-    for(Word i = 0; i < idx_.size(); ++i) {
-      reverseIdx_.push_back(idx_[i]);
-    }
+  FakeShortlistGenerator(const std::unordered_set<WordIndex>& indexSet)
+      : indices_(indexSet.begin(), indexSet.end()) {
+    std::sort(indices_.begin(), indices_.end());
   }
 
-  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) override {
-    std::vector<Word> tmp;
-    return New<Shortlist>(idx_, tmp, reverseIdx_);
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> /*batch*/) const override {
+    return New<Shortlist>(indices_);
   }
 };
 

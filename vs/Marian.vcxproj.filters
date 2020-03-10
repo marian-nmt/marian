@@ -31,9 +31,6 @@
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp">
       <Filter>3rd_party\cnpy</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\3rd_party\svd\svd.cpp">
-      <Filter>3rd_party\svd</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\tensors\backend.cpp">
       <Filter>tensors</Filter>
     </ClCompile>
@@ -204,9 +201,6 @@
     </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\sharp\sse_gemm.cpp">
       <Filter>tensors\cpu\sharp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\models\transformer.h">
-      <Filter>models</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common\io.cpp">
       <Filter>common</Filter>
@@ -421,16 +415,478 @@
     <ClCompile Include="..\src\rescorer\score_collector.cpp">
       <Filter>rescorer</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\command\marian_train.cpp">
-      <Filter>command</Filter>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\entry_iterator.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\errors.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\path.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ifstream.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\pathie_ofstream.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\pathie-cpp\src\temp.cpp">
+      <Filter>3rd_party\pathie-cpp\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\attention_tests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\cli_test.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\dropout_test.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\graph_tests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\logger_test.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\operator_tests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\pooling_test.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\prod.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\rnn_tests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\run_tests.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\sqlite_test.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\mnist\mnist_ffnn.cpp">
+      <Filter>examples\mnist</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\helper.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\examples\iris\iris.cpp">
+      <Filter>examples\iris</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\models\transformer_stub.cpp">
+      <Filter>models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\generic.cpp">
+      <Filter>layers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\data\factored_vocab.cpp">
+      <Filter>data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\gpu\prod.cpp">
+      <Filter>tensors\gpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\ExecuteKernel.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\ExecuteKernelU8S8.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\Fbgemm.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmConv.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmFP16.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmFP16UKernelsAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmI8DepthwiseAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmI8Spmdm.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC16.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC16Avx512.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC32.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC32Avx512.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GroupwiseConvAcc32Avx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\OptimizedKernelsAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAMatrix.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithIm2Col.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithQuantRowOffset.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackAWithRowOffset.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackBMatrix.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackMatrix.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackWeightMatrixForGConv.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackWeightsForConv.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\QuantUtils.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\QuantUtilsAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\RefImplementations.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\Utils.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\UtilsAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\UtilsAvx512.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\api.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\init.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\info.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\init.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\isa.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\name.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\topology.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\uarch.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\vendor.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows\init.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\descriptor.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86\cacehe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\deterministic.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86\cacehe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cache\init.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86\cacehe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src\clog.c">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\aliases.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\filesystem.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\arch.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\assembler.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\builder.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\callconv.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\codeholder.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\compiler.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\constpool.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\cpuinfo.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\emitter.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\func.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\globals.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\inst.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\jitallocator.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\jitruntime.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\logging.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\operand.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\osutils.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\ralocal.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\rapass.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\rastack.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\string.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\support.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\target.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\type.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\virtmem.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zone.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonehash.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonelist.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonestack.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonetree.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonevector.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86assembler.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86builder.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86callconv.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86compiler.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86features.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instapi.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instdb.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86internal.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86logging.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86operand.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86rapass.cpp">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\codegen_fp16fp32.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\FbgemmI8Depthwise3DAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC16Avx512VNNI.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\GenerateKernelU8S8S32ACC32Avx512VNNI.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\src\PackDepthwiseConvMatrixAvx2.cc">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\FP16Test.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\GConvTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\I8DepthwiseTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\I8SpmdmTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\Im2ColFusedRequantizeTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\PackedRequantizeAcc16Test.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\PackedRequantizeTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\QuantizationHelpers.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\QuantUtilsTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\RequantizeOnlyTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\TestUtils.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\test\UniConvTest.cc">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\BenchUtils.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\ConvUnifiedBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\Depthwise3DBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\DepthwiseBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\FP16Benchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\GEMMsBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\GEMMsTunableBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\GroupwiseConvRequantizeBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\I8SpmdmBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\Im2ColFusedRequantizeBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\PackedFloatInOutBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\PackedRequantizeAcc16Benchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\PackedRequantizeAcc32Benchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\RequantizeBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\bench\RowOffsetBenchmark.cc">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\googletest\googletest\src\gtest_main.cc">
+      <Filter>3rd_party\fbgemm\third_party\googletest\googletest\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\fbgemm\third_party\googletest\googletest\src\gtest-all.cc">
+      <Filter>3rd_party\fbgemm\third_party\googletest\googletest\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\aliases.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\half_float\HalfPrecisionFloatTest.cpp">
+      <Filter>3rd_party\half_float</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\tensor.cpp">
+      <Filter>tensors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\filesystem.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\file_stream.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\training\scheduler.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\options.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\types.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\fastopt.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\phf\phf.cc">
+      <Filter>3rd_party\phf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\fbgemm\packed_gemm.cpp">
+      <Filter>tensors\cpu\fbgemm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
     <ClInclude Include="..\src\3rd_party\catch.hpp">
-      <Filter>3rd_party</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\3rd_party\exception.h">
       <Filter>3rd_party</Filter>
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\reduce_all.h">
@@ -639,12 +1095,6 @@
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\spdlog\tests\utils.h">
       <Filter>3rd_party\spdlog\tests</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\3rd_party\svd\defs_and_types.h">
-      <Filter>3rd_party\svd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\3rd_party\svd\svd.h">
-      <Filter>3rd_party\svd</Filter>
     </ClInclude>
     <ClInclude Include="..\src\3rd_party\yaml-cpp\anchor.h">
       <Filter>3rd_party\yaml-cpp</Filter>
@@ -988,9 +1438,6 @@
     <ClInclude Include="..\src\models\encoder_decoder.h">
       <Filter>models</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\models\hardatt.h">
-      <Filter>models</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\models\model_base.h">
       <Filter>models</Filter>
     </ClInclude>
@@ -1064,9 +1511,6 @@
       <Filter>tensors</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tensors\tensor_operators.h">
-      <Filter>tensors</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tensors\types.h">
       <Filter>tensors</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tensors\cpu\add.h">
@@ -1345,6 +1789,495 @@
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\word_model_trainer.h">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\collectives.h">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\all_gather.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\all_reduce.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\broadcast.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\common.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\common_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\ll_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\primitives.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce_kernel.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\collectives\device\reduce_scatter.h">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\bootstrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\common_coll.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\core.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\debug.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\enqueue.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\group.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\ibvwrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nccl_net.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\net.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nvlink.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\nvmlwrap.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\param.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\ring.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\rings.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\shm.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\socket.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\topo.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\transport.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\nccl\src\include\utils.h">
+      <Filter>3rd_party\nccl\src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\entry_iterator.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\errors.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\path.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ifstream.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ofstream.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\pathie-cpp\include\temp.hpp">
+      <Filter>3rd_party\pathie-cpp\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\dataset.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\model_lenet.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\training.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\examples\mnist\validator.h">
+      <Filter>examples\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\command\marian_train.cpp">
+      <Filter>command</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\bert.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\vocab_base.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\data\factored_vocab.h">
+      <Filter>data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\encoder_classifier.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\transformer.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\training\communicator_nccl.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\element.inc">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\add.inc">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\ConvUtils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Fbgemm.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmBuild.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmFP16.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8DepthwiseAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\FbgemmI8Spmdm.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\OutputProcessing-inl.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\PackingTraits-inl.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\QuantUtilsAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Types.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\Utils.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\UtilsAvx2.h">
+      <Filter>3rd_party\fbgemm\include\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernel.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernelGeneric.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\ExecuteKernelU8S8.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\FbgemmFP16UKernelsAvx2.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\GenerateKernel.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\GroupwiseConv.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\OptimizedKernelsAvx2.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\RefImplementations.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\TransposeUtils.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\include\cpuinfo.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\include\cpuinfo-mock.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\api.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\cpuid.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows\api.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\common.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\internal-api.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\log.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo\utils.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\asmjit.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include\clog.h">
+      <Filter>3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\arch.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\assembler.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\build.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\builder.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\callconv.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\codebufferwriter_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\codeholder.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\compiler.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\constpool.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\cpuinfo.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\datatypes.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\emitter.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\features.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\func.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\globals.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\inst.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\jitallocator.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\jitruntime.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\logging.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\misc_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\operand.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\osutils.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\raassignment_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\rabuilders_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\radefs_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\ralocal_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\rapass_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\rastack_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\string.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\support.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\target.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\type.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\virtmem.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zone.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonehash.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonelist.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonestack.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonestring.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonetree.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core\zonevector.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86assembler.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86builder.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86callconv_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86compiler.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86emitter.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86features.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86globals.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instapi_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instdb.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86instdb_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86internal_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86logging_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86opcode_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86operand.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86\x86rapass_p.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\CodeCache.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\src\FbgemmI8DepthwiseAvx2-inl.h">
+      <Filter>3rd_party\fbgemm\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\test\QuantizationHelpers.h">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\test\TestUtils.h">
+      <Filter>3rd_party\fbgemm\test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\bench\AlignedVec.h">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\bench\BenchUtils.h">
+      <Filter>3rd_party\fbgemm\bench</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\googletest\googletest\src\gtest-internal-inl.h">
+      <Filter>3rd_party\fbgemm\third_party\googletest\googletest\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\half_float\umHalf.h">
+      <Filter>3rd_party\half_float</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\any_type.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\avx_mathfun.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\sse_mathfun.h">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\functional\approx.h">
+      <Filter>functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\functional\operators.h">
+      <Filter>functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\strict_fstream.hpp">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\zstr\zstr.hpp">
+      <Filter>3rd_party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\fastopt.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\phf\phf.h">
+      <Filter>3rd_party\phf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\fbgemm\third_party\asmjit\src\asmjit\core.h">
+      <Filter>3rd_party\fbgemm\third_party\asmjit\src\asmjit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\fbgemm\expanded_gemm.h">
+      <Filter>tensors\cpu\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\fbgemm\expression_graph_packable.h">
+      <Filter>tensors\cpu\fbgemm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\cpu\fbgemm\packed_gemm.h">
+      <Filter>tensors\cpu\fbgemm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -1385,9 +2318,6 @@
     </Filter>
     <Filter Include="3rd_party\spdlog\tests">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0041}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rd_party\svd">
-      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0044}</UniqueIdentifier>
     </Filter>
     <Filter Include="3rd_party\yaml-cpp">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0047}</UniqueIdentifier>
@@ -1482,41 +2412,133 @@
     <Filter Include="3rd_party\sentencepiece\src">
       <UniqueIdentifier>{638bf0e1-4f83-4b37-9077-2be549d75909}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\nccl">
+      <UniqueIdentifier>{0ba105eb-79fb-4e2a-8940-f1ecebbcd4fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src">
+      <UniqueIdentifier>{fbc17f5e-3f10-44a9-b3ad-66ce12573174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\collectives">
+      <UniqueIdentifier>{c6036c35-5848-4fd5-b1a0-59e2042cbb69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\misc">
+      <UniqueIdentifier>{7b9a131d-9e0a-4c28-8a51-08232ff2e35e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\transport">
+      <UniqueIdentifier>{0bd9cca8-660b-46f6-aac6-691fb50245f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\include">
+      <UniqueIdentifier>{2beba56f-5dda-4994-bef0-16170b6552b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\nccl\src\collectives\device">
+      <UniqueIdentifier>{ac585624-4e66-42cd-8e4e-62cb90029610}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp">
+      <UniqueIdentifier>{825beb7c-2997-408b-af81-34ab5f14593a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp\include">
+      <UniqueIdentifier>{db1dd5a2-f331-495d-9e3b-6dc1c01528ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\pathie-cpp\src">
+      <UniqueIdentifier>{5d5ee615-192f-4b7f-bdfd-fb8316ceabc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{a86d650a-2268-43d9-9d74-cb17cd6b534b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm">
+      <UniqueIdentifier>{4bb88f6d-7ddf-41e0-91be-a43dbcd0e9b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\include">
+      <UniqueIdentifier>{6c2bef00-97a0-4881-a6f0-ded54b8520bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\include\fbgemm">
+      <UniqueIdentifier>{95f7ce7c-c649-4d57-8d2a-d724bd75fe84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\src">
+      <UniqueIdentifier>{41f7fbeb-2a73-4747-800c-46307cd0b52b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party">
+      <UniqueIdentifier>{dc2722bc-af78-4923-82cb-9a09cb290fbf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\asmjit">
+      <UniqueIdentifier>{577ae810-9593-423d-a398-0787252022b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo">
+      <UniqueIdentifier>{f97ae984-fe9a-45f6-a3f4-af90875209ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\include">
+      <UniqueIdentifier>{4e7efd32-ec9d-4a1f-b454-656ba5c03275}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\src">
+      <UniqueIdentifier>{15b8bcc0-2a07-4d39-8e03-18daa0c33d09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\src\x86">
+      <UniqueIdentifier>{ffd4cf44-177f-47a2-870a-438df9ca3be4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\src\x86\cacehe">
+      <UniqueIdentifier>{b600923b-21c1-492a-bfd9-0aa1082ebcd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\src\x86\windows">
+      <UniqueIdentifier>{79535a0d-1cdc-45a9-89fb-e9c5794ddff5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\src\cpuinfo">
+      <UniqueIdentifier>{5709c1ff-41f9-4f83-badb-a7a7c98c1fae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\asmjit\src">
+      <UniqueIdentifier>{a35aa317-6132-4c31-8f9a-8ec68a4b1c39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\asmjit\src\asmjit">
+      <UniqueIdentifier>{fc12d7c4-41df-48c0-9017-e8f4d7538cf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\asmjit\src\asmjit\x86">
+      <UniqueIdentifier>{5818c959-7963-4d8e-9e87-b61f340476c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\deps">
+      <UniqueIdentifier>{d4505c8d-5e6e-4baf-8525-dc59ae8b6415}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\deps\clog">
+      <UniqueIdentifier>{fb9777f1-6887-4286-a58c-0956b356a815}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\deps\clog\include">
+      <UniqueIdentifier>{17125bd0-f21b-4e95-a922-690f5665e9b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\cpuinfo\deps\clog\src">
+      <UniqueIdentifier>{8fd74b1e-d3c1-4158-ad46-4a447222934e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\asmjit\src\asmjit\core">
+      <UniqueIdentifier>{b3b34c5f-5b98-436a-b34c-11e2dccb7ea2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\test">
+      <UniqueIdentifier>{40576dca-07d5-4904-8119-ffbc982451a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\bench">
+      <UniqueIdentifier>{9f11c8f1-78f7-47c6-9eac-34cd2c6cd909}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\googletest">
+      <UniqueIdentifier>{75f9df88-0eb1-4d9a-858e-4e0b8fc3aa8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\googletest\googletest">
+      <UniqueIdentifier>{9f77e916-1d2f-4c15-9eba-46bcbddd2658}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\fbgemm\third_party\googletest\googletest\src">
+      <UniqueIdentifier>{050ba410-c56a-4607-8401-935f58f598b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\half_float">
+      <UniqueIdentifier>{defd3aec-3c56-4d70-a4bb-90ba9003d98d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\phf">
+      <UniqueIdentifier>{352ac0e9-daed-437a-bc36-fb85ecd037eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tensors\cpu\fbgemm">
+      <UniqueIdentifier>{bf361868-f451-45b8-9695-570d67924972}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".editorConfig" />
-    <None Include="..\src\training\communicator_nccl.h">
-      <Filter>training</Filter>
+    <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
+      <Filter>3rd_party\nccl\src</Filter>
     </None>
-    <None Include="..\src\tensors\gpu\add.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\add.inc">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\algorithm.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\cudnn_wrappers.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\device.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\element.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\element.inc">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\prod.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\sparse.cu">
-      <Filter>tensors\gpu</Filter>
-    </None>
-    <None Include="..\src\tensors\gpu\tensor_operators.cu">
-      <Filter>tensors\gpu</Filter>
+    <None Include="..\src\3rd_party\nccl\src\init.cu">
+      <Filter>3rd_party\nccl\src</Filter>
     </None>
     <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece.proto">
       <Filter>3rd_party\sentencepiece\src</Filter>
@@ -1524,10 +2546,168 @@
     <None Include="..\src\3rd_party\sentencepiece\src\sentencepiece_model.proto">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </None>
+    <None Include="..\src\3rd_party\nccl\src\Makefile">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\nccl.h.in">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\ring.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport.cu">
+      <Filter>3rd_party\nccl\src</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\all_gather.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\all_reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\broadcast.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\reduce_scatter.cu">
+      <Filter>3rd_party\nccl\src\collectives</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\all_gather.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\all_reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\broadcast.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\functions.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\Makefile">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\reduce.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\collectives\device\reduce_scatter.cu">
+      <Filter>3rd_party\nccl\src\collectives\device</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\enqueue.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\group.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\ibvwrap.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\nvmlwrap.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\rings.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\misc\utils.cu">
+      <Filter>3rd_party\nccl\src\misc</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net_ib.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\net_socket.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\p2p.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\nccl\src\transport\shm.cu">
+      <Filter>3rd_party\nccl\src\transport</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\CHANGELOG">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\LICENSE">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
+    <None Include="..\src\3rd_party\pathie-cpp\README.md">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </None>
+    <None Include="..\src\tests\README.md">
+      <Filter>tests</Filter>
+    </None>
+    <None Include="..\src\examples\mnist\download.sh">
+      <Filter>examples\mnist</Filter>
+    </None>
+    <None Include="..\src\examples\iris\iris.data">
+      <Filter>examples\iris</Filter>
+    </None>
+    <None Include="..\src\examples\cmake_install.cmake">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\Makefile">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\examples\README.md">
+      <Filter>examples</Filter>
+    </None>
+    <None Include="..\src\3rd_party\half_float\Readme.md">
+      <Filter>3rd_party\half_float</Filter>
+    </None>
+    <None Include="..\src\3rd_party\half_float\umHalf.inl">
+      <Filter>3rd_party\half_float</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </Text>
+    <Text Include="..\src\3rd_party\pathie-cpp\CMakeLists.txt">
+      <Filter>3rd_party\pathie-cpp</Filter>
+    </Text>
+    <Text Include="..\src\tests\CMakeLists.txt">
+      <Filter>tests</Filter>
+    </Text>
+    <Text Include="..\src\examples\CMakeLists.txt">
+      <Filter>examples</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\tensors\gpu\add.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\algorithm.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\cudnn_wrappers.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\device.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\element.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\translator\helpers.cu">
+      <Filter>translator</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\translator\nth_element.cu">
+      <Filter>translator</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\tensor_operators.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\dropper.cu">
+      <Filter>training\gradient_dropping\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.cu">
+      <Filter>training\gradient_dropping\gpu</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

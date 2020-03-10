@@ -8,17 +8,16 @@ namespace marian {
 
 class Nematus : public EncoderDecoder {
 public:
-  template <class... Args>
-  Nematus(Ptr<Options> options) : EncoderDecoder(options), nameMap_(createNameMap()) {
+  Nematus(Ptr<ExpressionGraph> graph, Ptr<Options> options) : EncoderDecoder(graph, options), nameMap_(createNameMap()) {
     ABORT_IF(options_->get<std::string>("enc-type") != "bidirectional",
-             "--type nematus does not currently support other encoder "
+             "--type nematus does not support other encoder "
              "type than bidirectional, use --type s2s");
 
     ABORT_IF(options_->get<std::string>("enc-cell") != "gru-nematus",
-             "--type nematus does not currently support other rnn cells "
+             "--type nematus does not support other rnn cells "
              "than gru-nematus, use --type s2s");
     ABORT_IF(options_->get<std::string>("dec-cell") != "gru-nematus",
-             "--type nematus does not currently support other rnn cells "
+             "--type nematus does not support other rnn cells "
              "than gru-nematus, use --type s2s");
 
     ABORT_IF(options_->get<int>("dec-cell-high-depth") > 1,
@@ -36,11 +35,16 @@ public:
     for(auto it = ioItems.begin(); it != ioItems.end();) {
       if(it->name == "decoder_c_tt") {
         it = ioItems.erase(it);
+      } else if(it->name == "uidx") {
+        it = ioItems.erase(it);
+      } else if(it->name == "history_errs") {
+        it = ioItems.erase(it);
+      } else {
+        auto pair = nameMap_.find(it->name);
+        if(pair != nameMap_.end())
+          it->name = pair->second;
+        it++;
       }
-      auto pair = nameMap_.find(it->name);
-      if(pair != nameMap_.end())
-        it->name = pair->second;
-      ++it;
     }
     // load items into the graph
     graph->load(ioItems);

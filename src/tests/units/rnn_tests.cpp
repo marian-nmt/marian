@@ -1,15 +1,30 @@
 #include "catch.hpp"
 #include "marian.h"
 
+#ifdef CUDA_FOUND
+#include "tensors/gpu/backend.h"
+#endif
+
 #include "rnn/rnn.h"
 #include "rnn/constructors.h"
 
 using namespace marian;
 
-void tests(DeviceType type) {
-  auto floatApprox = [](float x, float y) { return x == Approx(y).epsilon(0.01); };
+template <typename T>
+void tests(DeviceType type, Type floatType = Type::float32) {
 
-  Words vWords = {
+// Checking for FP16 support and skipping if not supported.
+#ifdef CUDA_FOUND
+  if(type == DeviceType::gpu && floatType == Type::float16) {
+    auto gpuBackend = New<gpu::Backend>(DeviceId({0, type}), /*seed=*/1234);
+    auto cudaCompute = gpuBackend->getCudaComputeCapability();
+    if(cudaCompute.major < 6) return;
+  }
+#endif
+
+  auto floatApprox = [](T x, T y) { return x == Approx(y).epsilon(0.01); };
+
+  std::vector<IndexType> vWords = {
     43, 2, 83, 78,
     6, 38, 80, 40,
     40, 70, 26, 60,
@@ -20,7 +35,7 @@ void tests(DeviceType type) {
     0, 0, 0, 0
   };
 
-  std::vector<float> vMask = {
+  std::vector<T> vMask = {
     1, 1, 1, 1,
     1, 1, 1, 1,
     1, 1, 1, 1,
@@ -35,21 +50,22 @@ void tests(DeviceType type) {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
+    graph->setDefaultElementType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
-    std::vector<float> values;
+    std::vector<T> values;
 
     auto input = graph->constant({4, 1, 4},
-                                 inits::glorot_uniform);
+                                 inits::glorotUniform());
 
-    auto rnn = rnn::rnn(graph)         //
-          ("prefix", "rnntest")        //
-          ("type", "tanh")             //
-          ("dimInput", 4)              //
-          ("dimState", 4)              //
-          .push_back(rnn::cell(graph)) //
-          .construct();
+    auto rnn = rnn::rnn()         //
+          ("prefix", "rnntest")   //
+          ("type", "tanh")        //
+          ("dimInput", 4)         //
+          ("dimState", 4)         //
+          .push_back(rnn::cell()) //
+          .construct(graph);
 
     auto output = rnn->transduce(input);
 
@@ -58,14 +74,14 @@ void tests(DeviceType type) {
     CHECK(output->shape() == Shape({4, 1, 4}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vOutput({
+    std::vector<T> vOutput({
       0.637288, 0.906478, 0.603604, 0.152291,
       -0.5333, -0.854558, 0.458454, -0.179582,
       0.736857, 0.964425, 0.43848, 0.0261131,
       -0.533659, -0.733491, -0.953666, -0.965717
     });
 #else
-    std::vector<float> vOutput({
+    std::vector<T> vOutput({
       -0.523228, 0.645143, 0.430939, 0.273439,
       -0.747293, 0.131912, 0.115222, 0.363874,
       0.367535, -0.819531, -0.313036, -0.387701,
@@ -82,10 +98,11 @@ void tests(DeviceType type) {
     Config::seed = 1234;
 
     auto graph = New<ExpressionGraph>();
+    graph->setDefaultElementType(floatType);
     graph->setDevice({0, type});
     graph->reserveWorkspaceMB(16);
 
-    std::vector<float> values;
+    std::vector<T> values;
 
     auto buildRnn = [&graph] (std::string prefix,
                               Expr input, Expr mask,
@@ -117,7 +134,7 @@ void tests(DeviceType type) {
       auto backward = type == "alternating" ? rnn::dir::alternating_backward
                                             : rnn::dir::backward;
 
-      auto rnnFw = rnn::rnn(graph)           //
+      auto rnnFw = rnn::rnn()                //
           ("type", cellType)                 //
           ("direction", forward)             //
           ("dimInput", dimEmb)               //
@@ -126,7 +143,7 @@ void tests(DeviceType type) {
           ("skip", skip);
 
       for(int i = 1; i <= first; ++i) {
-        auto stacked = rnn::stacked_cell(graph);
+        auto stacked = rnn::stacked_cell();
         for(int j = 1; j <= cellDepth; ++j) {
           std::string paramPrefix = prefix + "_bi";
           if(i > 1)
@@ -134,21 +151,22 @@ void tests(DeviceType type) {
           if(i > 1 || j > 1)
             paramPrefix += "_cell" + std::to_string(j);
 
-          stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+          stacked.push_back(rnn::cell()("prefix", paramPrefix));
         }
         rnnFw.push_back(stacked);
       }
 
-      auto rnnBw = rnn::rnn(graph)            //
-          ("type", cellType)                  //
-          ("direction", backward)             //
-          ("dimInput", dimEmb)                //
-          ("dimState", dimRnn)                //
-          ("layer-normalization", layerNorm)  //
+
+      auto rnnBw = rnn::rnn()                //
+          ("type", cellType)                 //
+          ("direction", backward)            //
+          ("dimInput", dimEmb)               //
+          ("dimState", dimRnn)               //
+          ("layer-normalization", layerNorm) //
           ("skip", skip);
 
       for(int i = 1; i <= first; ++i) {
-        auto stacked = rnn::stacked_cell(graph);
+        auto stacked = rnn::stacked_cell();
         for(int j = 1; j <= cellDepth; ++j) {
           std::string paramPrefix = prefix + "_bi_r";
           if(i > 1)
@@ -156,13 +174,13 @@ void tests(DeviceType type) {
           if(i > 1 || j > 1)
             paramPrefix += "_cell" + std::to_string(j);
 
-          stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+          stacked.push_back(rnn::cell()("prefix", paramPrefix));
         }
         rnnBw.push_back(stacked);
       }
 
-      auto context = concatenate({rnnFw->transduce(input, mask),
-                                  rnnBw->transduce(input, mask)},
+      auto context = concatenate({rnnFw.construct(graph)->transduce(input, mask),
+                                  rnnBw.construct(graph)->transduce(input, mask)},
                                   /*axis =*/ input->shape().size() - 1);
 
       if(second > 0) {
@@ -170,25 +188,25 @@ void tests(DeviceType type) {
         // previous bidirectional RNN through multiple layers
 
         // construct RNN first
-        auto rnnUni = rnn::rnn(graph)           //
-            ("type", cellType)                  //
-            ("dimInput", 2 * dimRnn)            //
-            ("dimState", dimRnn)                //
-            ("layer-normalization", layerNorm)  //
+        auto rnnUni = rnn::rnn()               //
+            ("type", cellType)                 //
+            ("dimInput", 2 * dimRnn)           //
+            ("dimState", dimRnn)               //
+            ("layer-normalization", layerNorm) //
             ("skip", skip);
 
         for(int i = first + 1; i <= second + first; ++i) {
-          auto stacked = rnn::stacked_cell(graph);
+          auto stacked = rnn::stacked_cell();
           for(int j = 1; j <= cellDepth; ++j) {
             std::string paramPrefix = prefix + "_l" + std::to_string(i) + "_cell"
                                       + std::to_string(j);
-            stacked.push_back(rnn::cell(graph)("prefix", paramPrefix));
+            stacked.push_back(rnn::cell()("prefix", paramPrefix));
           }
           rnnUni.push_back(stacked);
         }
 
         // transduce context to new context
-        context = rnnUni->transduce(context);
+        context = rnnUni.construct(graph)->transduce(context);
       }
       return context;
     };
@@ -199,11 +217,11 @@ void tests(DeviceType type) {
 
     auto emb = graph->param("Embeddings",
                             {128, dimEmb},
-                            inits::glorot_uniform);
+                            inits::glorotUniform());
 
     auto input = reshape(rows(emb, vWords), {dimTime, dimBatch, dimEmb});
     auto mask = graph->constant({dimTime, dimBatch, 1},
-                                inits::from_vector(vMask));
+                                inits::fromVector(vMask));
 
     int dimRnn = 32;
     auto context1 = buildRnn("enc1", input, mask, dimRnn);
@@ -225,7 +243,7 @@ void tests(DeviceType type) {
     CHECK(contextSum1->shape() == Shape({dimTime, dimBatch, 1}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vContextSum1({
+    std::vector<T> vContextSum1({
       -0.110829, -0.510232, 0.265193, 0.194025,
       -0.242112, 0.185029, 0.0530527, 0.359336,
       0.60218, 0.46511, -0.240092, 0.100453,
@@ -236,7 +254,7 @@ void tests(DeviceType type) {
       0.360119, 0.422752, 0.55825, 0.0469481
     });
 #else
-    std::vector<float> vContextSum1({
+    std::vector<T> vContextSum1({
       -0.0674548, 0.383986, -0.613574, 0.226154,
       -0.819571, 0.47317, -1.39324, -0.401005,
       -0.24099, 0.64791, -0.120434, -0.818529,
@@ -255,7 +273,7 @@ void tests(DeviceType type) {
     CHECK(contextSum2->shape() == Shape({dimTime, dimBatch, 1}));
 
 #ifdef CUDA_FOUND
-    std::vector<float> vContextSum2({
+    std::vector<T> vContextSum2({
       -0.0282316, 0.0219561, -0.012136, 0.0206684,
       -0.0755229, 0.00091961, 0.0206883, 0.0176061,
       -0.0272491, 0.0833994, 0.0279131, 0.0170246,
@@ -266,7 +284,7 @@ void tests(DeviceType type) {
       0.123207, 0.0774718, 0.0741554, 0.0548368
     });
 #else
-    std::vector<float> vContextSum2({
+    std::vector<T> vContextSum2({
       0.0193405, -0.0580973, -0.0213983, 0.0381918,
       -0.0135365, -0.0934286, -0.0171637, 0.0198686,
       -0.0102693, -0.0865369, -0.0160779, 0.0393178,
@@ -284,7 +302,7 @@ void tests(DeviceType type) {
     //CHECK(context3->shape() == Shape({dimBatch, 2 * dimRnn, dimTime}));
     //CHECK(contextSum3->shape() == Shape({dimBatch, 1, dimTime}));
     //
-    //std::vector<float> vContextSum3({
+    //std::vector<T> vContextSum3({
     //  1.135, 2.40939, 2.37631, 2.03765,
     //  0.0583942, -4.89241, 5.31731, -1.52973,
     //  3.52754, 1.02098, -4.05162, -1.11594,
@@ -311,12 +329,18 @@ void tests(DeviceType type) {
 
 #ifdef CUDA_FOUND
 TEST_CASE("Model components, RNN etc. (gpu)", "[model]") {
-  tests(DeviceType::gpu);
+  tests<float>(DeviceType::gpu);
 }
+
+#if COMPILE_FP16
+TEST_CASE("Model components, RNN etc. (gpu, fp16)", "[model]") {
+  tests<float16>(DeviceType::gpu, Type::float16);
+}
+#endif
 #endif
 
 #ifdef BLAS_FOUND
 TEST_CASE("Model components, RNN etc. (cpu)", "[model]") {
-  tests(DeviceType::cpu);
+  tests<float>(DeviceType::cpu);
 }
 #endif

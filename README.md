@@ -1,40 +1,26 @@
 Marian
 ======
 
+[![Build Status CUDA 9](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-9.2.svg?label=CUDA%209)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-9.2/)
 [![Build Status CUDA 10](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-10.1.svg?label=CUDA%2010)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-10.1/)
-[![CPU Build Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
+[![Build Status CPU](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
 [![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-regression-tests.svg?label=tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
 [![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=release)](https://github.com/marian-nmt/marian/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
 [![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social)](https://twitter.com/intent/follow?screen_name=marian_nmt)
 
- <p>
-  <b>Marian</b> is an efficient Neural Machine Translation framework written
-  in pure C++ with minimal dependencies. 
+*Marian* is an efficient Neural Machine Translation framework written in pure
+C++ with minimal dependencies.
 
-  Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
+Named in honour of Marian Rejewski, a Polish mathematician and cryptologist.
 
-  <!--It has mainly been developed at the
-  Adam Mickiewicz University in Poznań (AMU) and at the University of Edinburgh.-->
-  </p>
+Main features:
 
-  <!--p>
-  It is currently being deployed in
-  multiple European projects and is the main translation and training engine
-  behind the neural MT launch at the
-  <a href="http://www.wipo.int/pressroom/en/articles/2016/article_0014.html">World Intellectual Property Organization</a>.
-  </p-->
-
-  <p>
-  Main features:
-  <ul>
-    <li> Fast multi-gpu training and translation </li>
-    <li> Compatible with Nematus and DL4MT </li>
-    <li> Efficient pure C++ implementation </li>
-    <li> Permissive open source license (MIT) </li>
-    <li> <a href="https://marian-nmt.github.io/features/"> more details... </a> </li>
-  </ul>
-  </p>
+- Efficient pure C++ implementation
+- Fast multi-GPU training and GPU/CPU translation
+- State-of-the-art NMT architectures: deep RNN and transformer
+- Permissive open source license (MIT)
+- [more detail...](https://marian-nmt.github.io/features)
 
 If you use this, please cite:
 
@@ -59,20 +45,11 @@ Machine Translation in C++ (http://www.aclweb.org/anthology/P18-4020)
         url       = {http://www.aclweb.org/anthology/P18-4020}
     }
 
-<!--
-## Compilation
-
-```
-cd marian-dev
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j
-```
--->
-
 ## Amun
-The handwritten decoder for RNN models compatible with Marian and Nematus has been superseded by the Marian decoder. The code is available in a separate repository: https://github.com/marian-nmt/amun
+
+The handwritten decoder for RNN models compatible with Marian and Nematus has
+been superseded by the Marian decoder. The code is available in a separate
+repository: https://github.com/marian-nmt/amun
 
 ## Website
 

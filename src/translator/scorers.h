@@ -4,14 +4,15 @@
 
 #include "data/shortlist.h"
 #include "models/model_factory.h"
+#include "3rd_party/mio/mio.hpp"
 
 namespace marian {
 
 class ScorerState {
 public:
-  virtual Expr getLogProbs() = 0;
+  virtual ~ScorerState(){}
 
-  virtual float breakDown(size_t i) { return getLogProbs()->val()->get(i); }
+  virtual Logits getLogProbs() const = 0;
 
   virtual void blacklist(Expr /*totalCosts*/, Ptr<data::CorpusBatch> /*batch*/){};
 };
@@ -25,6 +26,8 @@ public:
   Scorer(const std::string& name, float weight)
       : name_(name), weight_(weight) {}
 
+  virtual ~Scorer(){}
+
   std::string getName() { return name_; }
   float getWeight() { return weight_; }
 
@@ -35,14 +38,14 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph>,
                                 Ptr<ScorerState>,
                                 const std::vector<IndexType>&,
-                                const std::vector<IndexType>&,
-                                int dimBatch,
+                                const Words&,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize)
       = 0;
 
   virtual void init(Ptr<ExpressionGraph>) {}
 
-  virtual void setShortlistGenerator(Ptr<data::ShortlistGenerator> /*shortlistGenerator*/){};
+  virtual void setShortlistGenerator(Ptr<const data::ShortlistGenerator> /*shortlistGenerator*/){};
   virtual Ptr<data::Shortlist> getShortlist() { return nullptr; };
 
   virtual std::vector<float> getAlignment() { return {}; };
@@ -54,40 +57,43 @@ protected:
 
 public:
   ScorerWrapperState(Ptr<DecoderState> state) : state_(state) {}
+  virtual ~ScorerWrapperState() {}
 
   virtual Ptr<DecoderState> getState() { return state_; }
 
-  virtual Expr getLogProbs() override { return state_->getLogProbs(); };
+  virtual Logits getLogProbs() const override { return state_->getLogProbs(); };
 
   virtual void blacklist(Expr totalCosts, Ptr<data::CorpusBatch> batch) override {
     state_->blacklist(totalCosts, batch);
   }
 };
 
-// class to wrap EncoderDecoderBase in a Scorer interface
+// class to wrap IEncoderDecoder in a Scorer interface
 class ScorerWrapper : public Scorer {
 private:
-  Ptr<EncoderDecoderBase> encdec_;
+  Ptr<IEncoderDecoder> encdec_;
   std::string fname_;
   const void* ptr_;
 
 public:
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const std::string& fname)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         fname_(fname),
         ptr_{0} {}
 
-  ScorerWrapper(Ptr<models::ModelBase> encdec,
+  ScorerWrapper(Ptr<models::IModel> encdec,
                 const std::string& name,
                 float weight,
                 const void* ptr)
       : Scorer(name, weight),
-        encdec_(std::static_pointer_cast<EncoderDecoderBase>(encdec)),
+        encdec_(std::static_pointer_cast<IEncoderDecoder>(encdec)),
         ptr_{ptr} {}
+
+  virtual ~ScorerWrapper() {}
 
   virtual void init(Ptr<ExpressionGraph> graph) override {
     graph->switchParams(getName());
@@ -111,17 +117,17 @@ public:
   virtual Ptr<ScorerState> step(Ptr<ExpressionGraph> graph,
                                 Ptr<ScorerState> state,
                                 const std::vector<IndexType>& hypIndices,
-                                const std::vector<IndexType>& embIndices,
-                                int dimBatch,
+                                const Words& words,
+                                const std::vector<IndexType>& batchIndices,
                                 int beamSize) override {
     graph->switchParams(getName());
     auto wrapperState = std::dynamic_pointer_cast<ScorerWrapperState>(state);
-    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, embIndices, dimBatch, beamSize);
+    auto newState = encdec_->step(graph, wrapperState->getState(), hypIndices, words, batchIndices, beamSize);
     return New<ScorerWrapperState>(newState);
   }
 
   virtual void setShortlistGenerator(
-      Ptr<data::ShortlistGenerator> shortlistGenerator) override {
+      Ptr<const data::ShortlistGenerator> shortlistGenerator) override {
     encdec_->setShortlistGenerator(shortlistGenerator);
   };
 
@@ -130,7 +136,9 @@ public:
   };
 
   virtual std::vector<float> getAlignment() override {
-    return encdec_->getAlignment().front();
+    // This is called during decoding, where alignments only exist for the last time step. Hence front().
+    // This makes as copy. @TODO: It should be OK to return this as a const&.
+    return encdec_->getAlignment().front(); // [beam depth * max src length * batch size]
   }
 };
 
@@ -147,5 +155,6 @@ Ptr<Scorer> scorerByType(const std::string& fname,
                          Ptr<Options> config);
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs);
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<mio::mmap_source>& mmaps);
 
 }  // namespace marian

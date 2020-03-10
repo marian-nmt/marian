@@ -7,27 +7,25 @@
 namespace marian {
 namespace rnn {
 
-struct StackableFactory : public Factory {
-  StackableFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-  StackableFactory(const StackableFactory&) = default;
-  StackableFactory(StackableFactory&&) = default;
-
-  virtual ~StackableFactory() {}
-
-  template <typename Cast>
-  inline Ptr<Cast> as() {
-    return std::dynamic_pointer_cast<Cast>(shared_from_this());
-  }
-
-  template <typename Cast>
-  inline bool is() {
-    return as<Cast>() != nullptr;
-  }
-};
+typedef Factory StackableFactory;
+//struct StackableFactory : public Factory {StackableFactory
+//  using Factory::Factory;
+//
+//  virtual ~StackableFactory() {}
+//
+//  template <typename Cast>
+//  inline Ptr<Cast> as() {
+//    return std::dynamic_pointer_cast<Cast>(shared_from_this());
+//  }
+//
+//  template <typename Cast>
+//  inline bool is() {
+//    return as<Cast>() != nullptr;
+//  }
+//};
 
 struct InputFactory : public StackableFactory {
-  InputFactory(Ptr<ExpressionGraph> graph) : StackableFactory(graph) {}
-  virtual Ptr<CellInput> construct() = 0;
+  virtual Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
 class CellFactory : public StackableFactory {
@@ -35,44 +33,42 @@ protected:
   std::vector<std::function<Expr(Ptr<rnn::RNN>)>> inputs_;
 
 public:
-  CellFactory(Ptr<ExpressionGraph> graph) : StackableFactory(graph) {}
-
-  virtual Ptr<Cell> construct() {
+  virtual Ptr<Cell> construct(Ptr<ExpressionGraph> graph) {
     std::string type = options_->get<std::string>("type");
     if(type == "gru") {
-      auto cell = New<GRU>(graph_, options_);
+      auto cell = New<GRU>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "gru-nematus") {
-      auto cell = New<GRUNematus>(graph_, options_);
+      auto cell = New<GRUNematus>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "lstm") {
-      auto cell = New<LSTM>(graph_, options_);
+      auto cell = New<LSTM>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "mlstm") {
-      auto cell = New<MLSTM>(graph_, options_);
+      auto cell = New<MLSTM>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "mgru") {
-      auto cell = New<MGRU>(graph_, options_);
+      auto cell = New<MGRU>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "tanh") {
-      auto cell = New<Tanh>(graph_, options_);
+      auto cell = New<Tanh>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "relu") {
-      auto cell = New<ReLU>(graph_, options_);
+      auto cell = New<ReLU>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "sru") {
-      auto cell = New<SRU>(graph_, options_);
+      auto cell = New<SRU>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else if(type == "ssru") {
-      auto cell = New<SSRU>(graph_, options_);
+      auto cell = New<SSRU>(graph, options_);
       cell->setLazyInputs(inputs_);
       return cell;
     } else {
@@ -81,7 +77,7 @@ public:
   }
 
   CellFactory clone() {
-    CellFactory aClone(graph_);
+    CellFactory aClone;
     aClone.options_->merge(options_);
     aClone.inputs_ = inputs_;
     return aClone;
@@ -103,10 +99,8 @@ protected:
   std::vector<Ptr<StackableFactory>> stackableFactories_;
 
 public:
-  StackedCellFactory(Ptr<ExpressionGraph> graph) : CellFactory(graph) {}
-
-  Ptr<Cell> construct() override {
-    auto stacked = New<StackedCell>(graph_, options_);
+  Ptr<Cell> construct(Ptr<ExpressionGraph> graph) override {
+    auto stacked = New<StackedCell>(graph, options_);
 
     int lastDimInput = options_->get<int>("dimInput");
 
@@ -115,20 +109,20 @@ public:
 
       if(sf->is<CellFactory>()) {
         auto cellFactory = sf->as<CellFactory>();
-        cellFactory->getOptions()->merge(options_);
+        cellFactory->mergeOpts(options_);
 
-        sf->getOptions()->set("dimInput", lastDimInput);
+        sf->setOpt("dimInput", lastDimInput);
         lastDimInput = 0;
 
         if(i == 0)
           for(auto f : inputs_)
             cellFactory->add_input(f);
 
-        stacked->push_back(cellFactory->construct());
+        stacked->push_back(cellFactory->construct(graph));
       } else {
         auto inputFactory = sf->as<InputFactory>();
-        inputFactory->getOptions()->merge(options_);
-        auto input = inputFactory->construct();
+        inputFactory->mergeOpts(options_);
+        auto input = inputFactory->construct(graph);
         stacked->push_back(input);
         lastDimInput += input->dimOutput();
       }
@@ -146,48 +140,45 @@ public:
 typedef Accumulator<StackedCellFactory> stacked_cell;
 
 class RNNFactory : public Factory {
+  using Factory::Factory;
 protected:
   std::vector<Ptr<CellFactory>> layerFactories_;
 
 public:
-  RNNFactory(Ptr<ExpressionGraph> graph) : Factory(graph) {}
-
-  Ptr<RNN> construct() {
-    auto rnn = New<RNN>(graph_, options_);
+  Ptr<RNN> construct(Ptr<ExpressionGraph> graph) {
+    auto rnn = New<RNN>(graph, options_);
     for(size_t i = 0; i < layerFactories_.size(); ++i) {
       auto lf = layerFactories_[i];
 
-      lf->getOptions()->merge(options_);
+      lf->mergeOpts(options_);
       if(i > 0) {
         int dimInput
-            = layerFactories_[i - 1]->getOptions()->get<int>("dimState")
-              + lf->getOptions()->get<int>("dimInputExtra", 0);
+            = layerFactories_[i - 1]->opt<int>("dimState")
+              + lf->opt<int>("dimInputExtra", 0);
 
-        lf->getOptions()->set("dimInput", dimInput);
+        lf->setOpt("dimInput", dimInput);
       }
 
       if((rnn::dir)opt<int>("direction", (int)rnn::dir::forward)
          == rnn::dir::alternating_forward) {
         if(i % 2 == 0)
-          lf->getOptions()->set("direction", (int)rnn::dir::forward);
+          lf->setOpt("direction", (int)rnn::dir::forward);
         else
-          lf->getOptions()->set("direction", (int)rnn::dir::backward);
+          lf->setOpt("direction", (int)rnn::dir::backward);
       }
 
       if((rnn::dir)opt<int>("direction", (int)rnn::dir::forward)
          == rnn::dir::alternating_backward) {
         if(i % 2 == 1)
-          lf->getOptions()->set("direction", (int)rnn::dir::forward);
+          lf->setOpt("direction", (int)rnn::dir::forward);
         else
-          lf->getOptions()->set("direction", (int)rnn::dir::backward);
+          lf->setOpt("direction", (int)rnn::dir::backward);
       }
 
-      rnn->push_back(lf->construct());
+      rnn->push_back(lf->construct(graph));
     }
     return rnn;
   }
-
-  Ptr<RNN> operator->() { return construct(); }
 
   template <class F>
   Accumulator<RNNFactory> push_back(const F& f) {
@@ -196,7 +187,7 @@ public:
   }
 
   RNNFactory clone() {
-    RNNFactory aClone(graph_);
+    RNNFactory aClone;
     aClone.options_->merge(options_);
     for(auto lf : layerFactories_)
       aClone.push_back(lf->clone());

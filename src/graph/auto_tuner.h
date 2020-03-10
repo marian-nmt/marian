@@ -20,15 +20,25 @@ class AutoTuner : public AutoTunerRecorder {
 private:
   typedef std::function<Return(Args...)> Algorithm;
 
-  const size_t max = 100;
-
+  // When the autotuner decides the fastest algorithm for a specific tensor operation (e.g. GEMM),
+  // the autotuner runs each algorithm at least this 'collectStatMax' number of times and
+  // collects the statistics.
+  const size_t collectStatMax = 50;
   UPtr<timer::CPUTimer> timer_;
 
+  // This structure holds a hash key an algorithm function (e.g. int16, packed gemm, mkl gemm)
+  // for a specific operation size
+  // hash: a unique hash key for each operation size
+  //      (e.g. m, n, k, transpose A, transpose B, bias size for GEMM)
+  // algorithm: a function that holds an algorithm
   struct HashedAlgorithm {
     size_t hash;
     Algorithm algorithm;
   };
 
+  // This structure represents the collected statistics.
+  // time: total accumulated time of this operator execution with the given algorithm
+  // runs: total time this algorithm was executed
   struct Stat {
     double time;
     size_t runs;
@@ -53,7 +63,7 @@ private:
         auto& stat = it->second;
 
         // collect more stats
-        if(stat.runs < max)
+        if(stat.runs < collectStatMax)
           return i;
 
         if(stat.time < bestTime) {
@@ -88,17 +98,16 @@ public:
     if(stop && done_.count(hash) == 0) {
       timer_->stop();
 
-      typedef std::chrono::duration<double> sec;
-      sec seconds = std::chrono::nanoseconds(timer_->elapsed().user);
+      auto seconds = timer_->elapsed();
 
       auto it = stats_.find(hash);
       if(it != stats_.end()) {
-        if(it->second.runs < max) {
-          it->second.time += seconds.count();
+        if(it->second.runs < collectStatMax) {
+          it->second.time += seconds;
           it->second.runs += 1;
         }
       } else {
-        stats_.emplace(hash, Stat({seconds.count(), 1}));
+        stats_.emplace(hash, Stat({seconds, 1}));
       }
 
       timer_.reset(nullptr);

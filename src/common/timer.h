@@ -1,21 +1,8 @@
 #pragma once
 
-#ifdef _GNUC_
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#endif
-#include <boost/timer/timer.hpp>
-#ifdef _GNUC_
-#pragma GCC diagnostic pop
-#endif
-
-#ifdef _MSC_VER
-// (needed on Windows only to resolve a link error, but causes a warning on Linux)
-#include <boost/chrono.hpp>
-#endif
-
-#include <chrono>
+#include <iostream>
 #include <sstream>
+#include <chrono>
 
 namespace marian {
 namespace timer {
@@ -29,7 +16,6 @@ static inline std::string currentDate() {
 }
 
 // Timer measures elapsed time.
-// This is a wrapper around std::chrono providing wall time only
 class Timer {
 protected:
   using clock = std::chrono::steady_clock;
@@ -89,12 +75,9 @@ public:
   }
 };
 
-// @TODO: replace with a timer providing CPU/thread time on both Linux and Windows. This is required
-// for auto-tuner.
-// Check get_clocktime on Linux: https://linux.die.net/man/3/clock_gettime
-// Check GetThreadTimes on Windows:
-// https://docs.microsoft.com/en-gb/windows/desktop/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
-using CPUTimer = boost::timer::cpu_timer;
+// std::chrono::steady_clock seems to be the right choice here.
+using CPUTimer = Timer;
+
 
 }  // namespace timer
 }  // namespace marian

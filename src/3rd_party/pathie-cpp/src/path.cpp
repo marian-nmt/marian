@@ -51,7 +51,7 @@
 #include <shlwapi.h>
 //#include <ntifs.h> // Currently not in msys2
 
-// @TODO: This is a hack to make it compile under Windows, check if this is save.
+// @TODO: This is a hack to make it compile under Windows, check if this is safe.
 #define F_OK    0
 
 #elif defined(_PATHIE_UNIX)
@@ -149,6 +149,8 @@ Path::Path(const std::vector<Path>& components)
  */
 void Path::sanitize()
 {
+  bool isWindowsUNCPath = m_path.size() >= 2 && (m_path[0] == '\\' && m_path[1] == '\\'); // UNC path
+
   // Replace any backslashes \ with forward slashes /.
   size_t cur = string::npos;
   while ((cur = m_path.find("\\")) != string::npos) { // assignment intended
@@ -156,8 +158,9 @@ void Path::sanitize()
   }
 
   // Replace all double slashes // with a single one
+  // [fseide] except for the first position, which would be a Windows UNC path
   cur = string::npos;
-  while ((cur = m_path.find("//")) != string::npos) { // assignment intended
+  while ((cur = m_path.find("//", isWindowsUNCPath ? 1 : 0)) != string::npos) { // assignment intended
     m_path.replace(cur, 2, "/");
   }
 
@@ -899,7 +902,7 @@ Path Path::pwd()
  */
 Path Path::exe()
 {
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
   char buf[PATH_MAX];
   ssize_t size = ::readlink("/proc/self/exe", buf, PATH_MAX);
 
@@ -1546,7 +1549,7 @@ bool Path::is_directory() const
       throw(Pathie::ErrnoError(errsav));
   }
 
-  return s.st_mode & S_IFDIR;
+  return (s.st_mode & S_IFDIR) != 0;
 #else
 #error Unsupported system.
 #endif
@@ -1590,7 +1593,7 @@ bool Path::is_file() const
       throw(Pathie::ErrnoError(errno));
   }
 
-  return s.st_mode & S_IFREG;
+  return (s.st_mode & S_IFREG) != 0;
 #else
 #error Unsupported system.
 #endif
@@ -1710,9 +1713,9 @@ void Path::remove() const
    * function uses the apropriate native Win32API function
    * calls accordingly therefore. */
   if (is_directory())
-    result = RemoveDirectoryW(utf16.c_str());
+    result = RemoveDirectoryW(utf16.c_str()) != 0;
   else
-    result = DeleteFileW(utf16.c_str());
+    result = DeleteFileW(utf16.c_str()) != 0;
 
   if (!result) {
     DWORD err = GetLastError();
@@ -3282,7 +3285,7 @@ bool Path::fnmatch(const std::string& pattern, int flags /* = 0 */) const
 #elif defined(_WIN32)
   std::wstring utf16path = utf8_to_utf16(m_path);
   std::wstring utf16pattern = utf8_to_utf16(pattern);
-  return PathMatchSpecW(utf16path.c_str(), utf16pattern.c_str());
+  return PathMatchSpecW(utf16path.c_str(), utf16pattern.c_str()) != 0;
 #else
 #error Unsupported system.
 #endif

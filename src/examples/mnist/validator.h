@@ -12,14 +12,16 @@ using namespace marian;
 
 namespace marian {
 
-class AccuracyValidator : public Validator<data::MNISTData> {
+class MNISTAccuracyValidator : public Validator<data::MNISTData, models::IModel> {
 public:
-  AccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
+  MNISTAccuracyValidator(Ptr<Options> options) : Validator(std::vector<Ptr<Vocab>>(), options, false) {
     createBatchGenerator(/*isTranslating=*/false);
-    builder_ = models::from_options(options, models::usage::scoring);
+    builder_ = models::createModelFromOptions(options, models::usage::translation);
   }
 
-  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& graphs) override {
+  virtual ~MNISTAccuracyValidator(){}
+
+  virtual void keepBest(const std::vector<Ptr<ExpressionGraph>>& /*graphs*/) override {
     LOG(warn, "Keeping best model for MNIST examples is not supported");
   }
 
@@ -31,7 +33,7 @@ protected:
     size_t samples = 0;
 
     for(auto batch : *batchGenerator_) {
-      auto probs = builder_->build(graphs[0], batch, true);
+      auto probs = builder_->build(graphs[0], batch, true).getLogits();
       graphs[0]->forward();
 
       std::vector<float> scores;

@@ -15,12 +15,13 @@ class DatasetBase {
 protected:
   std::vector<std::string> paths_;
   Ptr<Options> options_;
+
   // Data processing may differ in training/inference settings
   bool inference_{false};
 
 public:
   typedef Batch batch_type;
-  typedef Ptr<Batch> batch_ptr;
+  typedef Ptr<Batch> batch_ptr; // @TODO: rename to camel case
   typedef Iterator iterator;
   typedef SampleType Sample;
 

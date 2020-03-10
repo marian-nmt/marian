@@ -4,7 +4,6 @@
 
 #ifdef CUDA_FOUND
 #include "gpu/cuda_helpers.h"
-
 #include <curand.h>
 #endif
 
@@ -81,9 +80,10 @@ CurandRandomGenerator::CurandRandomGenerator(size_t seed, DeviceId deviceId)
 }
 
 CurandRandomGenerator::~CurandRandomGenerator() {
-    if(deviceId_.type == DeviceType::gpu)
-      cudaSetDevice((int)deviceId_.no);
-    CURAND_CHECK(curandDestroyGenerator(generator_));
+  // No CUDA error checking as this is a destructor and we cannot do anything about errors anyway.
+  if(deviceId_.type == DeviceType::gpu)
+    cudaSetDevice((int)deviceId_.no);
+  curandDestroyGenerator(generator_);
 }
 
 void CurandRandomGenerator::uniform(Tensor tensor, float a, float b) {

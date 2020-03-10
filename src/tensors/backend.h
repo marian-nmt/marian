@@ -16,10 +16,8 @@ protected:
 
 public:
   Backend(DeviceId deviceId, size_t seed)
-  : deviceId_(deviceId),
-    seed_(seed),
-    randomGenerator_(createRandomGenerator(seed, deviceId)) {}
-
+      : deviceId_(deviceId), seed_(seed), randomGenerator_(createRandomGenerator(seed, deviceId)) {}
+  virtual ~Backend() {};
   virtual DeviceId getDeviceId() { return deviceId_; };
   virtual Ptr<RandomGenerator> getRandomGenerator() { return randomGenerator_; }
 
@@ -29,6 +27,11 @@ public:
 
   virtual void setClip(float clipValue) { clipValue_ = clipValue; }
   float getClip() { return clipValue_; }
+
+  // for CPU, sets to use optimized code for inference.
+  // for GPU, this is invalid. for gpu, isOptimized() function always returns false.
+  virtual void setOptimized(bool optimize) = 0;
+  virtual bool isOptimized() = 0;
 };
 
 Ptr<Backend> BackendByDeviceId(DeviceId deviceId, size_t seed);

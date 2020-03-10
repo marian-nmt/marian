@@ -15,8 +15,7 @@ CorpusNBest::CorpusNBest(std::vector<std::string> paths,
     : CorpusBase(paths, vocabs, options) {}
 
 int numFromNbest(const std::string& line) {
-  std::vector<std::string> fields;
-  utils::split(line, fields, " ||| ", true);
+  auto fields = utils::split(line, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
@@ -25,8 +24,7 @@ int numFromNbest(const std::string& line) {
 }
 
 std::string lineFromNbest(const std::string& line) {
-  std::vector<std::string> fields;
-  utils::split(line, fields, " ||| ", true);
+  auto fields = utils::split(line, " ||| ", true);
   ABORT_IF(fields.size() < 4,
            "Too few fields ({}) in line \"{}\", is this a correct n-best list?",
            fields.size(),
@@ -57,7 +55,7 @@ SentenceTuple CorpusNBest::next() {
 
       for(size_t i = 0; i < last; ++i) {
         if(curr_num > lastNum_) {
-          ABORT_IF(!io::getline(*files_[i], lastLines_[i]),
+          ABORT_IF(!std::getline(*files_[i], lastLines_[i]),
                    "Too few lines in input {}",
                    i);
         }
@@ -88,7 +86,7 @@ void CorpusNBest::reset() {
   lastNum_ = -1;
   for(auto& path : paths_) {
     if(path == "stdin")
-      files_.emplace_back(new io::InputFileStream(std::cin));
+      files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else
       files_.emplace_back(new io::InputFileStream(path));
   }

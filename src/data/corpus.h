@@ -27,6 +27,11 @@ private:
 
   void shuffleData(const std::vector<std::string>& paths);
 
+  // for pre-processing
+  size_t allCapsEvery_{0};   // if set, convert every N-th input sentence (after randomization) to all-caps (source and target)
+  size_t titleCaseEvery_{0}; // ditto for title case (source only)
+  void preprocessLine(std::string& line, size_t streamId);
+
 public:
   // @TODO: check if translate can be replaced by an option in options
   Corpus(Ptr<Options> options, bool translate = false);
@@ -58,51 +63,7 @@ public:
 
   std::vector<Ptr<Vocab>>& getVocabs() override { return vocabs_; }
 
-  batch_ptr toBatch(const std::vector<Sample>& batchVector) override {
-    size_t batchSize = batchVector.size();
-
-    std::vector<size_t> sentenceIds;
-
-    std::vector<int> maxDims;
-    for(auto& ex : batchVector) {
-      if(maxDims.size() < ex.size())
-        maxDims.resize(ex.size(), 0);
-      for(size_t i = 0; i < ex.size(); ++i) {
-        if(ex[i].size() > (size_t)maxDims[i])
-          maxDims[i] = (int)ex[i].size();
-      }
-      sentenceIds.push_back(ex.getId());
-    }
-
-    std::vector<Ptr<SubBatch>> subBatches;
-    for(size_t j = 0; j < maxDims.size(); ++j) {
-      subBatches.emplace_back(New<SubBatch>(batchSize, maxDims[j], vocabs_[j]));
-    }
-
-    std::vector<size_t> words(maxDims.size(), 0);
-    for(size_t i = 0; i < batchSize; ++i) {
-      for(size_t j = 0; j < maxDims.size(); ++j) {
-        for(size_t k = 0; k < batchVector[i][j].size(); ++k) {
-          subBatches[j]->data()[k * batchSize + i] = batchVector[i][j][k];
-          subBatches[j]->mask()[k * batchSize + i] = 1.f;
-          words[j]++;
-        }
-      }
-    }
-
-    for(size_t j = 0; j < maxDims.size(); ++j)
-      subBatches[j]->setWords(words[j]);
-
-    auto batch = batch_ptr(new batch_type(subBatches));
-    batch->setSentenceIds(sentenceIds);
-
-    if(options_->get("guided-alignment", std::string("none")) != "none" && alignFileIdx_)
-      addAlignmentsToBatch(batch, batchVector);
-    if(options_->has("data-weighting") && weightFileIdx_)
-      addWeightsToBatch(batch, batchVector);
-
-    return batch;
-  }
+  batch_ptr toBatch(const std::vector<Sample>& batchVector) override;
 };
 }  // namespace data
 }  // namespace marian

@@ -1,3 +1,4 @@
+#include <signal.h>
 #include "marian.h"
 
 #include "training/graph_group_async.h"
@@ -11,10 +12,12 @@
 #include "training/graph_group_multinode.h"
 #endif
 
+#include "3rd_party/ExceptionWithCallStack.h"
+
 int main(int argc, char** argv) {
   using namespace marian;
 
-  auto options = parseOptions(argc, argv);
+  auto options = parseOptions(argc, argv, cli::mode::training);
 
   // selects MultiNodeGraphGroup family
   //
@@ -66,5 +69,13 @@ int main(int argc, char** argv) {
     }
   }
 
-  return 0;
+  // If we exit due to SIGTERM, exit with 128 + the signal number, as suggested
+  // for bash in http://tldp.org/LDP/abs/html/exitcodes.html. This allows parent
+  // scripts to determine if training terminated naturally or via SIGTERM.
+  // Whith this approach we can accommodate additional signals in the future.
+  // An alternative would be to return 124, which is what the timeout command
+  // returns for timeout -s SIGTERM <seconds> ...., because exiting after SIGTERM
+  // is not technically a fatal error (which is what the 128+x convention usually
+  // stands for).
+  return getSigtermFlag() ? (128 + SIGTERM) : 0;
 }

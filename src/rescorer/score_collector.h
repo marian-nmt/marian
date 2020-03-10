@@ -13,6 +13,7 @@ namespace marian {
 class ScoreCollector {
 public:
   ScoreCollector(const Ptr<Options>& options);
+  virtual ~ScoreCollector() {}
 
   virtual void Write(long id, const std::string& message);
   virtual void Write(long id,
@@ -21,7 +22,7 @@ public:
 
 protected:
   long nextId_{0};
-  UPtr<io::OutputFileStream> outStrm_;
+  UPtr<std::ostream> outStrm_;
   std::mutex mutex_;
 
   typedef std::map<long, std::string> Outputs;

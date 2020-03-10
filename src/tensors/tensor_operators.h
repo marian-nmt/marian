@@ -25,7 +25,7 @@
 namespace marian {
 
 template <typename InIt, typename OutIt>
-void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
+void copy(Ptr<Backend>& MAYBE_UNUSED backend, const InIt beg, const InIt end, OutIt it) {
 #ifdef CUDA_FOUND
   if(backend->getDeviceId().type == DeviceType::gpu)
     gpu::copy(backend, beg, end, it);
@@ -33,6 +33,9 @@ void copy(Ptr<Backend> backend, const InIt beg, const InIt end, OutIt it) {
 #endif
     std::copy(beg, end, it);
 }
+
+DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
+DISPATCH4(IsNaN, const Tensor, Ptr<Allocator>, bool&, bool&);
 
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
@@ -51,12 +54,22 @@ void Add(Functor functor, float scale, marian::Tensor out, Tensors... tensors) {
     gpu::Add(functor, scale, out, tensors...);
   else
 #endif
-    cpu::Add(functor, scale, out, tensors...);
+    cpu::Aggregate(functor, /*aggInit=*/0.0f, functional::_1 + functional::_2, scale, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
 void Add(Functor functor, marian::Tensor out, Tensors... tensors) {
-  Add(functor, 1, out, tensors...);
+  Add(functor, /*scale=*/1.f, out, tensors...);
+}
+
+template <class Functor, class AggFunctor, class... Tensors>
+void Aggregate(Functor functor, float aggInit, AggFunctor aggFunctor, marian::Tensor out, Tensors... tensors) {
+#ifdef CUDA_FOUND
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
+  else
+#endif
+    cpu::Aggregate(functor, aggInit, aggFunctor, 1.0f, out, tensors...);
 }
 
 template <class Functor, class... Tensors>
@@ -74,9 +87,18 @@ void Reduce(Functor functor, marian::Tensor out, Tensors... tensors) {
   Add(functor, out, tensors...);
 }
 
+template <class Functor, class AggFunctor, class... Tensors>
+void Reduce(Functor functor, AggFunctor aggFunctor, float aggInit,
+            marian::Tensor out,
+            Tensors... tensors) {
+  out->set(aggInit);
+  Aggregate(functor, aggInit, aggFunctor, out, tensors...);
+}
+
 // clang-format off
 DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
 DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
+DISPATCH9(CSRProd, marian::Tensor, Ptr<Allocator>, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float)
 
 DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
 DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
@@ -97,19 +119,19 @@ DISPATCH3(Concatenate, marian::Tensor, const std::vector<marian::Tensor>&, int)
 
 // clang-format on
 
-static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 1.f) {
+// Bernoulli(tensor, 0.5f, 2.f, -1.f) generates a tensor composed of 50% of 1 and 50% of -1.
+static inline void Bernoulli(Tensor resultTensor, float keepProb, float scale = 1.f, float shift = 0.f) {
   // in-place uniform distribution
   auto rnd = resultTensor->getBackend()->getRandomGenerator();
   rnd->uniform(resultTensor, 0.f, 1.f); // temporarily mis-use this to hold the random numbers
   using namespace functional;
-  Element(_1 = (_1 < keepProb) * scale, resultTensor);
+  Element(_1 = (_1 < keepProb) * scale + shift, resultTensor);
 }
-
 
 static inline void Dropout(Tensor tensor, float dropProb) {
   float keepProb = 1.f - dropProb;
   float scale = 1.f / keepProb;
-  Bernoulli(tensor, keepProb, scale);
+  Bernoulli(tensor, keepProb, scale, /*shift=*/0.f);
 }
 
 #ifdef CUDA_FOUND
@@ -139,7 +161,52 @@ static inline void Deconcatenate(std::vector<marian::Tensor>& outputs,
 
 // clang-format off
 DISPATCH5(LayerNormalization, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
-DISPATCH9(LayerNormalizationGrad, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
+
+#ifdef CUDA_FOUND
+namespace gpu {
+void LayerNormalizationGrad(Ptr<Allocator> allocator,
+                            Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps);
+}
+#endif
+
+namespace cpu {
+void LayerNormalizationGrad(Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps);
+}
+
+static inline void LayerNormalizationGrad(
+                            Ptr<Allocator> MAYBE_UNUSED allocator,
+                            Tensor gradX,
+                            Tensor gradGamma,
+                            Tensor gradBeta,
+                            Tensor adj,
+                            Tensor y,
+                            Tensor x,
+                            Tensor gamma,
+                            Tensor beta,
+                            float eps) {
+#ifdef CUDA_FOUND
+  if(gradX->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::LayerNormalizationGrad(allocator, gradX, gradGamma, gradBeta, adj, y, x, gamma, beta, eps);
+  else
+#endif
+    cpu::LayerNormalizationGrad(gradX, gradGamma, gradBeta, adj, y, x, gamma, beta, eps);
+}
 
 DISPATCH4(HighwayForward, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
 DISPATCH7(HighwayBackward, marian::Tensor, marian::Tensor, marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor, const marian::Tensor)
@@ -244,21 +311,21 @@ DISPATCH7(AttBack, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tenso
 
 #ifdef CUDA_FOUND
 namespace gpu {
-float L2Norm(marian::Tensor in);
+float L2Norm(marian::Tensor in, Ptr<Allocator> allocator);
 }
 #endif
 
 namespace cpu {
-float L2Norm(marian::Tensor in);
+float L2Norm(marian::Tensor in, Ptr<Allocator> allocator);
 }
 
-static inline float L2Norm(marian::Tensor in) {
+static inline float L2Norm(marian::Tensor in, Ptr<Allocator> allocator) {
 #ifdef CUDA_FOUND
   if(in->getBackend()->getDeviceId().type == DeviceType::gpu)
-    return gpu::L2Norm(in);
+    return gpu::L2Norm(in, allocator);
   else
 #endif
-    return cpu::L2Norm(in);
+    return cpu::L2Norm(in, allocator);
 }
 
 // clang-format off

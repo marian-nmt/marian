@@ -38,7 +38,7 @@ Ptr<ICommunicator> createCommunicator(
   }
 
   // the actual implementation is inside communicator.cu
-  return New<NCCLCommunicator>(graphs, mpi); 
+  return New<NCCLCommunicator>(graphs, mpi);
 #else // no CUDA or no NCCL
   noNccl; // (unused)
   return New<DefaultCommunicator>(graphs, mpi);
@@ -72,19 +72,18 @@ class MPIWrapper : public IMPIWrapper
 
 public:
   MPIWrapper(bool multiThreaded) {
-    int requiredThreadingMode = multiThreaded ? MPI_THREAD_MULTIPLE : MPI_THREAD_SINGLE;
+    int requiredThreadingMode = multiThreaded ? MPI_THREAD_MULTIPLE : MPI_THREAD_FUNNELED; // FUNNELED means only one thread ever calls MPI
 
     int argc = 1; char* argv[] = { const_cast<char*>("this.exe") }; char** argvp = argv; // dummy argc/argv since MPI_Init needs something here
     int providedThreadingMode;
     HANDLE_MPI_ERROR(MPI_Init_thread(&argc, &argvp, MPI_THREAD_MULTIPLE, &providedThreadingMode));
     MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN); // have errors reported as return codes
 
-    ABORT_IF(
-      providedThreadingMode < requiredThreadingMode,
-      "Your version of MPI does not support multi-threaded communication.");
-
     MPI_Comm_size(MPI_COMM_WORLD, &comm_world_size_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
+
+    ABORT_IF(comm_world_size_ > 1 && providedThreadingMode < requiredThreadingMode,
+      "Your version of MPI does not support multi-threaded communication.");
 
     // patch logging pattern to include the MPI rank, so that we can associate error messages with nodes
     if (numMPIProcesses() > 1) {
@@ -124,6 +123,8 @@ public:
     HANDLE_MPI_ERROR(MPI_Recv(buf, (int)count, datatype, (int)sourceRank, tag, comm, status));
   }
   virtual void allReduce(const void* sendbuf, void* recvbuf, size_t count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) const override {
+    if (sendbuf == recvbuf)
+      sendbuf = MPI_IN_PLACE; // MSMPI requires this
     HANDLE_MPI_ERROR(MPI_Allreduce(sendbuf, recvbuf, (int)count, datatype, op, comm));
   }
   virtual void finalize() override {
@@ -140,7 +141,7 @@ public:
   FakeMPIWrapper(bool) {
     LOG(warn, "Compiled without MPI support. Falling back to FakeMPIWrapper");
   }
-
+  virtual ~FakeMPIWrapper() {}
   virtual size_t myMPIRank() const override { return 0; };
   virtual size_t numMPIProcesses() const override { return 1; };
 
@@ -168,7 +169,7 @@ public:
     //        to only accept one parameter, and remove this error check can be removed.
     ABORT_IF(sendbuf != recvbuf, "FakeMPIWrapper::allReduce() only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
   }
-#pragma warning(push)
+#pragma warning(pop)
   virtual void finalize() override { }
 };
 

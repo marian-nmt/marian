@@ -18,7 +18,7 @@ struct State {
             select(cell,   selIdx, beamSize, isBatchMajor) };
   }
 
-private:
+  // this function is also called by Logits
   static Expr select(Expr sel, // [beamSize, dimTime, dimBatch, dimDepth] or [beamSize, dimBatch, dimTime, dimDepth] (dimTime = 1 for RNN)
                      const std::vector<IndexType>& selIdx, // [beamIndex * activeBatchSize + batchIndex]
                      int beamSize, bool isBatchMajor)
@@ -34,6 +34,7 @@ private:
 
     ABORT_IF(dimTime != 1 && !isBatchMajor, "unexpected time extent for RNN state"); // (the reshape()/rows() trick won't work in this case)
     int numCols = isBatchMajor ? dimDepth * dimTime : dimDepth;
+    // @TODO: Can this complex operation be more easily written using index_select()?
     sel = reshape(sel, { sel->shape().elements() / numCols, numCols }); // [beamSize * dimBatch, dimDepth] or [beamSize * dimBatch, dimTime * dimDepth]
     sel = rows(sel, selIdx);
     sel = reshape(sel, { beamSize, isBatchMajor ? dimBatch : dimTime, isBatchMajor ? dimTime : dimBatch, dimDepth });

@@ -8,30 +8,30 @@ namespace marian {
 
 class Amun : public EncoderDecoder {
 public:
-  Amun(Ptr<Options> options) : EncoderDecoder(options) {
+  Amun(Ptr<ExpressionGraph> graph, Ptr<Options> options) : EncoderDecoder(graph, options) {
     ABORT_IF(opt<int>("enc-depth") > 1,
-             "--type amun does not currently support multiple encoder "
+             "--type amun does not support multiple encoder "
              "layers, use --type s2s");
     ABORT_IF(opt<int>("enc-cell-depth") > 1,
-             "--type amun does not currently support stacked encoder "
+             "--type amun does not support stacked encoder "
              "cells, use --type s2s");
     ABORT_IF(opt<bool>("skip"),
-             "--type amun does not currently support skip connections, "
+             "--type amun does not support skip connections, "
              "use --type s2s");
     ABORT_IF(opt<int>("dec-depth") > 1,
-             "--type amun does not currently support multiple decoder "
+             "--type amun does not support multiple decoder "
              "layers, use --type s2s");
     ABORT_IF(opt<int>("dec-cell-base-depth") != 2,
-             "--type amun does not currently support multiple decoder "
+             "--type amun does not support multiple decoder "
              "base cells, use --type s2s");
     ABORT_IF(opt<int>("dec-cell-high-depth") > 1,
-             "--type amun does not currently support multiple decoder "
+             "--type amun does not support multiple decoder "
              "high cells, use --type s2s");
     ABORT_IF(opt<std::string>("enc-cell") != "gru",
-             "--type amun does not currently support other rnn cells than gru, "
+             "--type amun does not support other rnn cells than gru, "
              "use --type s2s");
     ABORT_IF(opt<std::string>("dec-cell") != "gru",
-             "--type amun does not currently support other rnn cells than gru, "
+             "--type amun does not support other rnn cells than gru, "
              "use --type s2s");
   }
 
@@ -92,15 +92,20 @@ public:
     LOG(info, "Loading model from {}", name);
     // load items from .npz file
     auto ioItems = io::loadItems(name);
-    // map names and remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
+    // map names and remove a dummy matrices
     for(auto it = ioItems.begin(); it != ioItems.end();) {
       if(it->name == "decoder_c_tt") {
         it = ioItems.erase(it);
+      } else if(it->name == "uidx") {
+        it = ioItems.erase(it);
+      } else if(it->name == "history_errs") {
+        it = ioItems.erase(it);
+      } else {
+        auto pair = nameMap.find(it->name);
+        if(pair != nameMap.end())
+          it->name = pair->second;
+        it++;
       }
-      auto pair = nameMap.find(it->name);
-      if(pair != nameMap.end())
-        it->name = pair->second;
-      ++it;
     }
     // load items into the graph
     graph->load(ioItems);
@@ -185,16 +190,24 @@ private:
   void createAmunConfig(const std::string& name) {
     Config::YamlNode amun;
     auto vocabs = options_->get<std::vector<std::string>>("vocabs");
-    amun["source-vocab"] = vocabs[0];
-    amun["target-vocab"] = vocabs[1];
-    amun["devices"] = options_->get<std::vector<size_t>>("devices");
-    amun["normalize"] = opt<float>("normalize") > 0;
-    amun["beam-size"] = opt<size_t>("beam-size");
-    amun["relative-paths"] = false;
 
-    amun["scorers"]["F0"]["path"] = name;
+    if(options_->get<bool>("relative-paths")) {
+      amun["relative-paths"] = true;
+      auto dirPath = filesystem::Path{name}.parentPath();
+      amun["source-vocab"] = filesystem::relative(filesystem::Path{vocabs[0]}, dirPath).string();
+      amun["target-vocab"] = filesystem::relative(filesystem::Path{vocabs[1]}, dirPath).string();
+      amun["scorers"]["F0"]["path"] = filesystem::Path{name}.filename().string();
+    } else {
+      amun["relative-paths"] = false;
+      amun["source-vocab"] = vocabs[0];
+      amun["target-vocab"] = vocabs[1];
+      amun["scorers"]["F0"]["path"] = name;
+    }
+
     amun["scorers"]["F0"]["type"] = "Nematus";
     amun["weights"]["F0"] = 1.0f;
+    amun["normalize"] = opt<float>("normalize") > 0;
+    amun["beam-size"] = opt<size_t>("beam-size");
 
     io::OutputFileStream out(name + ".amun.yml");
     out << amun;

@@ -13,7 +13,7 @@ using IsClass = typename std::enable_if<std::is_class<C>::value, C>::type;
 template <int N>
 struct Select {
   template <typename T, typename... Args>
-  __HDI__ static auto apply(T&& /*arg*/, Args&&... args)
+  HOST_DEVICE_INLINE static auto apply(T&& /*arg*/, Args&&... args)
       -> decltype(Select<N - 1>::apply(args...)) {
     return Select<N - 1>::apply(args...);
   }
@@ -22,7 +22,7 @@ struct Select {
 template <>
 struct Select<0> {
   template <typename T, typename... Args>
-  __HDI__ static T apply(T&& arg, Args&&... /*args*/) {
+  HOST_DEVICE_INLINE static T apply(T&& arg, Args&&... /*args*/) {
     return arg;
   }
 };
@@ -33,12 +33,12 @@ template <int V>
 struct C {
   static constexpr auto value = V;
 
-  template <typename... Args>
-  __HDI__ float operator()(Args&&... args) {
-    return V;
+  template <typename T, typename... Args>
+  HOST_DEVICE_INLINE T operator()(T&& /*arg*/, Args&&... /*args*/) {
+    return (T)V;
   }
 
-  std::string to_string() { return "C<" + std::to_string(V) + ">"; }
+  std::string to_string() const { return "C<" + std::to_string(V) + ">"; }
 };
 
 /******************************************************************************/
@@ -48,12 +48,12 @@ struct Capture {
 
   Capture(float val) : value(val){};
 
-  template <typename... Args>
-  __HDI__ float operator()(Args&&... /*args*/) {
-    return value;
+  template <typename T, typename... Args>
+  HOST_DEVICE_INLINE T operator()(const T& /*arg*/, const Args&... /*args*/) {
+    return T(value);
   }
 
-  std::string to_string() { return "Cap(" + std::to_string(value) + ")"; }
+  std::string to_string() const { return "Cap(" + std::to_string(value) + ")"; }
 };
 
 /******************************************************************************/
@@ -62,12 +62,12 @@ template <int N>
 struct Var {
   static constexpr auto index = N;
 
-  template <typename... Args>
-  __HDI__ float& operator()(Args&&... args) {
-    return Select<N - 1>::apply(args...);
+  template <typename T, typename... Args>
+  HOST_DEVICE_INLINE T& operator()(T&& arg, Args&&... args) {
+    return Select<N - 1>::apply(arg, args...);
   }
 
-  std::string to_string() { return "Var<" + std::to_string(N) + ">"; }
+  std::string to_string() const { return "Var<" + std::to_string(N) + ">"; }
 };
 }  // namespace functional
 }  // namespace marian

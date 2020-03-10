@@ -15,9 +15,9 @@ public:
   virtual void clear(Ptr<ExpressionGraph> graph) override { graph->clear(); };
 
 protected:
-  virtual Expr construct(Ptr<ExpressionGraph> g,
-                         Ptr<data::Batch> batch,
-                         bool inference = false) override {
+  virtual Expr apply(Ptr<ExpressionGraph> g,
+                     Ptr<data::Batch> batch,
+                     bool inference = false) override {
     const std::vector<int> dims = {784, 128, 10};
 
     // Start with an empty expression graph
@@ -28,7 +28,7 @@ protected:
     auto features
         = std::static_pointer_cast<data::DataBatch>(batch)->features();
     auto x = g->constant({(int)batch->size(), 1, 28, 28},
-                         inits::from_vector(features));
+                         inits::fromVector(features));
 
     // Construct hidden layers
 
@@ -80,7 +80,7 @@ protected:
 
       // Construct a bias node. These weights are initialized to zero
       biases.emplace_back(
-          g->param("b" + std::to_string(i), {1, out}, inits::zeros));
+          g->param("b" + std::to_string(i), {1, out}, inits::zeros()));
     }
 
     // Perform matrix multiplication and addition for the last layer
@@ -91,7 +91,7 @@ protected:
       // Create an output layer of shape batchSize x 1 and populate it with
       // labels
       auto labels = std::static_pointer_cast<data::DataBatch>(batch)->labels();
-      auto y = g->constant({(int)batch->size(), 1}, inits::from_vector(labels));
+      auto y = g->constant({(int)batch->size(), 1}, inits::fromVector(labels));
 
       // Define a top-level node for training
       return mean(cross_entropy(last, y), /*axis =*/ 0);

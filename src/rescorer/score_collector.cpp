@@ -13,7 +13,7 @@ ScoreCollector::ScoreCollector(const Ptr<Options>& options)
       alignmentThreshold_(getAlignmentThreshold(alignment_)) {
 
     if(options->get<std::string>("output") == "stdout")
-      outStrm_.reset(new io::OutputFileStream(std::cout));
+      outStrm_.reset(new std::ostream(std::cout.rdbuf()));
     else
       outStrm_.reset(new io::OutputFileStream(options->get<std::string>("output")));
   }
@@ -113,8 +113,7 @@ std::string ScoreCollectorNBest::addToNBest(const std::string nbest,
                                             const std::string feature,
                                             float score,
                                             const data::SoftAlignment& align) {
-  std::vector<std::string> fields;
-  utils::split(nbest, fields, "|||");
+  auto fields = utils::split(nbest, "|||");
   std::stringstream ss;
   if(!alignment_.empty() && !align.empty())
     ss << " " << getAlignment(align) << " |||";

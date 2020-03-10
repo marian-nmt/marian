@@ -16,35 +16,49 @@ class Options;
 namespace quicksand {
 
 typedef uint32_t IndexType;
-typedef IndexType Word;
-typedef std::vector<Word> Words;
-typedef std::vector<Words> QSBatch;
-typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [tgtPos] -> set of (srcPos, score)
+typedef IndexType WordIndex;
+typedef std::vector<WordIndex> WordIndices;
+typedef std::vector<WordIndices> QSBatch;
+typedef std::vector<std::set<std::pair<size_t, float>>> AlignmentSets; // [trgPos] -> set of (srcPos, P(srcPos|trgPos))
 
-typedef std::tuple<Words, AlignmentSets, float> QSSentenceWithProb;
+typedef std::tuple<WordIndices, AlignmentSets, float> QSSentenceWithProb;
 typedef std::vector<QSSentenceWithProb> QSNBest;
 typedef std::vector<QSNBest> QSNBestBatch;
+
+enum class DecoderCpuAvxVersion {
+  AVX,
+  AVX2,
+  AVX512
+};
 
 Ptr<Options> newOptions();
 
 template <class T>
 void set(Ptr<Options> options, const std::string& key, const T& value);
 
+class IVocabWrapper {
+public:
+  virtual WordIndex encode(const std::string& word) const = 0;
+  virtual std::string decode(WordIndex id) const = 0;
+  virtual size_t size() const = 0;
+  virtual void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const = 0;
+};
+
 class IBeamSearchDecoder {
 protected:
   Ptr<Options> options_;
   std::vector<const void*> ptrs_;
-  Word eos_;
 
 public:
   IBeamSearchDecoder(Ptr<Options> options,
-                     const std::vector<const void*>& ptrs,
-                     Word eos)
-      : options_(options), ptrs_(ptrs), eos_(eos) {}
+                     const std::vector<const void*>& ptrs)
+      : options_(options), ptrs_(ptrs) {}
+
+  virtual ~IBeamSearchDecoder() {}
 
   virtual QSNBestBatch decode(const QSBatch& qsBatch,
                               size_t maxLength,
-                              const std::unordered_set<Word>& shortlist)
+                              const std::unordered_set<WordIndex>& shortlist)
       = 0;
 
   virtual void setWorkspace(uint8_t* data, size_t size) = 0;
@@ -52,7 +66,17 @@ public:
 
 Ptr<IBeamSearchDecoder> newDecoder(Ptr<Options> options,
                                    const std::vector<const void*>& ptrs,
-                                   Word eos);
+                                   const std::vector<Ptr<IVocabWrapper>>& vocabs,
+                                   WordIndex eos/*dummy --@TODO: remove*/);
+
+// load src and tgt vocabs
+std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocabPaths);
+
+// query CPU AVX version
+DecoderCpuAvxVersion getCpuAvxVersion();
+DecoderCpuAvxVersion parseCpuAvxVersion(std::string name);
+
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec);
 
 }  // namespace quicksand
 }  // namespace marian

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "common/logging.h"
-#include "shape.h"
+#include "common/shape.h"
+#include "common/intrusive_ptr.h"
 
 #include <functional>
 #include <iostream>
@@ -9,9 +10,32 @@
 #include <string>
 #include <vector>
 
-//#define THREAD_GUARD(body) std::thread([&]() { body; }).join()
+// The macro MAYBE_UNUSED is used to selectively disable
+// unused-variable warnings. C++17 defines the attribute
+// [[maybe_unused]], but I don't think we're at C++17 yet. We can add it when we reach C++17.
+// The compilers gcc and clang (and maybe others) define
+// __has_attribute and support __attribute__(unused) in C++11,
+#if defined __has_attribute
+#  if __has_attribute(unused)
+#    define MAYBE_UNUSED __attribute__((unused))
+#  else
+#    define MAYBE_UNUSED
+#  endif
+#else
+#  define MAYBE_UNUSED
+#endif
+
 #define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
+
+// helper macro to disable optimization (gcc only)
+// To use this, just insert DONT_OPTIMIZE right before the function definition
+// (e.g. where the "static" keyword would go).
+#ifdef __GNUC__
+#define DONT_OPTIMIZE __attribute__((optimize("O0")))
+#else
+#define DONT_OPTIMIZE // silently ignore on Visual Studio, where this is less of a problem
+#endif
 
 namespace marian {
 
@@ -21,11 +45,20 @@ namespace marian {
 // This minimizes bandwith at little cost.
 typedef uint32_t IndexType;
 
+// @TODO: come up with better short name. "I..." stands for interface now. Here it stands
+// for "intrusive". Not a good overlap.
 template <class T>
-using Ptr = std::shared_ptr<T>;
+using IPtr = IntrusivePtr<T>;
 
 template <class T>
 using UPtr = std::unique_ptr<T>;
+
+// @TODO: come up with better short name. "I..." stands for interface now.
+template <class T>
+using IWeak = T*;
+
+template <class T>
+using Ptr = std::shared_ptr<T>;
 
 template <class T>
 using Weak = std::weak_ptr<T>;
@@ -42,6 +75,18 @@ Ptr<T> New(Ptr<T> p) {
   return Ptr<T>(p);
 }
 
+/** @brief Creates InstrusivePtr of any type, passes all arguments to any available
+ * constructor */
+template <class T, typename... Args>
+IPtr<T> INew(Args&&... args) {
+  return IPtr<T>(new T(std::forward<Args>(args)...));
+}
+
+template <class T>
+IPtr<T> INew(Ptr<T> p) {
+  return IPtr<T>(p);
+}
+
 enum class DeviceType : size_t { gpu = 0, cpu = 1 };
 
 struct DeviceId {
@@ -51,8 +96,16 @@ struct DeviceId {
   DeviceId() : no{0}, type{DeviceType::gpu} {}
   DeviceId(size_t no_, DeviceType type_) : no(no_), type(type_) {}
 
+  std::string typeAsString() const {
+    return (type == DeviceType::gpu ? "gpu" : "cpu");
+  }
+
+  operator std::string() const {
+    return typeAsString() + std::to_string(no);
+  }
+
   friend std::ostream& operator<<(std::ostream& out, DeviceId deviceId) {
-    out << (deviceId.type == DeviceType::gpu ? "gpu" : "cpu") << deviceId.no;
+    out << std::string(deviceId);
     return out;
   }
 
@@ -81,12 +134,14 @@ const DeviceId GPU5{5, DeviceType::gpu};
 const DeviceId GPU6{6, DeviceType::gpu};
 const DeviceId GPU7{7, DeviceType::gpu};
 
+// These are many small objects, hence use IntrusivePtr
 class TensorBase;
-typedef Ptr<TensorBase> Tensor;
+typedef IPtr<TensorBase> Tensor;
 
+// These are many small objects, hence use IntrusivePtr
 template <class DataType>
 class Chainable;
-typedef Ptr<Chainable<Tensor>> Expr;
+typedef IPtr<Chainable<Tensor>> Expr;
 
 class OptimizerBase;
 typedef Ptr<OptimizerBase> OptimizerBasePtr;

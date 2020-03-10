@@ -1,321 +1,248 @@
-/*
- * Copyright 1993-2015 NVIDIA Corporation.  All rights reserved.
+/* Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
  *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *  * Neither the name of NVIDIA CORPORATION nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
  *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECINDIRECFunctor, T, AccTyf, pe, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACSf, TRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
 
-#include "tensors/tensor.h"
-
-#include <cuda_runtime.h>
+#include "functional/tmp.h"
+#include <cooperative_groups.h>
 
 namespace marian {
 
-template <unsigned int blockSize>
-__device__ void
-reduceBlock(volatile float *sdata, float mySum, const unsigned int tid)
-{
-    sdata[tid] = mySum;
-    __syncthreads();
+namespace cg = cooperative_groups;
 
-    // do reduction in shared mem
-    if (blockSize >= 512)
-    {
-        if (tid < 256)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid + 256];
-        }
+// Utility class used to avoid linker errors with extern
+// unsized shared memory arrays with templated type
+template <class T>
+struct SharedMemory {
+  __device__ inline operator T *() {
+    extern __shared__ int __smem[];
+    return (T *)__smem;
+  }
 
-        __syncthreads();
+  __device__ inline operator const T *() const {
+    extern __shared__ int __smem[];
+    return (T *)__smem;
+  }
+};
+
+// specialize for double to avoid unaligned memory
+// access compile errors
+template <>
+struct SharedMemory<double> {
+  __device__ inline operator double *() {
+    extern __shared__ double __smem_d[];
+    return (double *)__smem_d;
+  }
+
+  __device__ inline operator const double *() const {
+    extern __shared__ double __smem_d[];
+    return (double *)__smem_d;
+  }
+};
+
+
+/*
+    This version adds multiple elements per thread sequentially.  This reduces
+   the overall cost of the algorithm while keeping the work complexity O(n) and
+   the step complexity O(log n). (Brent's Theorem optimization)
+
+    Note, this kernel needs a minimum of 64*sizeof(T) bytes of shared memory.
+    In other words if blockSize <= 32, allocate 64*sizeof(T) bytes.
+    If blockSize > 32, allocate blockSize*sizeof(T) bytes.
+*/
+template <typename T, typename AccType, unsigned int blockSize, bool nIsPow2Greater1, size_t K, class Functor, class AggFunctor>
+__global__ void reduceSinglePass(Functor functor, AccType aggInit, AggFunctor aggFunctor, AccType scale,
+                                 const functional::Shape full,
+                                 functional::Tensor<AccType> out,
+                                 functional::Array<functional::Tensor<T>, K> ins) {
+  int n = full.elements();
+
+  // Handle to thread block group
+  cg::thread_block cta = cg::this_thread_block();
+  AccType *sdata = SharedMemory<AccType>();
+
+  // perform first level of reduction,
+  // reading from global memory, writing to shared memory
+  unsigned int tid = threadIdx.x;
+  unsigned int i = blockIdx.x * blockSize * 2 + threadIdx.x;
+  unsigned int gridSize = blockSize * 2 * gridDim.x;
+
+  AccType mySum = aggInit;
+
+  // we reduceSinglePass multiple elements per thread.  The number is determined by the
+  // number of active thread blocks (via gridDim).  More blocks will result
+  // in a larger gridSize and therefore fewer elements per thread
+  while (i < n) {
+    mySum = aggFunctor(mySum, functional::applyWithCast<AccType>(functor, ins, i));
+
+    // ensure we don't read out of bounds -- this is optimized away for powerOf2
+    // sized arrays
+    if (nIsPow2Greater1 || i + blockSize < n) 
+      mySum = aggFunctor(mySum, functional::applyWithCast<AccType>(functor, ins, i + blockSize));
+
+    i += gridSize;
+  }
+
+  // each thread puts its local sum into shared memory
+  sdata[tid] = mySum;
+  cg::sync(cta);
+
+  // do reduction in shared mem
+  if ((blockSize >= 512) && (tid < 256)) {
+    sdata[tid] = mySum = aggFunctor(mySum, sdata[tid + 256]);
+  }
+
+  cg::sync(cta);
+
+  if ((blockSize >= 256) && (tid < 128)) {
+    sdata[tid] = mySum = aggFunctor(mySum, sdata[tid + 128]);
+  }
+
+  cg::sync(cta);
+
+  if ((blockSize >= 128) && (tid < 64)) {
+    sdata[tid] = mySum = aggFunctor(mySum, sdata[tid + 64]);
+  }
+
+  cg::sync(cta);
+
+  cg::thread_block_tile<32> tile32 = cg::tiled_partition<32>(cta);
+
+  if (cta.thread_rank() < 32) {
+    // Fetch final intermediate sum from 2nd warp
+    if (blockSize >= 64) 
+      mySum = aggFunctor(mySum, sdata[tid + 32]);
+    // reduce final warp using shuffle
+    for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
+      mySum = aggFunctor(mySum, tile32.shfl_down(mySum, offset));
     }
+  }
 
-    if (blockSize >= 256)
-    {
-        if (tid < 128)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid + 128];
-        }
-
-        __syncthreads();
-    }
-
-    if (blockSize >= 128)
-    {
-        if (tid <  64)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid +  64];
-        }
-
-        __syncthreads();
-    }
-
-    if (tid < 32)
-    {
-        if (blockSize >=  64)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid + 32];
-        }
-
-        if (blockSize >=  32)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid + 16];
-        }
-
-        if (blockSize >=  16)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid +  8];
-        }
-
-        if (blockSize >=   8)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid +  4];
-        }
-
-        if (blockSize >=   4)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid +  2];
-        }
-
-        if (blockSize >=   2)
-        {
-            sdata[tid] = mySum = mySum + sdata[tid +  1];
-        }
-    }
+  // write result for this block to global mem
+  if (cta.thread_rank() == 0) 
+    out[blockIdx.x] = aggFunctor(out[blockIdx.x], mySum * scale); // aggFunctor?
 }
 
-template <unsigned int blockSize, bool nIsPow2, class Functor>
-__device__ void
-reduceBlocks(Functor f, float *g_idata, float *g_odata, unsigned int n)
-{
-    extern __shared__ float sdata[];
-
-    // perform first level of reduction,
-    // reading from global memory, writing to shared memory
-    unsigned int tid = threadIdx.x;
-    unsigned int i = blockIdx.x*(blockSize*2) + threadIdx.x;
-    unsigned int gridSize = blockSize*2*gridDim.x;
-    float mySum = 0;
-
-    // we reduce multiple elements per thread.  The number is determined by the
-    // number of active thread blocks (via gridDim).  More blocks will result
-    // in a larger gridSize and therefore fewer elements per thread
-    while (i < n)
-    {
-        mySum += f(g_idata[i]);
-
-        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
-        if (nIsPow2 || i + blockSize < n)
-            mySum += f(g_idata[i+blockSize]);
-
-        i += gridSize;
-    }
-
-    // do reduction in shared mem
-    reduceBlock<blockSize>(sdata, mySum, tid);
-
-    // write result for this block to global mem
-    if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+static inline bool isPow2Greater1(unsigned int x) { // is power of two but also larger than 1, otherwise an out-of-bounds read occurs
+  return x > 1 && ((x & (x - 1)) == 0);
 }
 
-// Global variable used by reduceSinglePass to count how many blocks have finished
-__device__ unsigned int retirementCount = 0;
-
-cudaError_t setRetirementCount(int retCnt)
-{
-    return cudaMemcpyToSymbol(retirementCount, &retCnt, sizeof(unsigned int), 0, cudaMemcpyHostToDevice);
+static inline unsigned int nextPow2(unsigned int x) {
+  --x;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  return ++x;
 }
 
-// This reduction kernel reduces an arbitrary size array in a single kernel invocation
-// It does so by keeping track of how many blocks have finished.  After each thread
-// block completes the reduction of its own block of data, it "takes a ticket" by
-// atomically incrementing a global counter.  If the ticket value is equal to the number
-// of thread blocks, then the block holding the ticket knows that it is the last block
-// to finish.  This last block is responsible for summing the results of all the other
-// blocks.
-//
-// In order for this to work, we must be sure that before a block takes a ticket, all
-// of its memory transactions have completed.  This is what __threadfence() does -- it
-// blocks until the results of all outstanding memory transactions within the
-// calling thread are visible to all other threads.
-//
-// For more details on the reduction algorithm (notably the multi-pass approach), see
-// the "reduction" sample in the CUDA SDK.
+////////////////////////////////////////////////////////////////////////////////
+// Wrapper function for kernel launch
+////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename AccType, size_t K, class Functor, class AggFunctor>
+void reduceSinglePass(Functor functor, AccType aggInit, AggFunctor aggFunctor, AccType scale,
+                      const functional::Shape full,
+                      functional::Tensor<AccType> out,
+                      functional::Array<functional::Tensor<T>, K> ins,
+                      int threads, int blocks) {
+  int size = full.elements();
+  // when there is only one warp per block, we need to allocate two warps
+  // worth of shared memory so that we don't index shared memory out of bounds
+  int smemSize = (threads <= 32) ? 2 * threads * sizeof(AccType) : threads * sizeof(AccType);
+  dim3 dimBlock(threads, 1, 1);
+  dim3 dimGrid(blocks, 1, 1);
 
-template <unsigned int blockSize, bool nIsPow2, class Functor>
-__global__ void reduceSinglePass(Functor f, float *g_idata, float *g_odata, unsigned int n)
-{
-
-    //
-    // PHASE 1: Process all inputs assigned to this block
-    //
-
-    reduceBlocks<blockSize, nIsPow2>(f, g_idata, g_odata, n);
-
-    //
-    // PHASE 2: Last block finished will process all partial sums
-    //
-
-    if (gridDim.x > 1)
-    {
-        const unsigned int tid = threadIdx.x;
-        __shared__ bool amLast;
-        extern float __shared__ smem[];
-
-        // wait until all outstanding memory instructions in this thread are finished
-        __threadfence();
-
-        // Thread 0 takes a ticket
-        if (tid==0)
-        {
-            unsigned int ticket = atomicInc(&retirementCount, gridDim.x);
-            // If the ticket ID is equal to the number of blocks, we are the last block!
-            amLast = (ticket == gridDim.x-1);
-        }
-
-        __syncthreads();
-
-        // The last block sums the results of all other blocks
-        if (amLast)
-        {
-            int i = tid;
-            float mySum = 0;
-
-            while (i < gridDim.x)
-            {
-                mySum += g_odata[i];
-                i += blockSize;
-            }
-
-            reduceBlock<blockSize>(smem, mySum, tid);
-
-            if (tid==0)
-            {
-                g_odata[0] = smem[0];
-
-                // reset retirement count so that next run succeeds
-                retirementCount = 0;
-            }
-        }
+  if (isPow2Greater1(size)) {
+    switch (threads) {
+      case 512:
+        reduceSinglePass<T, AccType, 512, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 256:
+        reduceSinglePass<T, AccType, 256, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 128:
+        reduceSinglePass<T, AccType, 128, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 64:
+        reduceSinglePass<T, AccType, 64, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 32:
+        reduceSinglePass<T, AccType, 32, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 16:
+        reduceSinglePass<T, AccType, 16, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 8:
+        reduceSinglePass<T, AccType, 8, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 4:
+        reduceSinglePass<T, AccType, 4, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 2:
+        reduceSinglePass<T, AccType, 2, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 1:
+        reduceSinglePass<T, AccType, 1, true><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
     }
-}
-
-bool isPow2(unsigned int x)
-{
-    return ((x&(x-1))==0);
-}
-
-template <class Functor>
-void ReduceAll(Functor f, Tensor out, Tensor in)
-{
-    cudaSetDevice(out->getDeviceId().no);
-    int size = in->shape().elements();
-    int threads = std::min(MAX_THREADS, size);
-    int blocks  = std::min(MAX_BLOCKS, size / threads  + (size % threads != 0));
-
-    dim3 dimBlock(threads, 1, 1);
-    dim3 dimGrid(blocks, 1, 1);
-    int smemSize = threads * sizeof(float);
-
-    float* d_idata = in->data();
-    float* d_odata = out->data();
-
-    // choose which of the optimized versions of reduction to launch
-    if (isPow2(size))
-    {
-        switch (threads)
-        {
-            case 512:
-                reduceSinglePass<512, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 256:
-                reduceSinglePass<256, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 128:
-                reduceSinglePass<128, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 64:
-                reduceSinglePass< 64, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 32:
-                reduceSinglePass< 32, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 16:
-                reduceSinglePass< 16, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  8:
-                reduceSinglePass<  8, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  4:
-                reduceSinglePass<  4, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  2:
-                reduceSinglePass<  2, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  1:
-                reduceSinglePass<  1, true><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-        }
+  } else {
+    switch (threads) {
+      case 512:
+        reduceSinglePass<T, AccType, 512, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 256:
+        reduceSinglePass<T, AccType, 256, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 128:
+        reduceSinglePass<T, AccType, 128, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 64:
+        reduceSinglePass<T, AccType, 64, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 32:
+        reduceSinglePass<T, AccType, 32, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 16:
+        reduceSinglePass<T, AccType, 16, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 8:
+        reduceSinglePass<T, AccType, 8, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 4:
+        reduceSinglePass<T, AccType, 4, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 2:
+        reduceSinglePass<T, AccType, 2, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
+      case 1:
+        reduceSinglePass<T, AccType, 1, false><<<dimGrid, dimBlock, smemSize>>>(functor, aggInit, aggFunctor, scale, full, out, ins);
+        break;
     }
-    else
-    {
-        switch (threads)
-        {
-            case 512:
-                reduceSinglePass<512, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 256:
-                reduceSinglePass<256, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 128:
-                reduceSinglePass<128, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 64:
-                reduceSinglePass< 64, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 32:
-                reduceSinglePass< 32, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case 16:
-                reduceSinglePass< 16, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  8:
-                reduceSinglePass<  8, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  4:
-                reduceSinglePass<  4, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  2:
-                reduceSinglePass<  2, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-
-            case  1:
-                reduceSinglePass<  1, false><<< dimGrid, dimBlock, smemSize >>>(f, d_idata, d_odata, size);
-                break;
-        }
-    }
+  }
 }
 
 }

@@ -16,16 +16,17 @@ public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 private:
-  Ptr<models::ModelBase> builder_;
+  Ptr<models::ICriterionFunction> builder_;
   Ptr<ExpressionGraph> graph_;
   Ptr<ExpressionGraph> graphAvg_;
 
   void execute(Ptr<data::Batch> batch);
 
 public:
-  SingletonGraph(Ptr<Options> config)
+  SingletonGraph(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
       : GraphGroup(config),
-        ExponentialSmoothing(options_->get<float>("exponential-smoothing")) {
+        ExponentialSmoothing(config) {
+    ABORT_IF(mpi->numMPIProcesses() != 1, "SingletonGraph does not support multiple MPI processes");
     // Get device ID
     auto devices = Config::getDevices(options_);
     ABORT_IF(devices.size() != 1, "Only one device ID should be provided for singleton training");
@@ -33,14 +34,15 @@ public:
     // Initialize graph
     graph_ = New<ExpressionGraph>();
     graph_->setDevice(deviceId);
+    graph_->setCheckpointing(options_->get<bool>("gradient-checkpointing"));
     graph_->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph_->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     opt_ = Optimizer(options_);
-    builder_ = models::from_options(options_, models::usage::training);
+    builder_ = models::createCriterionFunctionFromOptions(options_, models::usage::training);
   }
 
   void update(Ptr<data::Batch> batch) override {
-    ABORT_IF(finalized_, "Training has already finished");
+    validate();
     execute(batch);
   }
 
@@ -69,7 +71,7 @@ public:
           /*scatterStateFn=*/[&](const std::vector<float>& data, const OptimizerBase::ScatterStateSetFunc& setFn) {
             setFn(/*localDeviceIndex=*/0, data.begin(), data.end());
           });
-      } else if(options_->has("pretrained-model")) {
+      } else if(options_->hasAndNotEmpty("pretrained-model")) {
         std::string init = options_->get<std::string>("pretrained-model");
         LOG(info,
             "Initialize model weights with the pre-trained model {}",
@@ -125,8 +127,8 @@ public:
       });
   }
 
-  Ptr<data::BatchStats> collectStats() {
-    return GraphGroup::collectStats(graph_, builder_);
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
+    return GraphGroup::collectStats(graph_, builder_, vocabs);
   }
 
   virtual void finalize() override { finalized_ = true; }

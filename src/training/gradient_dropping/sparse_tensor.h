@@ -118,7 +118,7 @@ public:
   }
 
   // Convert a tensor into a sparse tensor format
-  void fromDense(Tensor t) {
+  void fromDense(Tensor MAYBE_UNUSED t) {
     if(backend_->getDeviceId().type == DeviceType::cpu) {
       ABORT("Gradient Dropping for CPU is not yet supported");
     }

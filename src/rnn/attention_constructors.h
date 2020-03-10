@@ -15,11 +15,11 @@ protected:
   Ptr<EncoderState> state_;
 
 public:
-  AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
+//  AttentionFactory(Ptr<ExpressionGraph> graph) : InputFactory(graph) {}
 
-  Ptr<CellInput> construct() override {
+  Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) override {
     ABORT_IF(!state_, "EncoderState not set");
-    return New<Attention>(graph_, options_, state_);
+    return New<Attention>(graph, options_, state_);
   }
 
   Accumulator<AttentionFactory> set_state(Ptr<EncoderState> state) {

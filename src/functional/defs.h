@@ -1,20 +1,22 @@
 #pragma once
 
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__  // Compiling with NVCC, host or device code
 
 #include <cuda.h>
-#define __H__ __host__
-#define __D__ __device__
-#define __HI__ __host__ inline
-#define __HD__ __host__ __device__
-#define __HDI__ __host__ __device__ inline
+#define HOST __host__
+#define DEVICE __device__
+#define DEVICE_INLINE __device__ inline
+#define HOST_INLINE __host__ inline
+#define HOST_DEVICE __host__ __device__
+#define HOST_DEVICE_INLINE __host__ __device__ inline
 
-#else
+#else // Compiling with GCC or other host compiler
 
-#define __H__
-#define __D__
-#define __HI__ inline
-#define __HD__
-#define __HDI__ inline
+#define HOST
+#define DEVICE
+#define DEVICE_INLINE inline
+#define HOST_INLINE inline
+#define HOST_DEVICE
+#define HOST_DEVICE_INLINE inline
 
 #endif

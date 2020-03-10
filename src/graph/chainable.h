@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 
 namespace marian {
 
@@ -18,8 +19,8 @@ class Chainable;
  * A convenience type to represent a shared pointer to a Chainable<Tensor>
  * object.
  */
-typedef Ptr<Chainable<Tensor>> Expr;
-typedef Weak<Chainable<Tensor>> WExpr;
+typedef IPtr<Chainable<Tensor>> Expr;
+typedef IWeak<Chainable<Tensor>> WExpr;
 
 class ExpressionGraph;
 
@@ -50,6 +51,9 @@ class ExpressionGraph;
  */
 template <class DataType>
 class Chainable {
+private:
+ ENABLE_INTRUSIVE_PTR(Chainable<DataType>)
+
 public:
   Chainable() {}
   virtual ~Chainable(){};
@@ -103,5 +107,10 @@ public:
   virtual bool equal(Expr) = 0;
 
   virtual void record(Ptr<AutoTunerRecorder>, size_t, bool) = 0;
+
+  virtual void markCheckpoint() = 0;
+  virtual bool isCheckpoint() const = 0;
+  virtual void setSubtape(Ptr<std::list<Expr>>) = 0;
+  virtual Ptr<std::list<Expr>> getSubtape() = 0;
 };
 }  // namespace marian
