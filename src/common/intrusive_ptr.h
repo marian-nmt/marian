@@ -148,16 +148,6 @@ inline bool operator!=(const IntrusivePtr<T>& a, const IntrusivePtr<U>& b) {
 }
 
 template<class T>
-inline bool operator==(const IntrusivePtr<T>& a, T* b) {
-  return a.get() == b;
-}
-
-template<class T>
-inline bool operator!=(const IntrusivePtr<T>& a, T* b) {
-  return a.get() != b;
-}
-
-template<class T>
 inline bool operator==(const IntrusivePtr<T>& a, std::nullptr_t) {
   return a.get() == 0;
 }
@@ -168,13 +158,23 @@ inline bool operator!=(const IntrusivePtr<T>& a, std::nullptr_t) {
 }
 
 template<class T>
+inline bool operator==(const IntrusivePtr<T>& a, T* b) {
+  return a.get() == b;
+}
+
+template<class T>
+inline bool operator!=(const IntrusivePtr<T>& a, T* b) {
+  return a.get() != b;
+}
+
+template<class T>
 inline bool operator==(T* a, const IntrusivePtr<T>& b) {
-  return a == b.get(); // used to say: return b.get(); That cannot be right. [UG]
+  return a == b.get();
 }
 
 template<class T>
 inline bool operator!=(T* a, const IntrusivePtr<T>& b) {
-  return a != b.get(); // used to say: return b.get(); That cannot be right. [UG]
+  return a != b.get();
 }
 
 template<class T, class U>

@@ -21,9 +21,9 @@
 #  else
 #    define MAYBE_UNUSED
 #  endif
+#else
+#  define MAYBE_UNUSED
 #endif
-
-
 
 #define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
