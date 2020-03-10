@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.9.0] - 2020-03-10
+
 ### Added
 - An option to print cached variables from CMake
 - Add support for compiling on Mac (and clang)
