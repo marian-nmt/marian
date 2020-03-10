@@ -56,6 +56,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+###############################################################################
 # Set compilation flags
 if(MSVC)
 # These are used in src/CMakeLists.txt on a per-target basis
@@ -185,6 +186,7 @@ else(MSVC)
   set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 endif(MSVC)
 
+###############################################################################
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
 if(USE_SENTENCEPIECE)
@@ -196,6 +198,7 @@ endif()
 # Find packages
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 
+###############################################################################
 if(COMPILE_CUDA)
 
 if(USE_STATIC_LIBS)
@@ -316,6 +319,8 @@ if(USE_STATIC_LIBS)
   endif()
 endif()
 
+###############################################################################
+# Find Tcmalloc
 if(NOT WIN32)
   find_package(Tcmalloc)
   if(Tcmalloc_FOUND)
@@ -326,6 +331,8 @@ if(NOT WIN32)
   endif(Tcmalloc_FOUND)
 endif()
 
+###############################################################################
+# Find MPI
 if(USE_MPI)
   find_package(MPI 2.0)
   if(MPI_FOUND)
@@ -335,6 +342,8 @@ if(USE_MPI)
   endif(MPI_FOUND)
 endif(USE_MPI)
 
+###############################################################################
+# Find MKL
 if(COMPILE_CPU)
   if(USE_MKL)
     find_package(MKL)
@@ -357,6 +366,8 @@ if(COMPILE_CPU)
   endif(MKL_FOUND)
 endif(COMPILE_CPU)
 
+###############################################################################
+# Find OpenSSL
 set(BOOST_COMPONENTS "")
 if(COMPILE_SERVER)
   find_package(OpenSSL)
@@ -375,10 +386,13 @@ if(USE_STATIC_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
+# TODO: move inside if(BOOST_COMPONENTS) ?
 if(USE_STATIC_LIBS)
   set(Boost_USE_STATIC_LIBS ON)
 endif()
 
+###############################################################################
+# Find Boost if required
 if(BOOST_COMPONENTS)
   find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
   if(Boost_FOUND)
@@ -390,6 +404,7 @@ if(BOOST_COMPONENTS)
   endif(Boost_FOUND)
 endif(BOOST_COMPONENTS)
 
+###############################################################################
 if(COMPILE_TESTS)
   enable_testing()
 endif(COMPILE_TESTS)
@@ -402,10 +417,17 @@ endif(COMPILE_EXAMPLES)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
                ${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h @ONLY)
 
+# Generate build_info.cpp with CMake cache variables
+include(GetCacheVariables)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp @ONLY)
+
 # Compile source files
 include_directories(${marian_SOURCE_DIR}/src)
 add_subdirectory(src)
 
+###############################################################################
 if(USE_DOXYGEN)
 # Add a target to generate API documentation with Doxygen
 find_package(Doxygen)

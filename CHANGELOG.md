@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- An option to print cached variables from CMake
 - Add support for compiling on Mac (and clang)
 - An option for resetting stalled validation metrics
 - Add CMAKE options to disable compilation for specific GPU SM types

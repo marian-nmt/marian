@@ -20,6 +20,7 @@ add_library(marian STATIC
   common/config_validator.cpp
   common/options.cpp
   common/binary.cpp
+  common/build_info.cpp
   common/io.cpp
   common/filesystem.cpp
   common/file_stream.cpp

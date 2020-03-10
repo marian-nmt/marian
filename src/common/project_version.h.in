@@ -1,8 +1,8 @@
 #pragma once
 
 /*
- * File project-version.h is generated using CMake. Do NOT modify it manually! Edit
- * project-version.h.in file instead.
+ * File project_version.h is generated using CMake. Do NOT modify it manually! Edit
+ * project_version.h.in file instead.
  */
 
 // e.g. v1.2.3-beta+1.abc123d
