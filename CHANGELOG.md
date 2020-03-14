@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Make cublas and cusparse handle inits lazy to save memory when unused
+
 ## [1.9.0] - 2020-03-10
 
 ### Added
