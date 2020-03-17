@@ -1,3 +1,4 @@
+#include "common/utils.h"
 #include "data/vocab.h"
 #include "data/vocab_base.h"
 
@@ -61,7 +62,7 @@ size_t Vocab::loadOrCreate(const std::string& vocabPath,
     // Vocabulary path exists, attempting to load
     size = load(vocabPath, maxSize);
   }
-  LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, size);
+  LOG(info, "[data] Setting vocabulary size for input {} to {}", batchIndex_, utils::withCommas(size));
   return size;
 }
 

@@ -20,7 +20,7 @@ namespace marian {
   // This function assumes that the object holds one or more factor logits.
   // It applies the supplied loss function to each, and then returns the aggregate loss over all factors.
   Expr Logits::applyLossFunction(const Words& labels, const std::function<Expr(Expr/*logits*/, Expr/*indices*/)>& lossFn) const {
-    LOG_ONCE(info, "[logits] applyLossFunction() for {} factors", logits_.size());
+    LOG_ONCE(info, "[logits] Applying loss function for {} factor(s)", logits_.size());
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
 
     auto firstLogits = logits_.front()->loss();

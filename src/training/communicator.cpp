@@ -139,7 +139,7 @@ class FakeMPIWrapper : public IMPIWrapper
 {
 public:
   FakeMPIWrapper(bool) {
-    LOG(warn, "Compiled without MPI support. Falling back to FakeMPIWrapper");
+    LOG(info, "[comm] Compiled without MPI support. Running as a single process on {}", utils::hostnameAndProcessId().first);
   }
   virtual ~FakeMPIWrapper() {}
   virtual size_t myMPIRank() const override { return 0; };

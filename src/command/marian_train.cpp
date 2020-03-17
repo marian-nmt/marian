@@ -29,11 +29,11 @@ int main(int argc, char** argv) {
     LOG(warn, "[experimental] Using old multi-node training implementations that are not up-to-date");
 
     if(options->get<bool>("sync-sgd")) {
-      LOG(info, "Using multi-node synchronous training");
+      LOG(info, "[training] Using multi-node synchronous training");
       New<Train<MultiNodeGraphGroupSync>>(options)->run();
     } else {
 #ifdef CUDA_FOUND
-      LOG(info, "Using multi-node asynchronous training");
+      LOG(info, "[training] Using multi-node asynchronous training");
       New<Train<MultiNodeGraphGroup>>(options)->run();
 #else
       ABORT("Asynchronous multi-node training requires CUDA");
@@ -46,24 +46,24 @@ int main(int argc, char** argv) {
   // processes x (single, multiple) GPUs per MPI process.  This variant is presently up-to-date and
   // best supported.
   else if (options->get<bool>("sync-sgd")) {
-    LOG(info, "Using synchronous training");
+    LOG(info, "[training] Using synchronous training");
     New<Train<SyncGraphGroup>>(options)->run();
   }
   else {
     auto devices = Config::getDevices(options);
     if(devices.size() == 1) {
-      LOG(info, "Using single-device training");
+      LOG(info, "[training] Using single-device training");
       New<Train<SingletonGraph>>(options)->run();
     } else {
       if(options->get<float>("grad-dropping-rate") > 0.0) {
 #ifdef CUDA_FOUND
-        LOG(info, "Using asynchronous training with gradient dropping");
+        LOG(info, "[training] Using asynchronous training with gradient dropping");
         New<Train<AsyncGraphGroupDrop>>(options)->run();
 #else
         ABORT("Asynchronous training with gradient dropping requires CUDA");
 #endif
       } else {
-        LOG(info, "Using asynchronous training");
+        LOG(info, "[training] Using asynchronous training");
         New<Train<AsyncGraphGroup>>(options)->run();
       }
     }

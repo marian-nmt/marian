@@ -176,7 +176,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
     }
     files_.clear();
     numSentences = corpus[0].size();
-    LOG(info, "[data] Done reading {} sentences", numSentences);
+    LOG(info, "[data] Done reading {} sentences", utils::withCommas(numSentences));
   }
 
   // randomize sequence ids, and remember them
@@ -187,7 +187,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
   if (shuffleInRAM_) {
     // when shuffling in RAM, we keep no files_, instead but the data itself
     corpusInRAM_ = std::move(corpus);
-    LOG(info, "[data] Done shuffling {} sentences (cached in RAM)", numSentences);
+    LOG(info, "[data] Done shuffling {} sentences (cached in RAM)", utils::withCommas(numSentences));
   }
   else {
     // create temp files that contain the data in randomized order
@@ -208,7 +208,7 @@ void Corpus::shuffleData(const std::vector<std::string>& paths) {
       inputStream->setbufsize(10000000);
       files_[i] = std::move(inputStream);
     }
-    LOG(info, "[data] Done shuffling {} sentences to temp files", numSentences);
+    LOG(info, "[data] Done shuffling {} sentences to temp files", utils::withCommas(numSentences));
   }
   pos_ = 0;
 }
