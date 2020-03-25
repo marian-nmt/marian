@@ -76,22 +76,31 @@ const int PACK16_PADDING = 1024;
 // This is a memory space to store auxiliary variables for FBGEMM (e.g. block row, block column, kernel_ncol_blocks and etc.)
 const int PACK16_SPECIALMEM = 256;
 
+// This is the maximum value of FP16 type. There is a template type implementation, but it doesn't work on windows.
+// To keep the consistent result, just use the constant value instead of #ifdef _MSC_VER.
+// Template type implementation: float FP16_MAX = NumericLimits<float>(Type::float16).max;
+const float FP16_MAX = 65504.f;
+
+// This function clips a value into a [min, max] range
+inline float clip(float value, float min, float max) {
+  return std::max(min, std::min(value, max));
+}
+
 // This is copied from FBGEMM code
 // A better way?
 // will be removed, when FBGEMM api is changed
 // blocked row-major format address arithmetic
-/**
- * Returns the memory address in the packed (block formatted) matrix array of a specific element 
- * indexed by the original non-packed array.
- *
- * @param r_ row index in the original matrix
- * @param c_ column index in the original matrix
- * @param brow_ row wide block index
- * @param bcol_ column wide block index
- * @param nbrow_ number of blocks in row
- * @param nbcol_ number of blocks in column
- * @param last_brow_ row number of the last block
- */
+//
+// Returns the memory address in the packed (block formatted) matrix array of a specific element 
+// indexed by the original non-packed array.
+//
+// @param r_ row index in the original matrix
+// @param c_ column index in the original matrix
+// @param brow_ row wide block index
+// @param bcol_ column wide block index
+// @param nbrow_ number of blocks in row
+// @param nbcol_ number of blocks in column
+// @param last_brow_ row number of the last block
 inline uint64_t addr(const int r_,
                      const int c_,
                      const int brow_,
@@ -112,6 +121,15 @@ inline uint64_t addr(const int r_,
 
   uint64_t index = block_offset + inblock_offset;
   return index;
+}
+
+// Returns a value in 2D array with the row, column index (i, j) and transposed flag.
+// The number of rows and columns needs to be passed.
+// The transposed flag indicates if the underlying data needs to be accessed in a tranposed layout or not.
+inline float getVal2dArr(const float* data, size_t i, size_t j, size_t rows, size_t cols, bool transposed) {
+  ABORT_IF(i >= rows, "Row index {} exceeds the number of rows {}.", i, rows);
+  ABORT_IF(j >= cols, "Column index {} exceeds the number of columns {}.", j, cols);
+  return transposed ? data[j * rows + i] : data[i * cols + j];
 }
 
 // Memory blocking factors (parameters) for packing into AVX2 int8
@@ -147,6 +165,12 @@ inline const fbgemm::BlockingFactors* getBlockingFactors(marian::Type packType) 
   }
 }
 
+// Returns the byte size of packed matrix in fp16. It's calculated by fbgemm's internal logic due to the paddings and different layouts.
+// Packing with fp16 only targets AVX2 instruction sets for now.
+// See '3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h'.
+// shape: shape of the tensor to be packed
+// transpose: the matrix is transposed
+// packsize (out): the size of the packed matrix in byte
 void fbgemmPacked16PackInfo(const marian::Shape& shape,
                             const bool transpose,
                             uint64_t& packsize) {
@@ -154,6 +178,21 @@ void fbgemmPacked16PackInfo(const marian::Shape& shape,
   fbgemmPacked16PackInfo(shape, transpose, nrow, ncol, kernel_ncol_blocks, brow, bcol, last_brow, nbrow, nbcol, packsize);
 }
 
+// Returns the byte size of packed matrix in fp16. It's calculated by fbgemm's internal logic due to the paddings and different layouts.
+// This function returns some other extra variables
+// Packing with fp16 only targets AVX2 instruction sets for now.
+// See '3rd_party/fbgemm/include/fbgemm/FbgemmFP16.h'.
+// shape: shape of the tensor to be packed
+// transpose: the matrix is transposed
+// nrow (out): the number of rows
+// ncol (out): the number of columns
+// kernel_ncol_blocks (out): the number of column blocks
+// brow (out): the number of rows in a block
+// bcol (out): the number of columns in a block
+// last_brow (out): the number of rows in the last block
+// nbrow (out): row index in a block
+// nbcol (out): column index in a block
+// packsize (out): the size of the packed matrix in byte
 void fbgemmPacked16PackInfo(const marian::Shape& shape,
                             const bool transpose,
                             int& nrow,
@@ -178,6 +217,14 @@ void fbgemmPacked16PackInfo(const marian::Shape& shape,
              + PACK16_SPECIALMEM;
 }
 
+// Returns the byte size of packed matrix in int8. It's calculated by fbgemm's internal logic due to the paddings and different layouts.
+// See '3rd_party/fbgemm/src/PackBMatrix.cc'.
+// shape: shape of the tensor to be packed
+// packType: Type to be packed - packed8avx2 or packed8avx512
+// transpose: the matrix is transposed
+// nrow (out): the number of rows
+// ncol (out): the number of columns
+// packsize (out): the size of the packed matrix in byte
 void fbgemmPacked8PackInfo(const marian::Shape& shape,
                            const marian::Type packType,
                            const bool transpose,
@@ -221,6 +268,20 @@ inline void col_offsets_with_zero_pt_s8acc32(
   }
 }
 
+// Pack a matrix (fp16) into cache utilization efficient way (block format) into fp16
+// out: output tensor - packed format
+// inData: input tensor data - pointer of float data
+// transpose: the matrix is transposed
+// nrow: the number of rows
+// ncol: the number of columns
+// kernel_ncol_blocks: the number of column blocks
+// brow: the number of rows in a block
+// bcol: the number of columns in a block
+// last_brow: the number of rows in the last block
+// nbrow: row index in a block
+// nbcol: column index in a block
+// packsize: the size of the packed matrix
+//          (the number of fp16 elements + padding (1024) + extra temporary memory (256))
 void fbgemmPacked16Pack(marian::Tensor out,
                         const float* inData, // Packing is only available for 2D weight matrix in Marian. Otherwise, it's aborted in expanded_gemm.h.
                         const bool transpose,
@@ -258,20 +319,37 @@ void fbgemmPacked16Pack(marian::Tensor out,
   // pack the matrix
   for(int i = 0; i < nrow; i++) {
     for(int j = 0; j < ncol; j++) {
-      outmem[addr(i, j, brow, bcol, nbrow, nbcol, last_brow)]
-          = tconv(!transpose ? inData[i * ncol + j] : inData[i + nrow * j], *dummy);
+      float src = clip(transpose ? inData[i + nrow * j] : inData[i * ncol + j], -FP16_MAX, FP16_MAX);
+      outmem[addr(i, j, brow, bcol, nbrow, nbcol, last_brow)] = tconv(src, *dummy);
     }
   }
   delete dummy;
 }
 
+// Pack a matrix (int8) into cache utilization efficient way (block format) together with quantization into int8
+// out: output tensor - packed format and quantized into int8
+// inData: input tensor data - pointer of float data
+// packType: Type to be packed - packed8avx2 or packed8avx512
+// transpose: the matrix is transposed
+// nrow: the number of rows
+// ncol: the number of columns
+// packsize: the size of the packed matrix
+//          (the size of int8 packed B from fbgemm:PackAWithQuantRowOffset + quantization scale, offset and zero point)
+// quantRangeStdDevs: the range to be quantized for the original float data in multiples standard deviation
+//                    the default value is 0.0f which means min/max quantization
+//                    only a half range of normal int8 which is [-64, 63] used to avoid overflow
+//                    during the accumulation in VPMADDUBSW instruction 
+//                    https://intel.github.io/mkl-dnn/dev_guide_int8_computations.html
+//                    (e.g. 3.f means the original tensor is quantized
+//                    from [mean - 3.f * standard deviation, mean + 3.f * standard deviation] to [-64, 63])
 void fbgemmPacked8Pack(marian::Tensor out,
                        const float* inData,
                        const marian::Type packType,
                        const bool transpose,
                        const int nrow,
                        const int ncol,
-                       const uint64_t packsize) {
+                       const uint64_t packsize,
+                       const float quantRangeStdDevs) {
   int k = nrow;
   int n = ncol;
   int len = k * n;
@@ -283,44 +361,41 @@ void fbgemmPacked8Pack(marian::Tensor out,
   const float* data = inData;
   float val = 0;
 
-  if (transpose) {
-    for (int jj = 0; jj < n; jj++) {
-      float min = std::numeric_limits<float>::max(), max = std::numeric_limits<float>::min();
-      double mean = 0, sqrsum = 0;
-      for (int ii = 0; ii < k; ii++) {
-        val = data[jj * k + ii];
+  // Use half of the quantization range to prevent overflow of VPMADDUBSW
+  constexpr static int quantizedRange = 127;
+  constexpr static int quantizedMax = 63;
+
+  // This routine compute the quantization range for each column - either one of min/max range or quantRangeStdDevs sigma range.
+  for (size_t jj = 0; jj < n; jj++) { // for each column, collect stats (min/max or mean/std.dev.)
+    float min = std::numeric_limits<float>::max(), max = std::numeric_limits<float>::min();
+    double mean = 0, sqrsum = 0;
+    for (size_t ii = 0; ii < k; ii++) { // in a column, go throuhg all the rows and collect stats
+      val = getVal2dArr(data, ii, jj, k, n, transpose);
+      // If quantRangeStdDevs is 0.f, min/max values of the columns is used as a quantization range
+      if(quantRangeStdDevs == 0.f) {
+        if(min > val)
+          min = val;
+        if(max < val)
+          max = val;
+      } else {
+        // Quantize by std.dev. range
         mean += val;
         sqrsum += val * val;
       }
+    }
+    // If a quantization range (in multiples of std. dev.) is given with a non-zero value,
+    // it calculate the range for this column (different quantization scale/offset are used for each column)
+    if(quantRangeStdDevs != 0.f) {
       mean /= k;
       sqrsum /= k;
       sqrsum -= mean * mean;
       sqrsum = sqrt(sqrsum);
-
-      min = (float)(mean - 7.0f*sqrsum);
-      max = (float)(mean + 7.0f*sqrsum);
-      bqScale[jj] = (max - min) / 255;
-      bqZeropoint[jj] = (int32_t)(127 - max / bqScale[jj]);
+      min = (float)(mean - quantRangeStdDevs * sqrsum);
+      max = (float)(mean + quantRangeStdDevs * sqrsum);
     }
-  } else {
-    for (int jj = 0; jj < n; jj++) {
-      float min = std::numeric_limits<float>::max(), max = std::numeric_limits<float>::min();
-      double mean = 0, sqrsum = 0;
-      for (int ii = 0; ii < k; ii++) {
-        val = data[jj + ii * n];
-        mean += val;
-        sqrsum += val * val;
-      }
-      mean /= k;
-      sqrsum /= k;
-      sqrsum -= mean * mean;
-      sqrsum = sqrt(sqrsum);
-
-      min = (float)(mean - 7.0f*sqrsum);
-      max = (float)(mean + 7.0f*sqrsum);
-      bqScale[jj] = (max - min) / 255;
-      bqZeropoint[jj] = (int32_t)(127 - max / bqScale[jj]);
-    }
+    // based on the quantization range, this computes the scale and offset for the quantization
+    bqScale[jj] = (max - min) / quantizedRange;
+    bqZeropoint[jj] = (int32_t)(quantizedMax - max / bqScale[jj]);
   }
 
   // 2. quantize
@@ -335,7 +410,7 @@ void fbgemmPacked8Pack(marian::Tensor out,
     TensorQuantizationParams bQuantParam;
     bQuantParam.scale = bqScale[jj];
     bQuantParam.zero_point = bqZeropoint[jj];
-    bQuantParam.precision = 8;
+    bQuantParam.precision = 7;  // Use half of the quantization range to prevent overflow of VPMADDUBSW
 
     if (transpose)
       fbgemm::Quantize<int8_t>(data + jj * k, quantized + jj * k, k, bQuantParam);

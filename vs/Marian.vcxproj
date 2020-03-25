@@ -1445,7 +1445,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\training\communicator.cpp" />
-    <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp" />
+    <ClCompile Include="..\src\training\graph_group.cpp" />
     <ClCompile Include="..\src\training\scheduler.cpp" />
     <ClCompile Include="..\src\translator\history.cpp" />
     <ClCompile Include="..\src\translator\output_collector.cpp" />
@@ -1454,10 +1454,8 @@
     <ClCompile Include="..\src\translator\output_printer.cpp" />
     <ClCompile Include="..\src\translator\scorers.cpp" />
     <ClCompile Include="..\src\training\graph_group_async.cpp" />
-    <ClCompile Include="..\src\training\graph_group_async_drop.cpp" />
     <ClCompile Include="..\src\training\graph_group_sync.cpp" />
     <ClCompile Include="..\src\training\graph_group_singleton.cpp" />
-    <ClCompile Include="..\src\training\graph_group_multinode.cpp" />
     <ClCompile Include="..\src\training\validator.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\convert.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\directives.cpp" />
@@ -1653,7 +1651,6 @@
     <ClInclude Include="..\src\common\config_parser.h" />
     <ClInclude Include="..\src\common\definitions.h" />
     <ClInclude Include="..\src\common\file_stream.h" />
-    <ClInclude Include="..\src\common\keywords.h" />
     <ClInclude Include="..\src\common\logging.h" />
     <ClInclude Include="..\src\common\options.h" />
     <ClInclude Include="..\src\common\regex.h" />
@@ -1755,18 +1752,12 @@
     <ClInclude Include="..\src\training\communicator.h" />
     <ClInclude Include="..\src\training\graph_group.h" />
     <ClInclude Include="..\src\training\graph_group_async.h" />
-    <ClInclude Include="..\src\training\graph_group_async_drop.h" />
-    <ClInclude Include="..\src\training\graph_group_multinode.h" />
-    <ClInclude Include="..\src\training\graph_group_multinode_sync.h" />
     <ClInclude Include="..\src\training\graph_group_singleton.h" />
     <ClInclude Include="..\src\training\graph_group_sync.h" />
     <ClInclude Include="..\src\training\scheduler.h" />
     <ClInclude Include="..\src\training\training.h" />
     <ClInclude Include="..\src\training\training_state.h" />
     <ClInclude Include="..\src\training\validator.h" />
-    <ClInclude Include="..\src\training\gradient_dropping\dropper.h" />
-    <ClInclude Include="..\src\training\gradient_dropping\sparse_tensor.h" />
-    <ClInclude Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h" />
     <ClInclude Include="..\src\translator\beam_search.h" />
     <ClInclude Include="..\src\translator\helpers.h" />
     <ClInclude Include="..\src\translator\history.h" />
@@ -1906,8 +1897,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CudaCompile>
-    <CudaCompile Include="..\src\training\gradient_dropping\gpu\dropper.cu" />
-    <CudaCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.cu" />
     <CudaCompile Include="..\src\translator\helpers.cu" />
     <CudaCompile Include="..\src\translator\nth_element.cu" />
   </ItemGroup>

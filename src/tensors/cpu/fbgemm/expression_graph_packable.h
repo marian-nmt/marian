@@ -35,10 +35,13 @@ public:
       Tensor val = p.second->val();
 
       // save as packed format
-      // @TODO Hardcoded to find packable weights - all the weights used for affine op (fp16), all the weights used for affine op and dot op (int8)
+      // @TODO Hardcoded to find packable weights
+      // int8 - quantize decoder only for better quality, all the weights used for affine op and dot op (int8)
+      // fp16 - all the weights used for affine op (fp16)
       if ((gemmElementType == Type::packed8avx2 || gemmElementType == Type::packed8avx512)
-        && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2)) {
-  #if USE_FBGEMM
+        && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2)
+        && pName.find("encoder") == std::string::npos) {
+#if USE_FBGEMM
         using namespace marian::cpu::variant;
         // packing information - size
         int nrow;
@@ -82,7 +85,10 @@ public:
 #else
         ABORT("Packed type {} only supported when compiled with -DUSE_FBGEMM=on", gemmElementType);
 #endif
-      } else if (gemmElementType == Type::packed16 && pName.find("_W") == pName.length() - 3) {
+      // fp16 quantization option + encoders for int8 quantized models
+      } else if ((gemmElementType == Type::packed16 && pName.find("_W") == pName.length() - 3)
+        || ((gemmElementType == Type::packed8avx2 || gemmElementType == Type::packed8avx512)
+        && (pName.find("_W") == pName.length() - 3 || pName.find("_W") == pName.length() - 2))) {
 #if USE_FBGEMM
         using namespace marian::cpu::variant;
 
@@ -123,7 +129,7 @@ public:
         io::Item item;
         item.name = pName;
         item.shape = val->shape();
-        item.type = gemmElementType;
+        item.type = Type::packed16;
 
         // Use the actual memory as this will be aligned and padded.
         // When memory mapping this is required. Shape keeps track of
