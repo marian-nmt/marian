@@ -22,7 +22,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   }
 #endif
 
-  auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).epsilon(0.01); };
+  auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).epsilon(0.01f).scale(1.f); };
   auto floatEqual  = [](T x, T y) -> bool { return x == y; };
 
   Config::seed = 1234;
@@ -794,7 +794,7 @@ TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]")
 #ifdef CUDA_FOUND
 
 TEST_CASE("Compare aggregate operator", "[graph]") {
-  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y).epsilon(0.01); };
+  auto floatApprox = [](float x, float y) -> bool { return x == Approx(y).epsilon(0.01f).scale(1.f); };
   
   Config::seed = 1234;
 
