@@ -94,16 +94,10 @@
     <ClCompile Include="..\src\training\graph_group_async.cpp">
       <Filter>training</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_async_drop.cpp">
-      <Filter>training</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\training\graph_group_sync.cpp">
       <Filter>training</Filter>
     </ClCompile>
     <ClCompile Include="..\src\training\graph_group_singleton.cpp">
-      <Filter>training</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_multinode.cpp">
       <Filter>training</Filter>
     </ClCompile>
     <ClCompile Include="..\src\training\validator.cpp">
@@ -225,9 +219,6 @@
     </ClCompile>
     <ClCompile Include="..\src\3rd_party\yaml-cpp\binary_renamed.cpp">
       <Filter>3rd_party\yaml-cpp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\training\graph_group_multinode_sync.cpp">
-      <Filter>training</Filter>
     </ClCompile>
     <ClCompile Include="..\src\command\marian_main.cpp">
       <Filter>command</Filter>
@@ -883,6 +874,9 @@
     <ClCompile Include="..\src\tensors\cpu\fbgemm\packed_gemm.cpp">
       <Filter>tensors\cpu\fbgemm</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\training\graph_group.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -1288,9 +1282,6 @@
     <ClInclude Include="..\src\common\file_stream.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\common\keywords.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\common\logging.h">
       <Filter>common</Filter>
     </ClInclude>
@@ -1531,12 +1522,6 @@
     <ClInclude Include="..\src\training\graph_group_async.h">
       <Filter>training</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\training\graph_group_async_drop.h">
-      <Filter>training</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\training\graph_group_multinode.h">
-      <Filter>training</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\training\graph_group_singleton.h">
       <Filter>training</Filter>
     </ClInclude>
@@ -1554,15 +1539,6 @@
     </ClInclude>
     <ClInclude Include="..\src\training\validator.h">
       <Filter>training</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\training\gradient_dropping\dropper.h">
-      <Filter>training\gradient_dropping</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\training\gradient_dropping\sparse_tensor.h">
-      <Filter>training\gradient_dropping</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.h">
-      <Filter>training\gradient_dropping\gpu</Filter>
     </ClInclude>
     <ClInclude Include="..\src\translator\beam_search.h">
       <Filter>translator</Filter>
@@ -1641,9 +1617,6 @@
     </ClInclude>
     <ClInclude Include="..\src\translator\output_printer.h">
       <Filter>translator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\training\graph_group_multinode_sync.h">
-      <Filter>training</Filter>
     </ClInclude>
     <ClInclude Include="..\src\command\marian_vocab.cpp">
       <Filter>command</Filter>
@@ -2373,12 +2346,6 @@
     <Filter Include="training">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0098}</UniqueIdentifier>
     </Filter>
-    <Filter Include="training\gradient_dropping">
-      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0101}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="training\gradient_dropping\gpu">
-      <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0104}</UniqueIdentifier>
-    </Filter>
     <Filter Include="translator">
       <UniqueIdentifier>{880c8f51-3306-4d80-a682-7242341b0107}</UniqueIdentifier>
     </Filter>
@@ -2702,12 +2669,6 @@
     </CudaCompile>
     <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
       <Filter>tensors\gpu</Filter>
-    </CudaCompile>
-    <CudaCompile Include="..\src\training\gradient_dropping\gpu\dropper.cu">
-      <Filter>training\gradient_dropping\gpu</Filter>
-    </CudaCompile>
-    <CudaCompile Include="..\src\training\gradient_dropping\gpu\sparse_algorithm.cu">
-      <Filter>training\gradient_dropping\gpu</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

@@ -86,11 +86,9 @@ add_library(marian STATIC
   translator/scorers.cpp
 
   training/graph_group_async.cpp
-  training/graph_group_async_drop.cpp
   training/graph_group_sync.cpp
+  training/graph_group.cpp
   training/graph_group_singleton.cpp
-  training/graph_group_multinode.cpp
-  training/graph_group_multinode_sync.cpp
   training/validator.cpp
   training/communicator.cpp
   training/scheduler.cpp
@@ -146,8 +144,6 @@ cuda_add_library(marian_cuda
   tensors/gpu/cudnn_wrappers.cu
   translator/nth_element.cu
   translator/helpers.cu
-  training/gradient_dropping/gpu/dropper.cu
-  training/gradient_dropping/gpu/sparse_algorithm.cu
   STATIC)
 
   target_compile_options(marian_cuda PUBLIC ${ALL_WARNINGS})

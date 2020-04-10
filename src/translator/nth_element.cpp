@@ -56,7 +56,7 @@ public:
       for(size_t i = 0; i < N; ++i) {
         int idx = idxs[i];
         // since idxs is re-used for each batch, add batch offset to each idx to get absolute position
-        h_res_idx[pos] = idx + batchIdx * batchOffset;
+        h_res_idx[pos] = (int) (idx + batchIdx * batchOffset);
         h_res[pos] = scoresData[idx];
         ++pos;
       }

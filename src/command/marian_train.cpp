@@ -2,15 +2,9 @@
 #include "marian.h"
 
 #include "training/graph_group_async.h"
-#include "training/graph_group_multinode_sync.h"
 #include "training/graph_group_singleton.h"
 #include "training/graph_group_sync.h"
 #include "training/training.h"
-
-#ifdef CUDA_FOUND
-#include "training/graph_group_async_drop.h"
-#include "training/graph_group_multinode.h"
-#endif
 
 #include "3rd_party/ExceptionWithCallStack.h"
 
@@ -27,18 +21,7 @@ int main(int argc, char** argv) {
   // MultiNodeGraphGroupSync.
   if(options->get<bool>("multi-node")) {
     LOG(warn, "[experimental] Using old multi-node training implementations that are not up-to-date");
-
-    if(options->get<bool>("sync-sgd")) {
-      LOG(info, "[training] Using multi-node synchronous training");
-      New<Train<MultiNodeGraphGroupSync>>(options)->run();
-    } else {
-#ifdef CUDA_FOUND
-      LOG(info, "[training] Using multi-node asynchronous training");
-      New<Train<MultiNodeGraphGroup>>(options)->run();
-#else
-      ABORT("Asynchronous multi-node training requires CUDA");
-#endif
-    }
+    ABORT("Old multi-node training code disabled");
   }
   // --sync-sgd always selects SyncGraphGroup
   //
@@ -46,7 +29,7 @@ int main(int argc, char** argv) {
   // processes x (single, multiple) GPUs per MPI process.  This variant is presently up-to-date and
   // best supported.
   else if (options->get<bool>("sync-sgd")) {
-    LOG(info, "[training] Using synchronous training");
+    LOG(info, "Using synchronous SGD");
     New<Train<SyncGraphGroup>>(options)->run();
   }
   else {
@@ -55,17 +38,8 @@ int main(int argc, char** argv) {
       LOG(info, "[training] Using single-device training");
       New<Train<SingletonGraph>>(options)->run();
     } else {
-      if(options->get<float>("grad-dropping-rate") > 0.0) {
-#ifdef CUDA_FOUND
-        LOG(info, "[training] Using asynchronous training with gradient dropping");
-        New<Train<AsyncGraphGroupDrop>>(options)->run();
-#else
-        ABORT("Asynchronous training with gradient dropping requires CUDA");
-#endif
-      } else {
-        LOG(info, "[training] Using asynchronous training");
-        New<Train<AsyncGraphGroup>>(options)->run();
-      }
+      LOG(info, "Using asynchronous training");
+      New<Train<AsyncGraphGroup>>(options)->run();
     }
   }
 
