@@ -1,5 +1,6 @@
 #include <random>
 
+#include "common/file_utils.h"
 #include "data/corpus.h"
 #include "data/factored_vocab.h"
 
@@ -36,9 +37,17 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
       vocabs_(vocabs),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
-      rightLeft_(options_->get<bool>("right-left")) {
-  ABORT_IF(paths_.size() != vocabs_.size(),
-           "Number of corpus files and vocab files does not agree");
+      rightLeft_(options_->get<bool>("right-left")),
+      tsv_(options_->get<bool>("tsv", false)),
+      tsvNumFields_(options->get<size_t>("tsv-fields", 0)) {
+  // TODO: support passing only one vocab file if we have fully-tied embeddings
+  if(tsv_) {
+    ABORT_IF(tsvNumFields_ != vocabs_.size(),
+             "Number of TSV fields and vocab files does not agree");
+  } else {
+    ABORT_IF(paths_.size() != vocabs_.size(),
+             "Number of corpus files and vocab files does not agree");
+  }
 
   for(auto path : paths_) {
     UPtr<io::InputFileStream> strm(new io::InputFileStream(path));
@@ -53,7 +62,9 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     : DatasetBase(options),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
-      rightLeft_(options_->get<bool>("right-left")) {
+      rightLeft_(options_->get<bool>("right-left")),
+      tsv_(options_->get<bool>("tsv", false)),
+      tsvNumFields_(options->get<size_t>("tsv-fields", 0)) {
   bool training = !translate;
 
   if(training)
@@ -68,8 +79,13 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
-    ABORT_IF(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
-             "Number of corpus files and vocab files does not agree");
+    if(tsv_) {
+      ABORT_IF(!vocabPaths.empty() && tsvNumFields_ != vocabPaths.size(),
+               "Number of TSV fields and vocab files does not agree");
+    } else {
+      ABORT_IF(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
+               "Number of corpus files and vocab files does not agree");
+    }
   }
 
   // @TODO: check if size_t can be used instead of int
@@ -77,60 +93,157 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 
   // training or scoring
   if(training) {
+    // Marian can create vocabularies automatically if no vocabularies are given or they do not
+    // exists under the specified paths.
+    //
+    // Possible cases:
+    //  * -t train1 train2 -v vocab1 vocab2
+    //    If vocab1 or vocab2 exists, they are loaded, otherwise separate .yml vocabularies are
+    //    created only from train1 or train2 respectively.
+    //
+    //  * -t train1 train2 -v vocab vocab
+    //    If vocab exists, it is loaded, otherwise it is created from concatenated train1 and train2
+    //    files.
+    //
+    //  * -t train1 train2
+    //    If no path is given, separate vocabularies train1.yml and train2.yml are created from
+    //    train1 and train2 respectively.
+    //
+    //  * --tsv -t train.tsv -v vocab1 vocab2
+    //    If vocab1 or vocab2 exists, it is loaded; otherwise each vocabulary is created from the
+    //    appropriate fields in train.tsv.
+    //
+    //  * --tsv -t train.tsv -v vocab vocab
+    //    If vocab exist, it is loaded; otherwise it is created from all fields in train.tsv.
+    //
+    //  * --tsv -t train.tsv
+    //    If no path is given, a train.tsv.yml is created from all fields in train.tsv.
+    //
+    //  * cat file.tsv | --tsv -t stdin -v vocab1 vocab2
+    //    If either vocab1 or vocab2 does not exist, an error is shown that creation of vocabularies
+    //    from stdin is not supported.
+    //
+    //  * cat file.tsv | --tsv -t stdin -v vocab vocab
+    //    If vocab does not exist, an error is shown that creation of a vocabulary from stdin is not
+    //    supported.
+    //
+    //  * cat file.tsv | --tsv -t stdin
+    //    As above, an error is shown that creation of a vocabulary from stdin is not supported.
+    //
+    //  There is more cases for multi-encoder models not listed above.
+    //
     if(vocabPaths.empty()) {
+      size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size();
+
+      // Creating a vocabulary from stdin is not supported
+      ABORT_IF(tsv_ && (paths_[0] == "stdin" || paths_[0] == "-"),
+               "Creating vocabularies automatically from a data stream from STDIN is not supported. "
+               "Create vocabularies first and provide them with --vocabs");
+
       if(maxVocabs.size() < paths_.size())
         maxVocabs.resize(paths_.size(), 0);
 
-      LOG(info, "No vocabulary files given, trying to find or build based on training data. "
-                "Vocabularies will be built separately for each file.");
+      LOG(info,
+          "[data] No vocabulary files given, trying to find or build based on training data.");
+      if(!tsv_)
+        LOG(info, "[data] Vocabularies will be built separately for each file.");
+      else
+        LOG(info, "[data] A joint vocabulary will be built from the TSV file.");
 
-      std::vector<int> vocabDims(paths_.size(), 0);
-      std::vector<std::string> vocabPaths1(paths_.size());
+      std::vector<int> vocabDims(numStreams, 0);
+      std::vector<std::string> vocabPaths1(numStreams);
+
       // Create vocabs if not provided
-      for(size_t i = 0; i < paths_.size(); ++i) {
+      for(size_t i = 0; i < numStreams; ++i) {
         Ptr<Vocab> vocab = New<Vocab>(options_, i);
-        std::vector<std::string> trainPaths = { paths_[i] };
+
+        const auto& path = paths_[tsv_ ? 0 : i];  // idx 0 because there is always only one TSV file
+        std::vector<std::string> trainPaths = {path};
+        vocabPaths1[i] = path + ".yml";
+
         vocabDims[i] = (int) vocab->loadOrCreate("", trainPaths, maxVocabs[i]);
-        vocabPaths1[i] = paths_[i] + ".yml";
         vocabs_.emplace_back(vocab);
       }
       // TODO: this is not nice as it modifies the option object and needs to expose the changes
       // outside the corpus as models need to know about the vocabulary size; extract the vocab
       // creation functionality from the class.
       options_->set("dim-vocabs", vocabDims, "vocabs", vocabPaths1);
-    } else {
+
+    } else { // Vocabulary paths are given
+      size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size();
+
       // Load all vocabs
       size_t numVocs = vocabPaths.size();
       if(maxVocabs.size() < numVocs)
-        maxVocabs.resize(paths_.size(), 0);
+        maxVocabs.resize(numStreams, 0);
 
-      // Helper object to for grouping training data based on vocabulary file name
-      struct PathsAndSize {
-        std::set<std::string> paths; // contains all paths that are used for training the vocabulary
-        size_t size;                 // contains the maximum vocabulary size
+      // Helper object for grouping training data based on vocabulary file name
+      struct VocabDetails {
+        std::set<std::string> paths;  // all paths that are used for training the vocabulary
+        std::vector<size_t> streams;  // index of the vocabulary in the --vocab option
+        size_t size;                  // the maximum vocabulary size
       };
 
       // Group training files based on vocabulary path. If the same
       // vocab path corresponds to different training files, this means
       // that a single vocab should combine tokens from all files.
-      std::map<std::string, PathsAndSize> groupVocab;
+      std::map<std::string, VocabDetails> groupVocab; // vocabPath -> (trainPaths[], vocabSize)
       for(size_t i = 0; i < numVocs; ++i) {
-        groupVocab[vocabPaths[i]].paths.insert(paths_[i]);
+        // Index 0 because there is always only a single TSV input file
+        groupVocab[vocabPaths[i]].paths.insert(paths_[tsv_ ? 0 : i]);
+        groupVocab[vocabPaths[i]].streams.push_back(i);
         if(groupVocab[vocabPaths[i]].size < maxVocabs[i])
           groupVocab[vocabPaths[i]].size = maxVocabs[i];
       }
 
       auto vocabDims = options_->get<std::vector<int>>("dim-vocabs");
-      vocabDims.resize(numVocs, 0);
+      vocabDims.resize(numVocs, 0); // make sure there is as many dims as vocab paths
+
       for(size_t i = 0; i < numVocs; ++i) {
-        Ptr<Vocab> vocab = New<Vocab>(options_, i);
+        // Creating a vocabulary from stdin is not supported
+        ABORT_IF(tsv_ && (paths_[0] == "stdin" || paths_[0] == "-")
+                 && (vocabPaths[i].empty() || !filesystem::exists(vocabPaths[i])),
+            "Creating vocabulary automatically from a data stream from STDIN is not supported. "
+            "Create vocabularies first and provide them with --vocabs");
 
         // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
-        // it wild not be created again, but just correctly loaded.
-        auto pathsAndSize = groupVocab[vocabPaths[i]];
-        std::vector<std::string> groupedPaths(pathsAndSize.paths.begin(), pathsAndSize.paths.end());
-        vocabDims[i] = (int) vocab->loadOrCreate(vocabPaths[i], groupedPaths, pathsAndSize.size);
+        // it will not be created again, but just correctly loaded.
+        auto vocabDetails = groupVocab[vocabPaths[i]];
+        std::vector<std::string> groupedPaths(vocabDetails.paths.begin(), vocabDetails.paths.end());
+        Ptr<io::TemporaryFile> tsvTempFile;  // temporary handler for cut fields from TSV input
+
+        // For a TSV input, multiple vocabularies with different names mean separate
+        // vocabularies for source(s) and target.
+        // If a vocabulary does not exist, it will be created in the next step. To be able to create
+        // a separate vocabulary, we cut tab-separated field(s) from the TSV file, e.g. all source
+        // or target sentences, into a temporary file.
+        if(tsv_ && groupVocab.size() > 1 && !filesystem::exists(vocabPaths[i])) {
+          ABORT_IF(groupedPaths.size() > 1, "There should not be multiple TSV input files!");
+
+          tsvTempFile.reset(new io::TemporaryFile(options_->get<std::string>("tempdir"), false));
+          LOG(info,
+              "[data] Cutting field(s) {} from {} into a temporary file {}",
+              utils::join(vocabDetails.streams, ", "),
+              groupedPaths[0],
+              tsvTempFile->getFileName());
+
+          fileutils::cut(groupedPaths[0],  // Index 0 because there is only one TSV file
+                         tsvTempFile,
+                         vocabDetails.streams,
+                         tsvNumFields_,
+                         " ");  // Notice that tab-separated fields are joined with a whitespace
+
+          groupedPaths.clear();
+          groupedPaths.push_back(tsvTempFile->getFileName());
+        }
+
+        // Load or create the vocabulary
+        Ptr<Vocab> vocab = New<Vocab>(options_, i);
+        vocabDims[i] = (int) vocab->loadOrCreate(vocabPaths[i], groupedPaths, vocabDetails.size);
         vocabs_.emplace_back(vocab);
+
+        if(tsvTempFile)
+          tsvTempFile.reset();
       }
       // TODO: this is not nice as it modifies the option object and needs to expose the changes
       // outside the corpus as models need to know about the vocabulary size; extract the vocab
@@ -140,8 +253,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
   }
 
   if(translate) {
-    ABORT_IF(vocabPaths.empty(),
-             "Translating, but vocabularies are not given!");
+    ABORT_IF(vocabPaths.empty(), "Translating, but vocabularies are not given!");
 
     size_t numVocs = vocabPaths.size();
     if(maxVocabs.size() < numVocs)
@@ -161,7 +273,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
   }
 
   for(auto path : paths_) {
-    if(path == "stdin")
+    if(path == "stdin" || path == "-")
       files_.emplace_back(new std::istream(std::cin.rdbuf()));
     else {
       io::InputFileStream *strm = new io::InputFileStream(path);
@@ -170,7 +282,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     }
   }
 
-  ABORT_IF(vocabs_.size() != files_.size(),
+  ABORT_IF(!tsv_ && vocabs_.size() != files_.size(),
            "Number of {} files ({}) and vocab files ({}) does not agree",
            training ? "corpus" : "input",
            files_.size(),
@@ -206,7 +318,6 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
                                          size_t batchIndex,
                                          SentenceTuple& tup) const {
-
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
@@ -298,26 +409,28 @@ void CorpusBase::addWeightsToBatch(Ptr<CorpusBatch> batch,
 
 void CorpusBase::initEOS(bool training = true) {
   // Labels fed into sub-batches that are just class-labels, not sequence labels do not require to
-  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and correspoding
-  // input type.
+  // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and
+  // correspoding input type.
 
-  addEOS_.resize(paths_.size(), true);
+  size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size(); // determine number of streams
+
+  addEOS_.resize(numStreams, true);
   // @TODO: think if this should be checked and processed here or in a validation step in config?
   auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
 
-  // make sure there is an input type for each path
-  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < paths_.size(),
+  // make sure there is an input type for each stream
+  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < numStreams,
            "Input types have been specified ({}), you need to specify one per input ({})",
            inputTypes.size(),
-           paths_.size());
+           numStreams);
 
-  // make sure there is an equal number of input types and paths when training
-  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != paths_.size(),
+  // make sure there is an equal number of input types and streams when training
+  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != numStreams,
            "Input types have been specified ({}), you need to specify one per input ({})",
            inputTypes.size(),
-           paths_.size());
+           numStreams);
 
-  for(int i = 0; i < paths_.size(); ++i)
+  for(int i = 0; i < numStreams; ++i)
     if(inputTypes.size() > i) {
       if(inputTypes[i] == "class")
         addEOS_[i] = false;

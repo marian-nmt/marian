@@ -22,7 +22,7 @@ InputFileStream::InputFileStream(const std::string &file)
   ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
 
   streamBuf1_.reset(new std::filebuf());
-  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file.c_str(), std::ios::in | std::ios::binary); 
+  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file.c_str(), std::ios::in | std::ios::binary);
   ABORT_IF(!ret, "File cannot be opened", file);
   ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
 
@@ -82,6 +82,10 @@ OutputFileStream::OutputFileStream()
 
 OutputFileStream::~OutputFileStream() {
   this->flush();
+}
+
+std::string OutputFileStream::getFileName() const {
+  return file_.string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

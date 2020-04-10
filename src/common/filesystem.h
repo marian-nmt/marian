@@ -115,5 +115,5 @@ namespace filesystem {
 
   using FilesystemError = Pathie::PathieError;
 
-}
-}
+}  // namespace filesystem
+}  // namespace marian

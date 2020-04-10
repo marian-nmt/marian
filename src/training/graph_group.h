@@ -60,7 +60,9 @@ public:
                                      double multiplier = 1.) {
     auto stats = New<data::BatchStats>();
 
-    size_t numFiles = options_->get<std::vector<std::string>>("train-sets").size();
+    size_t numFiles = options_->get<bool>("tsv", false)
+                          ? options_->get<size_t>("tsv-fields")
+                          : options_->get<std::vector<std::string>>("train-sets").size();
 
     // Initialize first batch to step size
     size_t first = options_->get<size_t>("mini-batch-fit-step");

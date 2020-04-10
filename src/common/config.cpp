@@ -49,11 +49,12 @@ void Config::initialize(ConfigParser const& cp) {
   }
 
   // load model parameters
+  bool loaded = false;
   if(mode == cli::mode::translation || mode == cli::mode::server) {
     auto model = get<std::vector<std::string>>("models")[0];
     try {
       if(!get<bool>("ignore-model-config"))
-        loadModelParameters(model);
+        loaded = loadModelParameters(model);
     } catch(std::runtime_error& ) {
       LOG(info, "[config] No model configuration found in model file");
     }
@@ -64,11 +65,40 @@ void Config::initialize(ConfigParser const& cp) {
     if(filesystem::exists(model) && !get<bool>("no-reload")) {
       try {
         if(!get<bool>("ignore-model-config"))
-          loadModelParameters(model);
+          loaded = loadModelParameters(model);
       } catch(std::runtime_error&) {
         LOG(info, "[config] No model configuration found in model file");
       }
     }
+  }
+
+  // guess --tsv-fields (the number of streams) if not set
+  if(get<bool>("tsv") && get<size_t>("tsv-fields") == 0) {
+    size_t tsvFields = 0;
+    if(loaded) {
+      // model.npz has properly set vocab dimensions in special:model.yml,
+      // so we may use them to determine the number of streams
+      for(auto dim : get<std::vector<size_t>>("dim-vocabs"))
+        if(dim != 0)  // language models have a fake extra vocab
+          ++tsvFields;
+      // For translation there is no target stream
+      if((mode == cli::mode::translation || mode == cli::mode::server) && tsvFields > 1)
+        --tsvFields;
+    } else {
+      // TODO: This is very britle, find a better solution
+      // If parameters from model.npz special:model.yml were not loaded,
+      // guess the number of inputs and outputs based on the model type name.
+      auto modelType = get<std::string>("type");
+
+      tsvFields = 1;
+      if(modelType.find("multi-", 0) != std::string::npos)  // is a dual-source model
+        tsvFields += 1;
+      if(mode == cli::mode::training || mode == cli::mode::scoring)
+        if(modelType.rfind("lm", 0) != 0)  // unless it is a language model
+          tsvFields += 1;
+    }
+
+    config_["tsv-fields"] = tsvFields;
   }
 
   // echo full configuration
@@ -124,16 +154,18 @@ void Config::save(const std::string& name) {
   out << *this;
 }
 
-void Config::loadModelParameters(const std::string& name) {
+bool Config::loadModelParameters(const std::string& name) {
   YAML::Node config;
   io::getYamlFromModel(config, "special:model.yml", name);
   override(config);
+  return true;
 }
 
-void Config::loadModelParameters(const void* ptr) {
+bool Config::loadModelParameters(const void* ptr) {
   YAML::Node config;
   io::getYamlFromModel(config, "special:model.yml", ptr);
   override(config);
+  return true;
 }
 
 void Config::override(const YAML::Node& params) {

@@ -62,6 +62,8 @@ public:
   explicit OutputFileStream(const std::string& file);
   virtual ~OutputFileStream();
 
+  std::string getFileName() const;
+
   template <typename T>
   size_t write(const T* ptr, size_t num = 1) {
     std::ostream::write((char*)ptr, num * sizeof(T));

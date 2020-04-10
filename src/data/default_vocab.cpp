@@ -217,7 +217,6 @@ private:
     std::string line;
     while(getline(*trainStrm, line)) {
       auto toks = utils::split(line, " ");
-
       for(const std::string& tok : toks) {
         auto iter = counter.find(tok);
         if(iter == counter.end())

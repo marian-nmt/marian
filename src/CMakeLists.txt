@@ -24,8 +24,9 @@ add_library(marian STATIC
   common/io.cpp
   common/filesystem.cpp
   common/file_stream.cpp
+  common/file_utils.cpp
   common/types.cpp
-  
+
   data/alignment.cpp
   data/vocab.cpp
   data/default_vocab.cpp
@@ -139,7 +140,7 @@ cuda_add_library(marian_cuda
   tensors/gpu/algorithm.cu
   tensors/gpu/prod.cpp
   tensors/gpu/element.cu
-  tensors/gpu/add.cu  
+  tensors/gpu/add.cu
   tensors/gpu/add_all.cu
   tensors/gpu/tensor_operators.cu
   tensors/gpu/cudnn_wrappers.cu

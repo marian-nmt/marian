@@ -17,10 +17,15 @@ private:
   Ptr<TrainingState> state_;
   std::vector<Ptr<ValidatorBase>> validators_;
 
-  bool first_{true};
+  bool first_{true};        // true if this is the first update after renewing the training
 
   timer::Timer timer_;
   timer::Timer heartBeatTimer_;
+
+  // The variable helps to keep track of the end of the current epoch
+  // (regardless if it's the 1st or nth epoch and if it's a new or continued training),
+  // which indicates the end of the training data stream from STDIN
+  bool endOfStdin_{false};  // true at the end of the epoch if training from STDIN;
 
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -153,7 +158,6 @@ public:
   }
 
   bool keepGoing() {
-
     if(getSigtermFlag()) // received signal SIGERM => exit gracefully
       return false;
 
@@ -171,6 +175,10 @@ public:
     size_t stopAfterStalled = options_->get<size_t>("early-stopping");
     if(stopAfterStalled > 0 && !validators_.empty()
        && stalled() >= stopAfterStalled)
+      return false;
+
+    // stop if data streaming from STDIN is stopped
+    if(endOfStdin_)
       return false;
 
     return true;
@@ -405,6 +413,11 @@ public:
   }
 
   void actAfterEpoch(TrainingState& state) override {
+    // stop if data streaming from STDIN is stopped for a TSV input
+    std::string firstPath = options_->get<std::vector<std::string>>("train-sets")[0];
+    if(options_->get<bool>("tsv", false) && (firstPath == "stdin" || firstPath == "-"))
+      endOfStdin_ = true;
+
     float factor = options_->get<float>("lr-decay");
 
     updateLearningRate(state);

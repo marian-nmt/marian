@@ -5,6 +5,7 @@ set(UNIT_TESTS
     rnn_tests
     attention_tests
     fastopt_tests
+    utils_tests
 )
 
 foreach(test ${UNIT_TESTS})

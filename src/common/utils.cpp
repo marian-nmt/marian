@@ -67,6 +67,28 @@ void split(const std::string& line,
   }
 }
 
+// the function guarantees that the output has as many elements as requested
+void splitTsv(const std::string& line, std::vector<std::string>& fields, size_t numFields) {
+  fields.clear();
+
+  size_t begin = 0;
+  size_t pos = 0;
+  for(size_t i = 0; i < numFields; ++i) {
+    pos = line.find('\t', begin);
+    if(pos == std::string::npos) {
+      fields.push_back(line.substr(begin));
+      break;
+    }
+    fields.push_back(line.substr(begin, pos - begin));
+    begin = pos + 1;
+  }
+
+  if(fields.size() < numFields)  // make sure there is as many elements as requested
+    fields.resize(numFields);
+
+  ABORT_IF(pos != std::string::npos, "Excessive field(s) in the tab-separated line: '{}'", line);
+}
+
 std::vector<std::string> split(const std::string& line,
                                const std::string& del /*= " "*/,
                                bool keepEmpty /*= false*/,
@@ -101,6 +123,12 @@ std::string join(const std::vector<std::string>& words, const std::string& del /
   }
 
   return ss.str();
+}
+
+std::string join(const std::vector<size_t>& nums, const std::string& del /*= " "*/) {
+  std::vector<std::string> words(nums.size());
+  std::transform(nums.begin(), nums.end(), words.begin(), [](int i) { return std::to_string(i); });
+  return join(words, del);
 }
 
 // escapes a string for passing to popen, which uses /bin/sh to parse its argument string

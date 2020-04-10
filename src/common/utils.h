@@ -20,6 +20,9 @@ void splitAny(const std::string& line,
               const std::string& del = " ",
               bool keepEmpty = false);
 
+// Split tab-separated line into the specified number of fields
+void splitTsv(const std::string& line, std::vector<std::string>& fields, size_t numFields);
+
 std::vector<std::string> split(const std::string& line,
                                const std::string& del = " ",
                                bool keepEmpty = false,
@@ -29,6 +32,7 @@ std::vector<std::string> splitAny(const std::string& line,
                                   bool keepEmpty = false);
 
 std::string join(const std::vector<std::string>& words, const std::string& del = " ");
+std::string join(const std::vector<size_t>& words, const std::string& del = " ");
 
 std::string exec(const std::string& cmd, const std::vector<std::string>& args = {}, const std::string& arg = "");
 

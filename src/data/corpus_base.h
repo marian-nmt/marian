@@ -533,7 +533,7 @@ protected:
   std::vector<Ptr<Vocab>> vocabs_;
 
   /**
-   * brief Determines if a EOS symbol should be added. By default this is true for any sequence,
+   * @brief Determines if a EOS symbol should be added. By default this is true for any sequence,
    * but should be false for instance for classifier labels. This is set per input stream, hence a
    * vector.
    */
@@ -544,6 +544,9 @@ protected:
   size_t maxLength_{0};
   bool maxLengthCrop_{false};
   bool rightLeft_{false};
+
+  bool tsv_{false};          // true if the input is a single file with tab-separated values
+  size_t tsvNumFields_{0};   // number of fields in the TSV input (only if tsv_)
 
   /**
    * @brief Index of the file with weights in paths_ and files_; zero means no

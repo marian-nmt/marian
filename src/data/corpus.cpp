@@ -46,6 +46,8 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
 }
 
 SentenceTuple Corpus::next() {
+  std::vector<std::string> fields(tsvNumFields_);  // used for handling TSV inputs
+
   for(;;) { // (this is a retry loop for skipping invalid sentences)
     // get index of the current sentence
     size_t curId = pos_; // note: at end, pos_  == total size
@@ -78,13 +80,21 @@ SentenceTuple Corpus::next() {
         }
       }
 
-      if(i > 0 && i == alignFileIdx_) { // @TODO: alignFileIdx == 0 possible?
+      if(i > 0 && i == alignFileIdx_) {
         addAlignmentToSentenceTuple(line, tup);
       } else if(i > 0 && i == weightFileIdx_) {
         addWeightsToSentenceTuple(line, tup);
       } else {
-        preprocessLine(line, i);
-        addWordsToSentenceTuple(line, i, tup);
+        if(tsv_) {  // split TSV input and add each field into the sentence tuple
+          utils::splitTsv(line, fields, tsvNumFields_);
+          for(size_t j = 0; j < tsvNumFields_; ++j) {
+            preprocessLine(fields[j], j);
+            addWordsToSentenceTuple(fields[j], j, tup);
+          }
+        } else {
+          preprocessLine(line, i);
+          addWordsToSentenceTuple(line, i, tup);
+        }
       }
     }
 
@@ -112,7 +122,8 @@ void Corpus::shuffle() {
 
 // reset to regular, non-shuffled reading
 // Call either reset() or shuffle().
-// @TODO: make shuffle() private, instad pass a shuffle() flag to reset(), to clarify mutual exclusiveness with shuffle()
+// @TODO: make shuffle() private, instad pass a shuffle() flag to reset(), to clarify mutual
+// exclusiveness with shuffle()
 void Corpus::reset() {
   corpusInRAM_.clear();
   ids_.clear();
@@ -120,7 +131,7 @@ void Corpus::reset() {
     return;
   pos_ = 0;
   for (size_t i = 0; i < paths_.size(); ++i) {
-      if(paths_[i] == "stdin") {
+      if(paths_[i] == "stdin" || paths_[i] == "-") {
         files_[i].reset(new std::istream(std::cin.rdbuf()));
         // Probably not necessary, unless there are some buffers
         // that we want flushed.
@@ -142,6 +153,10 @@ void Corpus::restore(Ptr<TrainingState> ts) {
 
 void Corpus::shuffleData(const std::vector<std::string>& paths) {
   LOG(info, "[data] Shuffling data");
+
+  ABORT_IF(tsv_ && (paths[0] == "stdin" || paths[0] == "-"),
+           "Shuffling training data from STDIN is not supported. Add --no-shuffle or provide "
+           "training sets with --train-sets");
 
   size_t numStreams = paths.size();
 

@@ -77,8 +77,8 @@ public:
   }
 
   YAML::Node getModelParameters();
-  void loadModelParameters(const std::string& name);
-  void loadModelParameters(const void* ptr);
+  bool loadModelParameters(const std::string& name);
+  bool loadModelParameters(const void* ptr);
 
   std::vector<DeviceId> getDevices(size_t myMPIRank = 0, size_t numRanks = 1);
 
