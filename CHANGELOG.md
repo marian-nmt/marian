@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Training and scoring from STDIN
+- Support for reading from TSV files from STDIN and other sources during training 
+  and translation with options --tsv and --tsv-fields n.
+
+### Fixed
+- In concatenation make sure that we do not multiply 0 with nan (which results in nan)
+- Change Approx.epsilon(0.01) to Approx.margin(0.001) in unit tests. Tolerance is now
+  absolute and not relative. We assumed incorrectly that epsilon is absolute tolerance.
+
 ### Changed
 - Changed compile flags -Ofast to -O3 and remove --ffinite-math
 - Moved old graph groups to depracated folder
@@ -16,8 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.9.0] - 2020-03-10
 
 ### Added
-- Training and scoring from STDIN
-- Support for tab-separated inputs, added ptions --tsv and --tsv-fields
 - An option to print cached variables from CMake
 - Add support for compiling on Mac (and clang)
 - An option for resetting stalled validation metrics
