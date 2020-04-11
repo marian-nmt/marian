@@ -77,6 +77,7 @@ void ConcatCont(Tensor out, const std::vector<Tensor>& inputs, int axis) {
   }
 }
 
+template <bool add>
 inline void gInsertCols(float* out,
                         const float* in,
                         size_t rows,
@@ -84,13 +85,15 @@ inline void gInsertCols(float* out,
                         size_t cols_out,
                         size_t cols_in,
                         size_t offset_out,
-                        size_t offset_in,
-                        float beta) {
+                        size_t offset_in) {
   for(size_t j = 0; j < rows; ++j) {
     float* rowOut = out + j * cols_out + offset_out;
     const float* rowIn = in + j * cols_in + offset_in;
     for(size_t i = 0; i < cols; ++i) {
-      rowOut[i] = rowIn[i] + beta * rowOut[i];
+      if(add) // this was solved earlier via beta * rowOut[i] with beta in {0,1} but 0 * nan in uninitialized tensors will result in nan.
+        rowOut[i] += rowIn[i];
+      else
+        rowOut[i]  = rowIn[i];
     }
   }
 }
@@ -105,21 +108,20 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     ABORT_IF(rows != in->shape().elements() / in->shape().back(),
              "First dimension must be equal");
     int cols_in = in->shape().back();
-    cpu::gInsertCols(out->data(),
-                     in->data(),
-                     rows,
-                     cols_in,
-                     cols_out,
-                     cols_in,
-                     offset,
-                     0,
-                     0);
+    cpu::gInsertCols<false>(out->data(),
+                            in->data(),
+                            rows,
+                            cols_in,
+                            cols_out,
+                            cols_in,
+                            offset,
+                            0);
     offset += cols_in;
   }
 }
 
 void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax) {
-  if(ax == (int)out->shape().size() - 1)
+   if(ax == (int)out->shape().size() - 1)
     Concatenate1(out, inputs);
   else
     ConcatCont(out, inputs, ax);
@@ -136,15 +138,14 @@ void Split1(std::vector<Tensor>& outputs, const Tensor in) {
 
     // set last parameter to 1 to enable += instead of =
     // @TODO: do this in a more principled ways accross all/most kernels
-    cpu::gInsertCols(out->data(),
-                     in->data(),
-                     rows,
-                     cols_out,
-                     cols_out,
-                     cols_in,
-                     0,
-                     offset,
-                     1);
+    cpu::gInsertCols<true>(out->data(),
+                           in->data(),
+                           rows,
+                           cols_out,
+                           cols_out,
+                           cols_in,
+                           0,
+                           offset);
     offset += cols_out;
   }
 }
