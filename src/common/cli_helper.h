@@ -10,7 +10,7 @@ namespace cli {
 
 // helper to replace environment-variable expressions of the form ${VARNAME} in
 // a string
-static inline std::string InterpolateEnvVars(std::string str) {
+static inline std::string interpolateEnvVars(std::string str) {
   // temporary workaround for MS-internal PhillyOnAzure cluster: warm storage
   // presently has the form /hdfs/VC instead of /{gfs,hdfs}/CLUSTER/VC
 
@@ -58,41 +58,38 @@ static inline std::string InterpolateEnvVars(std::string str) {
   }
 }
 
-// helper to implement interpolate-env-vars and relative-paths options
+// Helper to implement interpolate-env-vars and relative-paths options
 static inline void processPaths(
     YAML::Node& node,
     const std::function<std::string(std::string)>& TransformPath,
     const std::set<std::string>& PATHS,
-    bool isPath = false) {
-  if(isPath) {
-    if(node.Type() == YAML::NodeType::Scalar) {
-      std::string nodePath = node.as<std::string>();
-      // transform the path
-      if(!nodePath.empty())
-        node = TransformPath(nodePath);
-    }
+    bool isPath = false,
+    const std::string parentKey = "") {
+  // For a scalar node (leaves in the config), just transform the path
+  if(isPath && node.IsScalar()) {
+    std::string nodePath = node.as<std::string>();
+    if(!nodePath.empty())
+      node = TransformPath(nodePath);
+  }
+  // For a sequence node, recursively iterate each value
+  else if(node.IsSequence()) {
+    for(auto&& sub : node) {
+      processPaths(sub, TransformPath, PATHS, isPath);
 
-    if(node.Type() == YAML::NodeType::Sequence) {
-      for(auto&& sub : node) {
-        processPaths(sub, TransformPath, PATHS, true);
-      }
+      // Exception for the shortlist option, which keeps a path and three numbers;
+      // we want to process the path only and keep the rest untouched
+      if(isPath && parentKey == "shortlist")
+        break;
     }
-  } else {
-    switch(node.Type()) {
-      case YAML::NodeType::Sequence:
-        for(auto&& sub : node) {
-          processPaths(sub, TransformPath, PATHS, false);
-        }
-        break;
-      case YAML::NodeType::Map:
-        for(auto&& sub : node) {
-          std::string key = sub.first.as<std::string>();
-          processPaths(sub.second, TransformPath, PATHS, PATHS.count(key) > 0);
-        }
-        break;
-      default:
-        // it is OK
-        break;
+  }
+  // For a map node that is not a path, recursively iterate each value
+  else if(!isPath && node.IsMap()) {
+    for(auto&& sub : node) {
+      std::string key = sub.first.as<std::string>();
+      // Exception for the sqlite option, which has a special value of 'temporary'
+      if(key == "sqlite" && sub.second.as<std::string>() == "temporary")
+        continue;
+      processPaths(sub.second, TransformPath, PATHS, PATHS.count(key) > 0, key);
     }
   }
 }

@@ -79,7 +79,12 @@ int main() {
     auto graph = New<ExpressionGraph>();
 
     // Set general options
-    graph->setDevice({0, DeviceType::gpu});
+#ifdef CUDA_FOUND
+    auto deviceType = DeviceType::gpu;
+#else
+    auto deviceType = DeviceType::cpu;
+#endif
+    graph->setDevice({0, deviceType});
     graph->reserveWorkspaceMB(128);
 
     // Choose optimizer (Sgd, Adagrad, Adam) and initial learning rate
