@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Supporting relative paths in shortlist and sqlite options
 - Training and scoring from STDIN
-- Support for reading from TSV files from STDIN and other sources during training 
+- Support for reading from TSV files from STDIN and other sources during training
   and translation with options --tsv and --tsv-fields n.
 
 ### Fixed

@@ -39,16 +39,14 @@ const std::set<std::string> PATHS = {
   "valid-script-args",
   "valid-log",
   "valid-translation-output",
-  "input",            // except: stdin
-  "output",           // except: stdout
+  "input",            // except: 'stdin', handled in makeAbsolutePaths and interpolateEnvVars
+  "output",           // except: 'stdout', handled in makeAbsolutePaths and interpolateEnvVars
   "pretrained-model",
   "data-weighting",
-  "log"
-  // TODO: Handle the special value in helper functions
-  //"sqlite",         // except: temporary
-  // TODO: This is a vector with a path and some numbers, handle this in helper
-  // functions or separate shortlist path to a separate command-line option
-  //"shortlist",
+  "log",
+  "sqlite",           // except: 'temporary', handled in the processPaths function
+  "shortlist",        // except: only the first element in the sequence is a path, handled in the
+                      //  processPaths function
 };
 // clang-format on
 
@@ -876,7 +874,7 @@ Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
   }
 
   if(get<bool>("interpolate-env-vars")) {
-    cli::processPaths(config_, cli::InterpolateEnvVars, PATHS);
+    cli::processPaths(config_, cli::interpolateEnvVars, PATHS);
   }
 
   // Option shortcuts for input from STDIN for trainer and scorer
@@ -931,12 +929,12 @@ std::vector<std::string> ConfigParser::findConfigPaths() {
     for(auto& path : paths) {
       // (note: this updates the paths array)
       if(interpolateEnvVars)
-        path = cli::InterpolateEnvVars(path);
+        path = cli::interpolateEnvVars(path);
     }
   } else if(mode_ == cli::mode::training) {
     auto path = config_["model"].as<std::string>() + ".yml";
     if(interpolateEnvVars)
-      path = cli::InterpolateEnvVars(path);
+      path = cli::interpolateEnvVars(path);
 
     bool reloadConfig = filesystem::exists(path) && !get<bool>("no-reload");
     if(reloadConfig)
@@ -962,7 +960,7 @@ YAML::Node ConfigParser::loadConfigFiles(const std::vector<std::string>& paths) 
                                  && config["interpolate-env-vars"].as<bool>())
                                 || get<bool>("interpolate-env-vars");
       if(interpolateEnvVars)
-        cli::processPaths(config, cli::InterpolateEnvVars, PATHS);
+        cli::processPaths(config, cli::interpolateEnvVars, PATHS);
 
       // replace relative path w.r.t. the config file
       cli::makeAbsolutePaths(config, path, PATHS);
