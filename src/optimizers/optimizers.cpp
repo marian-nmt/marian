@@ -139,6 +139,15 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize, size_t r
   double Tref = (double)refMBWords;
 
   // adjust for minibatch-size changes if Adam parameters are given a reference size (else do nothing)
+  // Why the T/Tref factor on eta? The Adam optimizer adds an RMS-normalized gradient
+  // value (times learning rate) to the model. We know that for Tref, that learning rate is good.
+  // If we increase the batch size by (T/Tref), then without adjustment, we would still add an
+  // RMS-normalized gradient value. That means that the contribution of an individual label is
+  // now weighted down by (T/Tref). However, batch-size agnostic hyper-parameterization aims to keep
+  // the weight on the contribution of each label gradient invariant. Thus, we must undo that
+  // down-weighting, by multiplying the RMS-normalized gradient value by an additional factor
+  // of (T/Tref). This is implemented here by locally multiplying the learning rate
+  // with that factor.
   double eta   = eta_ * (T/Tref);
   double beta1 = beta1_;
   double beta2 = beta2_;

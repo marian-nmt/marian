@@ -66,8 +66,13 @@ public:
       options_->set("max-length", options_->get<size_t>("valid-max-length"));
       options_->set("max-length-crop", true); // @TODO: make this configureable
     }
-    if(options_->has("valid-mini-batch"))
+
+    // @TODO: make this work with mini-batch-fit etc.
+    if(options_->has("valid-mini-batch")) {
       options_->set("mini-batch", options_->get<size_t>("valid-mini-batch"));
+      options_->set("mini-batch-words", 0);
+    }
+
     options_->set("mini-batch-sort", "src");
     options_->set("maxi-batch", 10);
   }

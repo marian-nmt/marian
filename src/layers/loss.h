@@ -93,6 +93,12 @@ struct StaticLoss {
   StaticLoss(const RationalLoss& dynamic)
   : loss(dynamic.loss<float>()), count(dynamic.count<float>()) {}
 
+  StaticLoss operator +(const StaticLoss& other) const {
+    StaticLoss res(*this);
+    res += other;
+    return res;
+  }
+
   StaticLoss& operator +=(const StaticLoss& other) {
     loss = loss + other.loss;
     count = count + other.count;
