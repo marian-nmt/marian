@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This script takes multiple Marian *.npz model files and outputs an elementwise average of the model,
 meant to do check-point averaging from: 

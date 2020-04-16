@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   absolute and not relative. We assumed incorrectly that epsilon is absolute tolerance.
 
 ### Changed
+- Python scripts start with #!/usr/bin/env python3 instead of python
 - Changed compile flags -Ofast to -O3 and remove --ffinite-math
 - Moved old graph groups to depracated folder
 - Make cublas and cusparse handle inits lazy to save memory when unused
