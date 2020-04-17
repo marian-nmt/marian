@@ -877,6 +877,9 @@
     <ClCompile Include="..\src\training\graph_group.cpp">
       <Filter>training</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\file_utils.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2251,6 +2254,12 @@
     <ClInclude Include="..\src\tensors\cpu\fbgemm\packed_gemm.h">
       <Filter>tensors\cpu\fbgemm</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common\file_utils.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\add_all.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2627,6 +2636,9 @@
     <None Include="..\src\3rd_party\half_float\umHalf.inl">
       <Filter>3rd_party\half_float</Filter>
     </None>
+    <None Include="..\src\tensors\gpu\add_all.inc">
+      <Filter>tensors\gpu</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
@@ -2668,6 +2680,9 @@
       <Filter>tensors\gpu</Filter>
     </CudaCompile>
     <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\add_all.cu">
       <Filter>tensors\gpu</Filter>
     </CudaCompile>
   </ItemGroup>

@@ -127,7 +127,7 @@ std::string join(const std::vector<std::string>& words, const std::string& del /
 
 std::string join(const std::vector<size_t>& nums, const std::string& del /*= " "*/) {
   std::vector<std::string> words(nums.size());
-  std::transform(nums.begin(), nums.end(), words.begin(), [](int i) { return std::to_string(i); });
+  std::transform(nums.begin(), nums.end(), words.begin(), [](size_t i) { return std::to_string(i); });
   return join(words, del);
 }
 
