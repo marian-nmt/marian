@@ -6,6 +6,7 @@ import sys
 import time
 import argparse
 
+# pip install websocket_client  
 from websocket import create_connection
 
 
