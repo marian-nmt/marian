@@ -3,7 +3,7 @@
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
-#include "common/types.h"
+#include "data/types.h"
 
 #include <random>
 #include <unordered_map>
