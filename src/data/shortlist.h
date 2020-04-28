@@ -3,9 +3,11 @@
 #include "common/config.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
+#include "common/types.h"
 
 #include <random>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <iostream>
 #include <algorithm>
