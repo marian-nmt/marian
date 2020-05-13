@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   absolute and not relative. We assumed incorrectly that epsilon is absolute tolerance.
 - Fixed bug in finding .git/logs/HEAD when Marian is a submodule in another project.
 - Properly record cmake variables in the cmake build directory instead of the source tree.
+- Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
 
 ### Changed
 - Move Simple-WebSocket-Server to submodule
