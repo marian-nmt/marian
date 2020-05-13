@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Change Approx.epsilon(0.01) to Approx.margin(0.001) in unit tests. Tolerance is now
   absolute and not relative. We assumed incorrectly that epsilon is absolute tolerance.
 - Fixed bug in finding .git/logs/HEAD when Marian is a submodule in another project.
+- Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
 
 ### Changed
 - Move Simple-WebSocket-Server to submodule
