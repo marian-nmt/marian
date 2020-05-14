@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Use *cblas_sgemm_batch* in stead of a for loop of *cblas_sgemm* on CPU as the batched_gemm implementation
 - Supporting relative paths in shortlist and sqlite options
 - Training and scoring from STDIN
 - Support for reading from TSV files from STDIN and other sources during training
