@@ -9,18 +9,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Use *cblas_sgemm_batch* instead of a for loop of *cblas_sgemm* on CPU as the batched_gemm implementation
 - Supporting relative paths in shortlist and sqlite options
 - Training and scoring from STDIN
 - Support for reading from TSV files from STDIN and other sources during training
   and translation with options --tsv and --tsv-fields n.
 
 ### Fixed
+- Fix building server with Boost 1.72
 - Make mini-batch scaling depend on mini-batch-words and not on mini-batch-words-ref
 - In concatenation make sure that we do not multiply 0 with nan (which results in nan)
 - Change Approx.epsilon(0.01) to Approx.margin(0.001) in unit tests. Tolerance is now
   absolute and not relative. We assumed incorrectly that epsilon is absolute tolerance.
 
 ### Changed
+- Move Simple-WebSocket-Server to submodule
+- Python scripts start with #!/usr/bin/env python3 instead of python
 - Changed compile flags -Ofast to -O3 and remove --ffinite-math
 - Moved old graph groups to depracated folder
 - Make cublas and cusparse handle inits lazy to save memory when unused

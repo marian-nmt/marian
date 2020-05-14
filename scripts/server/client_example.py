@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function, unicode_literals, division
 
@@ -6,6 +6,7 @@ import sys
 import time
 import argparse
 
+# pip install websocket_client  
 from websocket import create_connection
 
 
