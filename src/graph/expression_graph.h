@@ -65,9 +65,9 @@ public:
 
   void free(const Tensor& tensor) { tensors_->free(tensor); }
 
-  // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() { return tensors_->allocator(); }
-
+  Ptr<Allocator>       getAllocator() { return tensors_->allocator(); }
+  Ptr<TensorAllocator> getTensorAllocator() { return tensors_; }
+  
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
     // memoize constant nodes that are not parameters
@@ -463,8 +463,11 @@ public:
       tensors_->free(tensor);
   }
 
-  // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() { return tensors_->allocator(); }
+  // Returns the memory allocator of the graph workspace, allocates row unstructured memory (but 256-byte aligned)
+  Ptr<Allocator> allocator() { return tensors_->getAllocator(); } // @TODO: rename this to getAllocator();
+
+  // Returns the tensor allocator of the graph workspace, different from above as proper tensor objects are allocated
+  Ptr<TensorAllocator> getTensorAllocator() { return tensors_->getTensorAllocator(); }
 
   void clear() {
     // clear everything apart from parameters and memoized nodes

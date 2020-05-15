@@ -139,6 +139,8 @@ void CopyCast(Tensor out, const Tensor in) {
 #endif
   } else if(in->type() == Type::float64) {
     CopyCastFrom(out, in->data<double>(), (int)in->size());
+  } else if(in->type() == Type::uint32) {
+    CopyCastFrom(out, in->data<uint32_t>(), (int)in->size());
   } else {
     ABORT("CopyCastFrom from type {} not implemented", in->type());
   }
@@ -1217,6 +1219,14 @@ void Select(Tensor out,
                                 indices->data<IndexType>(),
                                 indices->shape());
 #endif
+  } else if(out->type() == Type::uint32) {
+    gSelect<<<blocks, threads>>>(out->data<IndexType>(),
+                                 out->shape(),
+                                 in->data<IndexType>(),
+                                 in->shape(),
+                                 axisGPU,
+                                 indices->data<IndexType>(), 
+                                 indices->shape());
   } else {
     ABORT("Select not implemented for type {}", out->type());
   }

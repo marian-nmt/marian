@@ -470,7 +470,10 @@ struct ReduceNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode)
   {
     reducedDim_ = a->shape()[axis]; // e.g. used in mean()
-    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), "bug in determining reducedDim");
+    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), 
+             "Bug in determining reducedDim {} != {}",
+             reducedDim_,
+             a->shape().elements() / shape().elements());
   }
 
   NodeOps forwardOps() override {
@@ -751,7 +754,7 @@ public:
 
   ~ReshapeNodeOp() {}
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -817,7 +820,7 @@ public:
 
   ~ClipGradientNodeOp() {}
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -903,7 +906,7 @@ public:
     return outShape;
   }
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -1001,6 +1004,22 @@ struct ShiftNodeOp : public UnaryNodeOp {
 
   Shape shift_;     // shift offsets in each dimension
   float padValue_;  // what value to shift in
+};
+
+struct AbsNodeOp : public UnaryNodeOp {
+  AbsNodeOp(Expr a) : UnaryNodeOp(a) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return {NodeOp(Element(_1 = abs(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return {NodeOp(Add(sgn(_1) * _2, child(0)->grad(), child(0)->val(), adj_))};
+  }
+
+  const std::string type() override { return "abs"; }
 };
 
 #ifdef CUDNN

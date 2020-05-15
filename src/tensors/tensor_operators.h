@@ -220,6 +220,8 @@ DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
 DISPATCH4(Select, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
 DISPATCH4(Insert, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
 
+DISPATCH7(TopK, marian::Tensor, marian::Tensor, Ptr<Allocator>, const marian::Tensor, int, int, bool);
+
 DISPATCH2(LSTMCellForward, marian::Tensor, std::vector<marian::Tensor>)
 DISPATCH2(LSTMOutputForward, marian::Tensor, std::vector<marian::Tensor>);
 // clang-format on

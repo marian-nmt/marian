@@ -48,6 +48,7 @@ add_library(marian STATIC
   tensors/tensor.cpp
   tensors/cpu/device.cpp
   tensors/cpu/prod.cpp
+  tensors/cpu/topk.cpp
   tensors/cpu/tensor_operators.cpp
 
   tensors/cpu/sharp/int_gemm.cpp
@@ -137,6 +138,7 @@ cuda_add_library(marian_cuda
   tensors/gpu/device.cu
   tensors/gpu/algorithm.cu
   tensors/gpu/prod.cpp
+  tensors/gpu/topk.cu
   tensors/gpu/element.cu
   tensors/gpu/add.cu
   tensors/gpu/add_all.cu

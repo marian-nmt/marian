@@ -65,6 +65,8 @@ Expr operator/(Expr a, Expr b);
 Expr operator/(float a, Expr b);
 Expr operator/(Expr a, float b);
 
+Expr abs(Expr a);
+
 // Expr pow(Expr a, Expr b);
 // Expr pow(float a, Expr b);
 // Expr pow(Expr a, float b);
@@ -73,7 +75,30 @@ Expr logaddexp(Expr a, Expr b);
 
 // Note: Following numpy, minimum() is element-wise, while min() is along an axis in both Numpy and PyTorch.
 Expr maximum(Expr a, Expr b);
+Expr maximum(float a, Expr b);
+Expr maximum(Expr a, float b);
+
 Expr minimum(Expr a, Expr b);
+Expr minimum(float a, Expr b);
+Expr minimum(Expr a, float b);
+
+// Pair of expressions, currently used for topk nodes only
+typedef std::tuple<Expr, Expr> Expr2;
+
+// Marian pseudo-operator to access elements of a tuple, just the same as std::get<N>(tuple)
+template <int I>
+Expr get(Expr2 tuple) { return std::get<I>(tuple); }
+
+// PyTorch-like topk operator, returns a 2-tuple of nodes, first node is top-k values
+// second node is indices of these values according to given axis. Order is descending
+// by default, outputs are ordered.
+Expr2 topk(Expr a, int k, int axis, bool descending = true);
+
+// Convenience operator that maps to topk(a, k=1, axis, descending=true) 
+Expr2 argmax(Expr a, int axis);
+
+// Convenience operator that maps to topk(a, k=1, axis, descending=false)
+Expr2 argmin(Expr a, int axis);
 
 // Note: We cannot overload the relational operators, as they also mean something for Expr itself.
 // Note: These names follow PyTorch convention.

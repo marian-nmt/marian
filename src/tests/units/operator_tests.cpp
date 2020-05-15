@@ -33,20 +33,37 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
   std::vector<T> values, values2;
 
-  SECTION("scalar multiplication") {
+  SECTION("elementwise unary and binary operators with scalars") {
     graph->clear();
     values.clear();
-    std::vector<T> vB({1, 2, 3, 4, 5, 6});
 
-    auto B = graph->param("B", {3, 2}, inits::fromVector(vB));
-    auto B2 = B * 2.0f;
+    std::vector<T> vA({1, -2, 3, -4});
+    auto a = graph->constant({2, 2, 1}, inits::fromVector(vA));
+
+    auto compare = [&](Expr res, std::function<float(float)> f, bool exactMatch) -> bool {
+      if (res->shape() != Shape({ 2, 2, 1 }))
+          return false;
+      res->val()->get(values);
+      std::vector<float> ref{f(vA[0]), f(vA[1]), f(vA[2]), f(vA[3])};
+      return std::equal(values.begin(), values.end(), ref.begin(), exactMatch ? floatEqual : floatApprox);
+    };
+
+    // @TODO: add all operators and scalar variants here for completeness
+    auto rsmult = 2.f * a;
+    auto rabs   = abs(a);
+    auto rmax1  = maximum(a, 1);
+    auto rmax2  = maximum(1, a);
+    auto rmin1  = minimum(a, 1);
+    auto rmin2  = minimum(1, a);
+    
     graph->forward();
 
-    CHECK(B2->shape() == Shape({3, 2}));
-    B2->val()->get(values);
-
-    std::vector<T> vB2({2, 4, 6, 8, 10, 12});
-    CHECK(values == vB2);
+    CHECK(compare(rsmult, [](float a) {return 2.f * a;}, true));
+    CHECK(compare(rabs,   [](float a) {return std::abs(a);}, true));
+    CHECK(compare(rmax1,  [](float a) {return std::max(a, 1.f);}, true));
+    CHECK(compare(rmax2,  [](float a) {return std::max(1.f, a);}, true));
+    CHECK(compare(rmin1,  [](float a) {return std::min(a, 1.f);}, true));
+    CHECK(compare(rmin2,  [](float a) {return std::min(1.f, a);}, true));
   }
 
   SECTION("elementwise binary operators with broadcasting") {
@@ -769,6 +786,80 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     C1->val()->get(values);
     C2->val()->get(values2);
     CHECK( values == values2 );
+  }
+
+  SECTION("topk operations") {
+    graph->clear();
+    values.clear();
+    
+    std::vector<T> vA({   0,      .3333,   -.2, 
+                          -.3,   0,        4.5, 
+                          5.2, -10,      101.45, 
+                       -100.05,  0,        1.05e-5});
+  
+    auto a = graph->constant({2, 2, 3}, inits::fromVector(vA));
+    
+    // get top-k indices and values as a tuple
+    auto rtopk1 = topk(a, /*k=*/2, /*axis=*/-1, /*descending=*/true);
+    auto rval1  = get<0>(rtopk1);  // values from top-k
+    auto ridx1  = get<1>(rtopk1);  // indices from top-k
+    auto gval1  = gather(a, -1, ridx1); // get the same values via gather and indices
+
+    auto ridx2  = get<1>(topk(a, /*k=*/2, /*axis=*/-1, /*descending=*/false));
+    auto gval2  = gather(a, -1, ridx2); // get the same values via gather and indices
+    
+    auto ridx3  = get<1>(argmin(a, -1));
+    auto ridx3_ = slice(ridx2, -1, 0); // slice and cast now support uint32_t/IndexType
+
+    // @TODO: add integer types to more operators
+    auto eq3 = eq(cast(ridx3, floatType), cast(ridx3_, floatType));
+    
+    auto rtopk4 = argmax(a, /*axis=*/-2); // axes other than -1 are currently implemented via inefficient transpose
+    auto rval4  = get<0>(rtopk4);
+    auto ridx4  = get<1>(rtopk4);
+    auto gval4  = gather(a, -2, ridx4);
+
+    graph->forward();
+
+    CHECK(rval1 != gval1);
+    CHECK(rval1->shape() == gval1->shape());
+    CHECK(ridx1->shape() == gval1->shape());
+    
+    std::vector<T> vval1 = { 0.3333,  0, 
+                             4.5,     0, 
+                           101.45,    5.2, 
+                             1.05e-5, 0 };
+    
+    std::vector<T> rvalues;
+    std::vector<T> gvalues;
+    rval1->val()->get(rvalues);
+    gval1->val()->get(gvalues);
+    CHECK( rvalues == gvalues );
+    CHECK( rvalues == vval1 );
+
+    std::vector<T> vval2 = { -0.2,  0, 
+                             -0.3,  0, 
+                            -10.0,  5.2, 
+                           -100.05, 0 };
+    gval2->val()->get(values);
+    CHECK( values == vval2 );
+
+    eq3->val()->get(values);
+    CHECK( values == std::vector<T>({1, 1, 1, 1}) );
+
+    std::vector<IndexType> vidx4;
+    ridx4->val()->get(vidx4);
+    CHECK( ridx4->shape() == Shape({2, 1, 3}) );
+    CHECK( vidx4 == std::vector<IndexType>({0, 0, 1, 
+                                            0, 1, 0}) );
+
+    std::vector<T> vval4 = { 0,   0.3333,   4.5, 
+                             5.2, 0,      101.45 };
+    rval4->val()->get(values);
+    CHECK( values == vval4 );
+
+    gval4->val()->get(values);
+    CHECK( values == vval4 );
   }
 }
 

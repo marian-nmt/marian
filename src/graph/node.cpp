@@ -5,13 +5,10 @@
 
 namespace marian {
 
-size_t Node::allocate() {
-  size_t elements = 0;
+void Node::allocate() {
   if(!val_) {
     graph()->allocateForward(this);
-    elements = val_->shape().elements();
   }
-  return elements;
 }
 
 void Node::free() {

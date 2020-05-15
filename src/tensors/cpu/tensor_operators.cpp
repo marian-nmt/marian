@@ -31,7 +31,7 @@ void CopyCastTo(To* out, const From* in, int length) {
 }
 
 // Casting has been factored into two functions "CopyCastFrom" and
-// "CopyCastTo". This only serves the purpuse to autmatically create
+// "CopyCastTo". This only serves the purpuse to automatically create
 // the full Carthesian product of possible type cast via template magic.
 // Extending CopyCast and CopyCastFrom with a new branch in the "if" clause
 // adds all possible variants.
@@ -52,6 +52,8 @@ void CopyCast(Tensor out, const Tensor in) {
     CopyCastFrom(out, in->data<float>(), (int)in->size());
   } else if(in->type() == Type::float16) {
     CopyCastFrom(out, in->data<float16>(), (int)in->size());
+  } else if(in->type() == Type::uint32) {
+    CopyCastFrom(out, in->data<uint32_t>(), (int)in->size());
   } else {
     ABORT("CopyCastFrom from type {} not implemented", in->type());
   }
@@ -645,11 +647,14 @@ void PasteCols(Tensor out_,
   }
 }
 
+#if 0 // this version seems to actually be buggy, but also not used in decoding?
 // Optimized version of Select for axis=2
 // @TODO: make this generally fast without this special version
 void SelectAxis2(Tensor out,
              const Tensor in,
              const Tensor indices) {
+
+  std::cerr << indices->debug() << std::endl;
 
   matchOrAbort<IndexType>(indices->type());
 
@@ -675,6 +680,7 @@ void SelectAxis2(Tensor out,
     }
   }
 }
+#endif
 
 void Select(Tensor out,
             const Tensor in,
@@ -692,8 +698,10 @@ void Select(Tensor out,
   functional::Array<int, functional::Shape::size()> dims;
   int axisCPU = (int)(axis + functional::Shape::size() - out->shape().size());
 
+#if 0 // buggy but not really used?
   if(axisCPU == 2 && outShape == idxShape) // specialization for axis==2 when there is no broadcasting, @TODO to be removed once we have a faster implementation below
     return SelectAxis2(out, in, indices);
+#endif
 
   for(int index = 0; index < length; ++index) {
     outShape.dims(index, dims);                                // compute dimension-based indices from global index;

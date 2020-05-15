@@ -14,7 +14,7 @@ struct ConstantNode : public Node {
 
   ~ConstantNode() {}
 
-  virtual size_t allocate() override;
+  virtual void allocate() override;
   virtual void init() override;
 
   const std::string type() override { return "const"; }
@@ -50,9 +50,8 @@ struct ParamNode : public Node {
 
   ~ParamNode() {}
 
-  virtual size_t allocate() override {
+  virtual void allocate() override {
     ABORT_IF(!val_, "Parameters should be allocated by their graph. Parameter {} was not", name_);
-    return 0;
   }
 
   virtual void init() override;
