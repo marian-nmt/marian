@@ -880,6 +880,9 @@
     <ClCompile Include="..\src\common\file_utils.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\topk.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2683,6 +2686,9 @@
       <Filter>tensors\gpu</Filter>
     </CudaCompile>
     <CudaCompile Include="..\src\tensors\gpu\add_all.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\topk.cu">
       <Filter>tensors\gpu</Filter>
     </CudaCompile>
   </ItemGroup>

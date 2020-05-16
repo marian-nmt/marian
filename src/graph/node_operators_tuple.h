@@ -10,7 +10,7 @@ class TupleNode {
 protected:
   Tensor tupleVal_; // the additional forward value tensor
 
-  friend class TupleViewNodeOp;
+  friend struct TupleViewNodeOp;
 
   // Force implementation of these functions. The node that inherits from this 
   // should use them during allocation/deallocation.

@@ -27,7 +27,14 @@ namespace cpu {
 template <typename To, typename From>
 void CopyCastTo(To* out, const From* in, int length) {
   for(int i = 0; i < length; ++i)
-    out[i] = in[i];
+#ifdef _MSC_VER
+#pragma warning (push)
+#pragma warning (disable: 4244)  // 'argument': conversion from 'const From' to 'float', possible loss of data
+#endif
+    out[i] = (To)in[i];
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
 }
 
 // Casting has been factored into two functions "CopyCastFrom" and

@@ -1399,6 +1399,7 @@
     <ClCompile Include="..\src\optimizers\optimizers.cpp" />
     <ClCompile Include="..\src\models\model_factory.cpp" />
     <ClCompile Include="..\src\models\encoder_decoder.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\topk.cpp" />
     <ClCompile Include="..\src\tensors\rand.cpp" />
     <ClCompile Include="..\src\tensors\tensor.cpp" />
     <ClCompile Include="..\src\tests\attention_tests.cpp">
@@ -1901,6 +1902,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\topk.cu" />
     <CudaCompile Include="..\src\translator\helpers.cu" />
     <CudaCompile Include="..\src\translator\nth_element.cu" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 #include "tensors/tensor_operators.h"
 #include "tensors/allocator.h"
+#include <numeric>
 
 // CPU implementation of proper Marian top-k operator for TopkNodeOp
 // This file contains a lot of code-duplicaton with src/translator/nth_element.cpp
@@ -38,9 +39,9 @@ void TopK(Tensor outVal, Tensor outInd, Ptr<Allocator> /*allocator*/, const Tens
       }
     );
     
-    for(int i = 0; i < k; i++) {
-      outIndPtr[i] = idxs[i];
-      outValPtr[i] = inDataPtr[idxs[i]];
+    for(int j = 0; j < k; j++) {
+      outIndPtr[j] = idxs[j];
+      outValPtr[j] = inDataPtr[idxs[j]];
     }
     
     outIndPtr += k;
