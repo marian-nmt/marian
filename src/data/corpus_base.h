@@ -299,7 +299,7 @@ public:
   size_t wordsTrg() const override { return subBatches_.back()->batchWords(); };
 
   /**
-   * @brief The width of the target mini-batch. Num words + padded?
+   * @brief The target width (=max length) of the mini-batch.
    */
   size_t widthTrg() const override { return subBatches_.back()->batchWidth(); };
 

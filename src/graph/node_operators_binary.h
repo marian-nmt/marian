@@ -35,14 +35,14 @@ public:
 
     auto shapeB = b->shape();
     if(transB) {
-      shapeB.set(shapeB.size() - 2, b->shape()[shapeB.size() - 1]);
+      shapeB.set(shapeB.size() - 2, b->shape()[shapeB.size() - 1]); // @TODO: why not use negative indices?
       shapeB.set(shapeB.size() - 1, b->shape()[shapeB.size() - 2]);
     }
 
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "Matrix product requires inner dimensions to match");
+             "Matrix product requires inner dimensions to match in {}{} * {}{}", std::string(shapeA), transA, std::string(shapeB), transB);
     return outShape;
   }
 
@@ -187,7 +187,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
     ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
-             "Matrix product requires inner dimensions to match");
+             "Matrix product requires inner dimensions to match in {}{} * {}{}", std::string(shapeA), transA, std::string(shapeB), transB);
     return outShape;
   }
 
@@ -351,7 +351,7 @@ public:
     Shape outShape = shapeA;
     outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "Batched matrix product requires inner dimensions to match");
+             "Batched matrix product requires inner dimensions to match in {}{} * {}{}", std::string(shapeA), transA, std::string(shapeB), transB);
     return outShape;
   }
 
@@ -674,12 +674,12 @@ struct GatherNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() override {
     return {NodeOp(
-        Select(val_, child(0)->val(), child(1)->val(), axis_))};
+      Select(val_, child(0)->val(), child(1)->val(), axis_))};
   }
 
   NodeOps backwardOps() override {
     return {NodeOp(
-        Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
+      Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
   Shape newShape(Expr a, int axis, Expr indices) {
@@ -722,6 +722,7 @@ struct GatherNodeOp : public NaryNodeOp {
     return true;
   }
 
+private:
   int axis_;
 };
 
@@ -817,7 +818,7 @@ struct MultNodeOp : public ElementBinaryNodeOp {
             NodeOp(Add(_1 * _2, child(1)->grad(), adj_, child(0)->val()))};
   }
 
-  const std::string type() override { return "×"; }
+  const std::string type() override { return "*"; }
 };
 
 struct DivNodeOp : public ElementBinaryNodeOp {
@@ -842,7 +843,7 @@ struct DivNodeOp : public ElementBinaryNodeOp {
                    child(1)->val()))};
   }
 
-  const std::string type() override { return "÷"; }
+  const std::string type() override { return "/"; }
 };
 
 // struct PowNodeOp : public ElementBinaryNodeOp {
@@ -1047,19 +1048,19 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     ABORT_IF(nodes.empty(), "No child nodes given");
 
     Shape shape = nodes[0]->shape();
-    ax_ = shape.axis(ax);
+    axis_ = shape.axis(ax);
 
     int sum = 0;
     auto checkShape = shape;
     for(auto child : nodes) {
-      checkShape.set(ax_, child->shape()[ax_]); // don't abort on different sizes on axis dim.
+      checkShape.set(axis_, child->shape()[axis_]); // don't abort on different sizes on axis dim.
       ABORT_IF(checkShape != child->shape(),
                "Child shapes {} and {} cannot be concatenated along axis {}",
                shape, child->shape(), ax);
 
-      sum += child->shape()[ax_];
+      sum += child->shape()[axis_];
     }
-    shape.set(ax_, sum);
+    shape.set(axis_, sum);
 
     return shape;
   }
@@ -1068,7 +1069,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     std::vector<Tensor> concatenees;
     for(size_t i = 0; i < children_.size(); ++i)
       concatenees.push_back(child(i)->val());
-    Concatenate(val_, concatenees, ax_);
+    Concatenate(val_, concatenees, axis_);
   }
 
   void backward() override {
@@ -1078,12 +1079,12 @@ struct ConcatenateNodeOp : public NaryNodeOp {
       childPtr->set_zero_adjoint();  // @TODO: this is a hotfix, do this properly
       deconcatenees.push_back(childPtr->grad());
     }
-    Deconcatenate(deconcatenees, adj_, ax_);
+    Deconcatenate(deconcatenees, adj_, axis_);
   }
 
   virtual size_t hash() override {
     size_t seed = NaryNodeOp::hash();
-    util::hash_combine(seed, ax_);
+    util::hash_combine(seed, axis_);
     return seed;
   }
 
@@ -1093,20 +1094,24 @@ struct ConcatenateNodeOp : public NaryNodeOp {
     auto cnode = std::dynamic_pointer_cast<ConcatenateNodeOp>(node);
     if(!cnode)
       return false;
-    if(ax_ != cnode->ax_)
+    if(axis_ != cnode->axis_)
       return false;
     return true;
   }
 
   const std::string type() override { return "concat"; }
 
-  int ax_;
+private:
+  int axis_;
 };
 
+// layer norm along last axis
 struct LayerNormalizationOp : public NaryNodeOp {
 public:
   LayerNormalizationOp(const std::vector<Expr>& nodes, float eps = 1e-9)
-      : NaryNodeOp(nodes), eps_(eps) {}
+      : NaryNodeOp(nodes), eps_(eps) {
+    // @TODO: dimension check
+  }
 
   NodeOps forwardOps() override {
     return {NodeOp(
@@ -1117,6 +1122,7 @@ public:
                            eps_))};
   }
 
+  // @BUGBUG: backward has not been tested for broadcasting gamma/beta
   NodeOps backwardOps() override {
     return {NodeOp(
       LayerNormalizationGrad(

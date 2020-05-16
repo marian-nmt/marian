@@ -682,7 +682,7 @@ struct NegNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(-_1, child(0)->grad(), adj_))};
   }
 
-  const std::string type() override { return "-"; }
+  const std::string type() override { return "negate"; }
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {
@@ -1002,6 +1002,7 @@ struct ShiftNodeOp : public UnaryNodeOp {
     return true;
   }
 
+private:
   Shape shift_;     // shift offsets in each dimension
   float padValue_;  // what value to shift in
 };
