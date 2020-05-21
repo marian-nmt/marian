@@ -40,8 +40,11 @@ Expr prelu(Expr a, float alpha = 0.01);
 Expr prelu(const std::vector<Expr>&, float alpha = 0.01);
 
 Expr log(Expr a);
-
 Expr exp(Expr a);
+
+Expr sin(Expr a);
+Expr cos(Expr a);
+Expr tan(Expr a);
 
 Expr clip(Expr a, float c);
 

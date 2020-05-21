@@ -115,14 +115,16 @@ typedef std::map<Type, Ptr<Parameters>> ElementTypeParamsMap; // keep it sorted,
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
   size_t count_{0};
 
+  std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
+
+protected:  // (these are protected, not private, for ONNX exporting)
   std::list<Expr> nodesForward_;
   std::list<Expr> nodesBackward_;
-
-  std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
 
   // Holds memory and expressions that correspond to temporary expressions.
   // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
+private:
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 

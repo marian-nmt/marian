@@ -1041,6 +1041,8 @@ void LayerNormalization(Tensor out_,
   const float* in = in_->data();
   const float* alpha = gamma_->data();
   const float* beta = beta_ ? beta_->data() : nullptr;
+  const int alphaStride = gamma_->shape().back() > 1;  // broadcasting for alpha and beta
+  const int betaStride = beta_ && beta_->shape().back() > 1;
 
   int rows = in_->shape().elements() / in_->shape().back();
   int cols = in_->shape().back();
@@ -1068,9 +1070,9 @@ void LayerNormalization(Tensor out_,
 
 #pragma omp simd
     for(int i = 0; i < cols; ++i) {
-      float t = alpha[i] * ((sp[i] - mean) / sigma);
+      float t = alpha[alphaStride * i] * ((sp[i] - mean) / sigma);
       if(beta != nullptr) {
-        t += beta[i];
+        t += beta[betaStride * i];
       }
 
       so[i] = t;
@@ -1095,6 +1097,10 @@ void LayerNormalizationGrad(Tensor gradX_,
   float* x = x_->data();
   float* gamma = gamma_->data();
   float* beta = beta_ ? beta_->data() : nullptr;
+  // @TODO: The CPU implementation supports scalar gamma and beta. This is a left-over,
+  //        we should enable that in the GPU version as well.
+  const int gammaStride = gamma_->shape().back() > 1;  // broadcasting for alpha and beta. 0 means it's a scalar
+  const int betaStride = beta_ && beta_->shape().back() > 1;
 
   size_t rows = y_->shape().elements() / y_->shape()[-1];
   size_t cols = y_->shape()[-1];
@@ -1115,7 +1121,7 @@ void LayerNormalizationGrad(Tensor gradX_,
 #pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
       for(size_t i = 0; i < cols; ++i) {
         sum_x += xRow[i];
-        sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
+        sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[betaStride * i] : 0.f)) / gamma[gammaStride * i];
         sum_adj += adjRow[i];
       }
 
@@ -1130,15 +1136,15 @@ void LayerNormalizationGrad(Tensor gradX_,
 #pragma omp simd
       for(size_t i = 0; i < cols; ++i) {
         float grad_x = 0.f;
-        float x_hat = (yRow[i] - beta[i]) / gamma[i];
+        float x_hat = (yRow[i] - beta[betaStride * i]) / gamma[gammaStride * i];
         grad_x += cols * adjRow[i];
         grad_x -= sum_adj;
         grad_x -= sum_adj_x * x_hat;
         grad_x /= cols * sigma;
 
-        gradXRow[i] += gamma[i] * grad_x;
-        gradGamma[i] += adjRow[i] * x_hat;
-        gradBeta[i] += adjRow[i];
+        gradXRow[i] += gamma[gammaStride * i] * grad_x;
+        gradGamma[gammaStride * i] += adjRow[i] * x_hat;
+        gradBeta[betaStride * i] += adjRow[i];
       }
     }
   } else {
@@ -1157,7 +1163,8 @@ void LayerNormalizationGrad(Tensor gradX_,
 #pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
       for(size_t i = 0; i < cols; ++i) {
         sum_x += xRow[i];
-        sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
+        sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[betaStride * i] : 0.f)) / gamma[gammaStride * i];
+        // @TODO: beta is NULL here            ^^
         sum_adj += adjRow[i];
       }
 
@@ -1172,14 +1179,14 @@ void LayerNormalizationGrad(Tensor gradX_,
 #pragma omp simd
       for(size_t i = 0; i < cols; ++i) {
         float grad_x = 0.f;
-        float x_hat = yRow[i] / gamma[i];
+        float x_hat = yRow[i] / gamma[gammaStride * i];
         grad_x += cols * adjRow[i];
         grad_x -= sum_adj;
         grad_x -= sum_adj_x * x_hat;
         grad_x /= cols * sigma;
 
-        gradXRow[i] += gamma[i] * grad_x;
-        gradGamma[i] += adjRow[i] * x_hat;
+        gradXRow[i] += gamma[gammaStride * i] * grad_x;
+        gradGamma[gammaStride * i] += adjRow[i] * x_hat;
       }
     }
   }
@@ -1190,7 +1197,7 @@ void Shift(Tensor out_,
            marian::Shape shift,
            float padValue,
            bool invert) {
-  int offset = 0;
+  int offset = 0; // out[i + offset] = in[i]; shift>0 inserts values at front, shifts back, pushes out
   for(int i = 0; i < shift.size(); ++i)
     offset += in_->shape().stride(i) * shift[i];
 

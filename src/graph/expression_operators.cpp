@@ -58,6 +58,10 @@ Expr exp(Expr a) {
   return Expression<ExpNodeOp>(a);
 };
 
+Expr sin(Expr a) {
+  return Expression<SinNodeOp>(a);
+};
+
 Expr swish(Expr a) {
   return Expression<SwishNodeOp>(a);
 }

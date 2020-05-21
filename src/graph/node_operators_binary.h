@@ -15,6 +15,7 @@ namespace marian {
 
 class DotNodeOp : public NaryNodeOp {
 private:
+  friend class SerializationHelpers;
   bool transA_;
   bool transB_;
   float scalar_;
@@ -157,6 +158,7 @@ public:
 
 class AffineNodeOp : public NaryNodeOp {
 private:
+  friend class SerializationHelpers;
   bool transA_;
   bool transB_;
   float scalar_;
@@ -324,6 +326,7 @@ public:
 
 class DotBatchedNodeOp : public NaryNodeOp {
 private:
+  friend class SerializationHelpers;
   bool transA_;
   bool transB_;
   float scalar_;
@@ -723,6 +726,7 @@ struct GatherNodeOp : public NaryNodeOp {
   }
 
 private:
+  friend class SerializationHelpers;
   int axis_;
 };
 
@@ -1102,6 +1106,7 @@ struct ConcatenateNodeOp : public NaryNodeOp {
   const std::string type() override { return "concat"; }
 
 private:
+  friend class SerializationHelpers;
   int axis_;
 };
 
@@ -1158,6 +1163,7 @@ public:
   }
 
 private:
+  friend class SerializationHelpers; // @TODO: use the same name for this as SqrtNodeOp
   float eps_;
 };
 

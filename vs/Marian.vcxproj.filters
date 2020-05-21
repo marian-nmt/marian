@@ -250,6 +250,15 @@
     <ClCompile Include="..\src\common\version.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.cc">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.cpp">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rescorer\score_collector.cpp">
+      <Filter>rescorer</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp">
       <Filter>tensors\cpu\sharp</Filter>
     </ClCompile>
@@ -882,6 +891,15 @@
     </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\topk.cpp">
       <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\protobuf.cpp">
+      <Filter>onnx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_exporter.cpp">
+      <Filter>onnx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_serialization.cpp">
+      <Filter>onnx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1693,6 +1711,12 @@
     <ClInclude Include="..\src\tensors\gpu\sparse.h">
       <Filter>tensors\gpu</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.h">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.h">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model.h">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
@@ -2263,6 +2287,10 @@
     <ClInclude Include="..\src\tensors\gpu\add_all.h">
       <Filter>tensors\gpu</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\src\onnx\expression_graph_onnx_exporter.h">
+      <Filter>onnx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2511,6 +2539,15 @@
     <Filter Include="tensors\cpu\fbgemm">
       <UniqueIdentifier>{bf361868-f451-45b8-9695-570d67924972}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\onnx">
+      <UniqueIdentifier>{ba00e638-d55d-4722-9caa-c9e6e133a072}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\onnx\protobuf">
+      <UniqueIdentifier>{153199ee-2f29-4bd6-8187-4235ac020ccd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="onnx">
+      <UniqueIdentifier>{f3849101-b84e-48c1-af5d-27c79ce89e70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
@@ -2642,6 +2679,9 @@
     <None Include="..\src\tensors\gpu\add_all.inc">
       <Filter>tensors\gpu</Filter>
     </None>
+    <None Include="..\src\3rd_party\onnx\protobuf\onnx-ml.proto">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
@@ -2691,5 +2731,8 @@
     <CudaCompile Include="..\src\tensors\gpu\topk.cu">
       <Filter>tensors\gpu</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Marian.rc" />
   </ItemGroup>
 </Project>

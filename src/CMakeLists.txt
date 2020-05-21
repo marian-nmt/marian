@@ -40,6 +40,7 @@ add_library(marian STATIC
 
   3rd_party/cnpy/cnpy.cpp
   3rd_party/ExceptionWithCallStack.cpp
+  3rd_party/onnx/protobuf/onnx-ml.pb-wrapper.cpp
 
   3rd_party/phf/phf.cc
 
@@ -61,6 +62,9 @@ add_library(marian STATIC
   graph/node.cpp
   graph/node_operators.cpp
   graph/node_initializers.cpp
+
+  onnx/expression_graph_onnx_exporter.cpp
+  onnx/expression_graph_onnx_serialization.cpp
 
   layers/convolution.cpp
   layers/generic.cpp

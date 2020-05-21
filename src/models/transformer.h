@@ -11,6 +11,8 @@
 #include "models/states.h"
 #include "models/transformer_factory.h"
 #include "rnn/constructors.h"
+#define _USE_MATH_DEFINES  // enables math constants. We need M_PI_2
+#include <math.h>
 
 namespace marian {
 
@@ -26,7 +28,8 @@ class Transformer : public EncoderOrDecoderBase {
 
 protected:
   using Base::options_; using Base::inference_; using Base::batchIndex_; using Base::graph_;
-  std::unordered_map<std::string, Expr> cache_;  // caching transformation of the encoder that should not be created again
+  std::unordered_map<std::string, Expr> cache_;    // caching transformation of the encoder that should not be created again
+  mutable/*lazy*/ std::vector<float> sinusoidalEmbeddingsFreq_, sinusoidalEmbeddingsOffs_;  // cached contributions to sinusoidal embeddings
 
   // attention weights produced by step()
   // If enabled, it is set once per batch during training, and once per step during translation.
@@ -84,8 +87,20 @@ public:
       // according to paper embeddings are scaled up by \sqrt(d_m)
       embeddings = std::sqrt((float)dimEmb) * embeddings; // embeddings were initialized to unit length; so norms will be in order of sqrt(dimEmb)
 
-      auto signal = graph_->constant({dimWords, 1, dimEmb},
-                                     inits::sinusoidalPositionEmbeddings(start));
+      // precompute the arguments to sin() (the cos(x) are expressed as sin(x+pi/2))
+      if (sinusoidalEmbeddingsFreq_.empty()) {
+        auto numTimescales = dimEmb / 2;
+        for (size_t i = 0; i < dimEmb; i++) {
+          sinusoidalEmbeddingsFreq_.push_back((float)pow(1e-4, ((i % numTimescales) / (numTimescales - 1.0))));  // rotor frequency
+          sinusoidalEmbeddingsOffs_.push_back((float)          ((i / numTimescales) * M_PI_2                ));  // 0 (for sin) or pi/2 (for cos)
+        }
+      }
+      auto frequencies = graph_->constant({ dimEmb }, inits::fromVector(sinusoidalEmbeddingsFreq_));
+      auto cosOffsets  = graph_->constant({ dimEmb }, inits::fromVector(sinusoidalEmbeddingsOffs_));
+      auto positionRange = graph_->constant({ dimWords, 1, 1 }, inits::range((float)start, (float)start + (float)dimWords));
+      positionRange->set_name("data_" + std::to_string(batchIndex_) + "_posrange");
+      auto signal = sin(positionRange * frequencies + cosOffsets);
+
       embeddings = embeddings + signal;
     }
 
@@ -621,6 +636,7 @@ public:
       int dim = opt<int>("dim-emb");
 
       auto start = graph->constant({1, 1, dimBatch, dim}, inits::zeros());
+      start->set_name("decoder_start_state_" + std::to_string(batchIndex_));
       rnn::States startStates(opt<size_t>("dec-depth"), {start, start});
 
       // don't use TransformerState for RNN layers

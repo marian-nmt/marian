@@ -195,6 +195,12 @@ if(USE_SENTENCEPIECE)
   set(EXT_LIBS ${EXT_LIBS} sentencepiece sentencepiece_train)
 endif()
 
+if(USE_ONNX)
+  message(STATUS "Enabling experimental ONNX support")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_ONNX")
+  set(EXT_LIBS ${EXT_LIBS} protobuf)
+endif()
+
 # Find packages
 set(EXT_LIBS ${EXT_LIBS} ${CMAKE_DL_LIBS})
 

@@ -176,6 +176,14 @@ Ptr<NodeInitializer> fromWord2vec(const std::string& file,
  */
 Ptr<NodeInitializer> sinusoidalPositionEmbeddings(int start);
 
+/**
+ * Computes a range from begin to end-1, like Python's range().
+ * The constant being initialized must have one dimension that matches
+ * the number of elements being generated, while any other dimension must be 1.
+ */
+template <typename T>
+Ptr<NodeInitializer> range(T begin, T end, T step = (T)1);
+
 }  // namespace inits
 
 }  // namespace marian

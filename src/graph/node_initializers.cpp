@@ -233,6 +233,23 @@ Ptr<NodeInitializer> sinusoidalPositionEmbeddings(int start) {
   }, Type::float32);
 }
 
+// computes the equivalent of Python's range()
+template <typename T>
+Ptr<NodeInitializer> range(T begin, T end, T step) {
+  return fromLambda([begin, end, step](Tensor t) {
+    auto nElem = t->shape().elements();
+    std::vector<T> v; v.reserve(nElem);
+    for (T i = begin; i < end; i += step)
+      v.push_back(i);
+    ABORT_IF(nElem != v.size(), "range does not match constant shape");
+    t->set(v);
+  }, typeId<T>());
+}
+
+template Ptr<NodeInitializer> range<float16>  (float16   begin, float16   end, float16   step);
+template Ptr<NodeInitializer> range<float>    (float     begin, float     end, float     step);
+template Ptr<NodeInitializer> range<IndexType>(IndexType begin, IndexType end, IndexType step);
+
 }  // namespace inits
 
 }  // namespace marian

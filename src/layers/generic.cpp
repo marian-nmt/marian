@@ -493,6 +493,8 @@ namespace marian {
     auto batchMask = graph->constant({dimWidth, dimBatch, 1},
                                      inits::fromVector(subBatch->crossMaskWithInlineFixSourceSuppressed()));
 #endif
+    // give the graph inputs readable names for debugging and ONNX
+    batchMask->set_name("data_" + std::to_string(/*batchIndex_=*/0) + "_mask");
 
     return std::make_tuple(batchEmbeddings, batchMask);
   }
@@ -510,8 +512,10 @@ namespace marian {
 
   Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const /*override final*/ {
     ABORT_IF(factoredVocab_, "Embedding: applyIndices must not be used with a factored vocabulary");
-    auto selectedEmbs = rows(E_, embIdx);        // [(B*W) x E]
-    selectedEmbs = reshape(selectedEmbs, shape); // [W, B, E]
+    auto embIdxExpr = E_->graph()->indices(embIdx);
+    embIdxExpr->set_name("data_" + std::to_string(/*batchIndex_=*/0));  // @TODO: how to know the batch index?
+    auto selectedEmbs = rows(E_, embIdxExpr);     // [(B*W) x E]
+    selectedEmbs = reshape(selectedEmbs, shape);  // [W, B, E]
     // @BUGBUG: We should not broadcast along dimBatch=[-2]. Then we can also dropout before reshape() (test that separately)
     selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), { selectedEmbs->shape()[-3], 1, 1 });
     return selectedEmbs;

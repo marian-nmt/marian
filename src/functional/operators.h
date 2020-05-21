@@ -20,6 +20,7 @@ struct Ops {
   static HOST_DEVICE_INLINE T log(const T&)  { ABORT("Unknown type"); }
   static HOST_DEVICE_INLINE T exp(const T&)  { ABORT("Unknown type"); }
   static HOST_DEVICE_INLINE T abs(const T&)  { ABORT("Unknown type"); }
+  static HOST_DEVICE_INLINE T sqr(const T&)  { ABORT("Unknown type"); }
   static HOST_DEVICE_INLINE T sqrt(const T&) { ABORT("Unknown type"); }
   static HOST_DEVICE_INLINE T neg(const T&)  { ABORT("Unknown type"); }
   static HOST_DEVICE_INLINE T sgn(const T&)  { ABORT("Unknown type"); }
@@ -73,6 +74,7 @@ struct Ops<float> {
   static HOST_DEVICE_INLINE float log(const float& x)  { return logf(x); }
   static HOST_DEVICE_INLINE float exp(const float& x)  { return expf(x); }
   static HOST_DEVICE_INLINE float abs(const float& x)  { return fabs(x); }
+  static HOST_DEVICE_INLINE float sqr(const float& x)  { return x * x; }
   static HOST_DEVICE_INLINE float sqrt(const float& x) { return sqrtf(x); }
   static HOST_DEVICE_INLINE float neg(const float& x)  { return -x; }
   static HOST_DEVICE_INLINE float sgn(const float& x)  { return (float)((0 < x) - (x < 0)); }
@@ -137,6 +139,7 @@ struct Ops<double> {
   static HOST_DEVICE_INLINE double log(const double& x)  { return std::log(x); }
   static HOST_DEVICE_INLINE double exp(const double& x)  { return std::exp(x); }
   static HOST_DEVICE_INLINE double abs(const double& x)  { return std::abs(x); }
+  static HOST_DEVICE_INLINE double sqr(const double& x)  { return x * x; }
   static HOST_DEVICE_INLINE double sqrt(const double& x) { return std::sqrt(x); }
   static HOST_DEVICE_INLINE double neg(const double& x)  { return -x; }
   static HOST_DEVICE_INLINE double sgn(const double& x)  { return (0 < x) - (x < 0); }
@@ -244,6 +247,7 @@ struct Ops<float32x4> {
 
   // @TODO: get rid of loop4 with proper intrisics
   static inline float32x4 abs(const float32x4& x)  { return loop4(Ops<float>::abs, x); }
+  static inline float32x4 sqr(const float32x4& x)  { return _mm_mul_ps(x, x); }
   static inline float32x4 sqrt(const float32x4& x) { return _mm_sqrt_ps(x); }
   static inline float32x4 neg(const float32x4& x)  { return sub(0.f, x); }
 
@@ -369,6 +373,7 @@ struct Ops<float32x8> {
 
   // @TODO: get rid of loop8 with proper intrisics
   static inline float32x8 abs(const float32x8& x)  { return loop8(Ops<float>::abs, x); }
+  static inline float32x8 sqr(const float32x8& x)  { return _mm256_mul_ps(x, x); }
   static inline float32x8 sqrt(const float32x8& x) { return _mm256_sqrt_ps(x); }
   static inline float32x8 neg(const float32x8& x)  { return sub(0.f, x); }
 
@@ -461,6 +466,7 @@ struct Ops<half> {
   static DEVICE_INLINE half tan(const half& x)  { return hsin(x) / hcos(x); }
   static DEVICE_INLINE half log(const half& x)  { return hlog(x); }
   static DEVICE_INLINE half exp(const half& x)  { return hexp(x); }
+  static DEVICE_INLINE half sqr(const half& x)  { return x * x; }
   static DEVICE_INLINE half sqrt(const half& x) { return hsqrt(x); }
   static DEVICE_INLINE half neg(const half& x)  { return -x; }
 
@@ -567,6 +573,7 @@ UNARY(Tan,     tan,        Ops<ElementType>::tan(x));
 UNARY(Log,     log,        Ops<ElementType>::log(x));
 UNARY(Exp,     exp,        Ops<ElementType>::exp(x));
 UNARY(Abs,     abs,        Ops<ElementType>::abs(x));
+UNARY(Sqr,     sqr,        Ops<ElementType>::sqr(x));
 UNARY(Sqrt,    sqrt,       Ops<ElementType>::sqrt(x));
 UNARY(Neg,     operator-,  Ops<ElementType>::neg(x));
 UNARY(Sgn,     sgn,        Ops<ElementType>::sgn(x));
