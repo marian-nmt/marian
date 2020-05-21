@@ -6,8 +6,7 @@
 #include "data/factored_vocab.h"
 #include "rnn/types.h"     // for State::select()
 #include "models/states.h" // for EncoderState
-
-//using std::size_t; // not sure why this is needed
+#include "layers/lsh.h"
 
 namespace marian {
   Logits::Logits(Expr logits) : Logits(New<RationalLoss>(logits, nullptr)) {} // single-output constructor from Expr only (RationalLoss has no count)
@@ -218,6 +217,13 @@ namespace marian {
       if (Wt_)
         return;
 
+      // this option is only set in the decoder
+      if(!lsh_ && options_->hasAndNotEmpty("output-approx-knn")) {
+        auto k     = opt<std::vector<int>>("output-approx-knn")[0];
+        auto nbits = opt<std::vector<int>>("output-approx-knn")[1];
+        lsh_ = New<LSH>(k, nbits);
+      }
+
       auto name = options_->get<std::string>("prefix");
       auto numOutputClasses = options_->get<int>("dim");
 
@@ -256,6 +262,16 @@ namespace marian {
 
     Logits Output::applyAsLogits(Expr input) /*override final*/ {
       lazyConstruct(input->shape()[-1]);
+
+      auto affineOrLSH = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
+        if(lsh_) {
+          ABORT_IF( transA, "Transposed query not supported for LSH");
+          ABORT_IF(!transB, "Untransposed indexed matrix not supported for LSH");
+          return lsh_->apply(x, W, b);
+        } else {
+          return affine(x, W, b, transA, transB);
+        }
+      };
 
       if (shortlist_ && !cachedShortWt_) { // shortlisted versions of parameters are cached within one batch, then clear()ed
         cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
@@ -333,7 +349,12 @@ namespace marian {
             input1 = layerNorm(input1, name + "_ffn");
           }
           // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a matrix
-          auto factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true, /*scale=*/1.0f); // [B... x U] factor logits
+          Expr factorLogits;
+          if(g == 0)
+            factorLogits = affineOrLSH(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          else
+            factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          
           // optionally add lemma-dependent bias
           if (Plemma) { // [B... x U0]
             int lemmaVocabDim = Plemma->shape()[-1];
@@ -396,11 +417,11 @@ namespace marian {
           }
         }
         return Logits(std::move(allLogits), factoredVocab_);
+      } else if (shortlist_) {
+        return Logits(affineOrLSH(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true));
+      } else {
+        return Logits(affineOrLSH(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
       }
-      else if (shortlist_)
-        return Logits(affine(input, cachedShortWt_, cachedShortb_, false, /*transB=*/isLegacyUntransposedW ? false : true));
-      else
-        return Logits(affine(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
     }
   }
 

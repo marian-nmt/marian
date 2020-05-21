@@ -70,6 +70,7 @@ add_library(marian STATIC
   layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
+  layers/lsh.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp

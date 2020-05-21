@@ -26,6 +26,16 @@ Expr checkpoint(Expr a) {
   return a;
 }
 
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+            LambdaNodeFunctor fwd) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd);
+}
+
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+            LambdaNodeFunctor fwd, LambdaNodeFunctor bwd) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd, bwd);
+}
+
 // logistic function. Note: scipy name is expit()
 Expr sigmoid(Expr a) {
   return Expression<SigmoidNodeOp>(a);

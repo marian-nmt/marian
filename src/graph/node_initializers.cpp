@@ -251,5 +251,24 @@ template Ptr<NodeInitializer> range<float>    (float     begin, float     end, f
 template Ptr<NodeInitializer> range<IndexType>(IndexType begin, IndexType end, IndexType step);
 
 }  // namespace inits
+}  // namespace marian
 
+
+#include "faiss/VectorTransform.h"
+
+namespace marian {
+namespace inits {
+
+Ptr<NodeInitializer> randomRotation(size_t seed) {
+  auto rot = [=](Tensor t) {
+    int rows = t->shape()[-2];
+    int cols = t->shape()[-1];
+    faiss::RandomRotationMatrix rrot(cols, rows); // transposed in faiss
+    rrot.init(seed);
+    t->set(rrot.A);
+  };
+  return fromLambda(rot, Type::float32);
+}
+
+}  // namespace inits
 }  // namespace marian

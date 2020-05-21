@@ -120,6 +120,13 @@ namespace marian {
     }                            \
   } while(0)
 
+#define ABORT_UNLESS(condition, ...) \
+  do {                               \
+    if(!(bool)(condition)) {         \
+      ABORT(__VA_ARGS__);            \
+    }                                \
+  } while(0)
+
 typedef std::shared_ptr<spdlog::logger> Logger;
 Logger createStderrLogger(const std::string&,
                           const std::string&,

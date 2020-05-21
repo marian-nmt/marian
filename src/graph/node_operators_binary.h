@@ -13,6 +13,62 @@
 
 namespace marian {
 
+class LambdaNodeOp : public NaryNodeOp {
+private:
+  typedef const std::vector<Expr>& Inputs;
+  typedef std::function<void(Expr, Inputs)> LambdaNodeFunctor;
+  
+  std::unique_ptr<LambdaNodeFunctor> forward_;
+  std::unique_ptr<LambdaNodeFunctor> backward_;
+  
+public:
+  LambdaNodeOp(Inputs inputs, Shape shape, Type type, 
+               LambdaNodeFunctor forward) 
+  : NaryNodeOp(inputs, shape, type), 
+    forward_(new LambdaNodeFunctor(forward)) {
+    Node::trainable_ = !!backward_;
+  }
+
+  LambdaNodeOp(Inputs inputs, Shape shape, Type type, 
+               LambdaNodeFunctor forward,
+               LambdaNodeFunctor backward) 
+  : NaryNodeOp(inputs, shape, type), 
+    forward_(new LambdaNodeFunctor(forward)),
+    backward_(new LambdaNodeFunctor(backward)) {
+  }
+
+  void forward() override {
+    (*forward_)(this, children_);
+  }
+
+  void backward() override {
+    ABORT_IF(!backward_, "No backward lambda given?");
+    (*backward_)(this, children_);
+  }
+
+  const std::string type() override { return "lambda"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, forward_.get());
+    util::hash_combine(seed, backward_.get());
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<LambdaNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(forward_ != cnode->forward_)   // pointer compare on purpose
+      return false;
+    if(backward_ != cnode->backward_) // pointer compare on purpose
+      return false;
+    return true;
+  }
+};
+
 class DotNodeOp : public NaryNodeOp {
 private:
   friend class SerializationHelpers;

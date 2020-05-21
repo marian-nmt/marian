@@ -5,6 +5,8 @@ add_subdirectory(./yaml-cpp)
 add_subdirectory(./SQLiteCpp)
 add_subdirectory(./pathie-cpp)
 add_subdirectory(./zlib)
+add_subdirectory(./faiss)
+include_directories(./faiss)
 
 if(USE_FBGEMM)
   # @TODO: find out if this is somehow harmful. This is supppressing CMake warnings for CMAKE_SUPPRESS_DEVELOPER_WARNINGS

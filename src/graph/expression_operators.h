@@ -10,6 +10,10 @@ Expr checkpoint(Expr a);
 
 typedef Expr(ActivationFunction)(Expr);
 
+typedef std::function<void(Expr, const std::vector<Expr>&)> LambdaNodeFunctor;
+Expr lambda(const std::vector<Expr>&, Shape, Type, LambdaNodeFunctor);
+Expr lambda(const std::vector<Expr>&, Shape, Type, LambdaNodeFunctor, LambdaNodeFunctor);
+
 Expr plus(const std::vector<Expr>&);
 
 // TODO: should be logistic(), not sigmoid()
@@ -187,6 +191,30 @@ Expr flatten_2d(Expr a);
 Expr stopGradient(Expr a);
 
 Expr gather(Expr a, int axis, Expr indices);
+
+#if 0
+ // reverse operation to gather. a is expression into with values from b are inserted and positions indices along axis.
+ // with broadcasting
+
+ auto knn = get<0>(KNN->apply(query, k)); // [beam, time, batch, k]
+
+ auto W = reshape(gather(Wt_, -2, flatten(knn)), {beam * time * batch, k, dim});
+ auto b = reshape(gather(b_,  -1, flatten(knn)), {beam * time * batch, 1, k });
+ query       = reshape(query, {beam * time * batch, 1, dim});
+ auto logits = bdot(query, W, false, true); // [beam * time * batch, 1, k]
+ logits      = reshape(logits + b, {beam, time, batch, k}); // @TODO: add baffine node
+
+ auto shape = indices.shape();
+ shape.set(-1, 32000);
+ auto output = grep->constant(shape, inits::lowest(), logits->value_type());
+ output = scatter(output, -1, indices, logits);
+
+ // auto a = graph->constant({2,2,5,32000}, inits::fromValue(minimal))
+ // scatter(a, -1, indices, values)
+ // PyTorch does for out-of-place scatter: out = a.scatter(-1, indices, values)
+Expr scatter(Expr a, int axis, Expr indices, Expr b);
+
+#endif
 
 // Warning: Don't try to pass a scalar literal 0 as indices; it will compile but pass nullptr...
 Expr index_select(Expr a, int axis, Expr indices);

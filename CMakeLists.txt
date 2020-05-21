@@ -138,6 +138,9 @@ else(MSVC)
     set(INTRINSICS "-msse4.1")
   endif()
 
+  add_definitions(-DFINTEGER=long)
+  set(EXT_LIBS ${EXT_LIBS} faiss)
+
   if(USE_FBGEMM)
     set(EXT_LIBS ${EXT_LIBS} fbgemm dl)
     add_definitions(-DUSE_FBGEMM=1)
