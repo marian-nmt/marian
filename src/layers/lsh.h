@@ -2,7 +2,7 @@
 #include <memory>
 
 namespace faiss {
-  class IndexLSH;
+  struct IndexLSH;
 }
 
 namespace marian {

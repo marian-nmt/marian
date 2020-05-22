@@ -132,12 +132,17 @@ const float *fvecs_maybe_subsample(
   return x_subset;
 }
 
-#ifdef __SSE__
+#if 1 // def __SSE__
 // reads 0 <= d < 4 floats as __m128
 static inline __m128 masked_read(int d, const float *x)
 {
   assert(0 <= d && d < 4);
-  __attribute__((__aligned__(16))) float buf[4] = { 0, 0, 0, 0 };
+#ifdef _MSC_VER
+  __declspec(align(16))
+#else
+  __attribute__((__aligned__(16)))
+#endif
+  float buf[4] = { 0, 0, 0, 0 };
   switch (d) {
   case 3:
     buf[2] = x[2];

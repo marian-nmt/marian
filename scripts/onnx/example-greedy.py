@@ -1,12 +1,19 @@
 import onnxruntime as ort
 import numpy as np
 import onnx
+import os, sys, time
+
+os.environ['OMP_NUM_THREADS'] = '1'
+sess_options = ort.SessionOptions()
+sess_options.intra_op_num_threads = 1
+sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
 
 def get_function(path, output_vars):
     print("Reading ONNX function from", path)
     #model = onnx.load(path)
     #print(model)
-    ort_sess = ort.InferenceSession(path)
+    ort_sess = ort.InferenceSession(path, sess_options)
     output_defs = ort_sess.get_outputs()
     for input in ort_sess.get_inputs():
         print("  input: ", input.name, input.shape, input.type)
@@ -61,10 +68,12 @@ def greedy_decode(data_0):
         Y.append(np.argmax(logp[0][0]))
     return Y
 
-with open("C:/work/marian-dev/local/model/predictions.out-onnx-debug-sin-3.tok", 'wt', encoding='utf-8') as out_f:
-    for line in open("C:/work/marian-dev/local/model/predictions.in.tok", encoding='utf-8').readlines():
+start_time = time.time()
+with open("C:/work/marian-dev/local/model/predictions.out-onnx-debug-sin-3-first100.tok", 'wt', encoding='utf-8') as out_f:
+    for line in open("C:/work/marian-dev/local/model/predictions.in-first100.tok", encoding='utf-8').readlines():
         data = [word2id.get(w, unk_id) for w in (line.rstrip() + " </s>").split(' ') if w]
         Y = greedy_decode(data)
         print("input: ", ' '.join(id2word[x] for x in data))
         print("output:", ' '.join(id2word[y] for y in Y))
         print(' '.join(id2word[y] for y in Y[:-1]), file=out_f, flush=True)  # strip </s> for output to file
+print("--- %s seconds ---" % (time.time() - start_time))

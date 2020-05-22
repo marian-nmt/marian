@@ -29,6 +29,10 @@
 
 #include <faiss/utils/Heap.h>
 
+#ifdef _MSC_VER
+#include <intrin.h>  // needed for some intrinsics in <memory>
+#define __builtin_popcountl __popcnt64
+#endif
 
 /* The Hamming distance type */
 typedef int32_t hamdis_t;
@@ -111,7 +115,7 @@ struct BitstringReader {
 
 extern size_t hamming_batch_size;
 
-inline int popcount64(uint64_t x) {
+static inline int popcount64(uint64_t x) {
     return __builtin_popcountl(x);
 }
 

@@ -264,7 +264,7 @@ Ptr<NodeInitializer> randomRotation(size_t seed) {
     int rows = t->shape()[-2];
     int cols = t->shape()[-1];
     faiss::RandomRotationMatrix rrot(cols, rows); // transposed in faiss
-    rrot.init(seed);
+    rrot.init((int)seed);
     t->set(rrot.A);
   };
   return fromLambda(rot, Type::float32);

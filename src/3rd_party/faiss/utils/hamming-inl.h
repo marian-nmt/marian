@@ -10,6 +10,9 @@
 namespace faiss {
 
 
+#ifdef _MSC_VER
+#define bzero(p,n) (memset((p),0,(n)))
+#endif
 inline BitstringWriter::BitstringWriter(uint8_t *code, int code_size):
     code (code), code_size (code_size), i(0)
 {
