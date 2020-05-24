@@ -1,10 +1,7 @@
 # adding a new file require explicittly modifing the CMakeLists.txt
 
+add_definitions(-DFINTEGER=uint64_t)
+
 include_directories("impl")
-
 FILE(GLOB FaissCppSources *.cpp impl/*.cpp utils/*.cpp)
-
-if (NOT TARGET faiss)
-  add_library(faiss STATIC ${FaissCppSources})
-endif()
-
+add_library(faiss OBJECT ${FaissCppSources})

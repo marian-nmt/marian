@@ -100,8 +100,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     " -fPIC -Wno-unused-value")
 endif()
 
-
-
 include_directories(./zlib)
 
 include(ExternalProject)

@@ -24,7 +24,7 @@ extern "C" {
 
 // this is to keep the clang syntax checker happy
 #ifndef FINTEGER
-#define FINTEGER int
+#define FINTEGER uint64_t // MJD: only really safe type for use between Linux and Windows and different MKL versions. Not tested with non-MKL CBLAS
 #endif
 
 
@@ -118,8 +118,8 @@ const float *fvecs_maybe_subsample(
 
   size_t n2 = nmax;
   if (verbose) {
-    printf("  Input training set too big (max size is %ld), sampling "
-      "%ld / %ld vectors\n", nmax, n2, *n);
+    printf("  Input training set too big (max size is %zu), sampling "
+      "%zu / %zu vectors\n", nmax, n2, *n);
   }
   std::vector<int> subset(*n);
   rand_perm(subset.data(), *n, seed);
@@ -392,7 +392,7 @@ void RandomRotationMatrix::init (int seed)
     is_trained = true;
 }
 
-void RandomRotationMatrix::train (Index::idx_t /*n*/, const float */*x*/)
+void RandomRotationMatrix::train (Index::idx_t /*n*/, const float* /*x*/)
 {
     // initialize with some arbitrary seed
     init (12345);

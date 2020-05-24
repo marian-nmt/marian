@@ -414,7 +414,8 @@ double parseNumber(std::string param) {
   }
   // we allow users to place commas in numbers (note: we are not actually verifying that they are in
   // the right place)
-  std::remove_if(param.begin(), param.end(), [](char c) { return c == ','; });
+  auto it = std::remove_if(param.begin(), param.end(), [](char c) { return c == ','; }); // use return value for future-proofing against nodiscard warning
+  param.erase(it, param.end()); // since we have that iterator now, we might as well shrink to fit
   return factor * parseDouble(param);
 }
 

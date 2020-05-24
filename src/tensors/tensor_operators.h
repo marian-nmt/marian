@@ -25,13 +25,16 @@
 namespace marian {
 
 template <typename InIt, typename OutIt>
-void copy(Ptr<Backend>& MAYBE_UNUSED backend, const InIt beg, const InIt end, OutIt it) {
+void copy(Ptr<Backend>& backend, const InIt beg, const InIt end, OutIt it) {
 #ifdef CUDA_FOUND
   if(backend->getDeviceId().type == DeviceType::gpu)
     gpu::copy(backend, beg, end, it);
   else
-#endif
     std::copy(beg, end, it);
+#else
+    backend;
+    std::copy(beg, end, it);
+#endif
 }
 
 DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
@@ -190,7 +193,7 @@ void LayerNormalizationGrad(Tensor gradX,
 }
 
 static inline void LayerNormalizationGrad(
-                            Ptr<Allocator> MAYBE_UNUSED allocator,
+                            Ptr<Allocator> allocator,
                             Tensor gradX,
                             Tensor gradGamma,
                             Tensor gradBeta,

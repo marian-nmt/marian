@@ -67,10 +67,11 @@ if(MSVC)
   # C4324: 'marian::cpu::int16::`anonymous-namespace'::ScatterPut': structure was padded due to alignment specifier
   set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\"")
 
-  set(INTRINSICS "/arch:AVX")
+  # set(INTRINSICS "/arch:AVX")
+  add_definitions(-DUSE_SSE2=1)
 
   # Or maybe use these?
-  # set(INTRINSICS "/arch:AVX2")
+  set(INTRINSICS "/arch:AVX2")
   # set(INTRINSICS "/arch:AVX512")
 
   set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS ${DISABLE_GLOBALLY}")
@@ -137,9 +138,6 @@ else(MSVC)
   else()
     set(INTRINSICS "-msse4.1")
   endif()
-
-  add_definitions(-DFINTEGER=long)
-  set(EXT_LIBS ${EXT_LIBS} faiss)
 
   if(USE_FBGEMM)
     set(EXT_LIBS ${EXT_LIBS} fbgemm dl)

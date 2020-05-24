@@ -106,6 +106,7 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:SQLiteCpp>
   $<TARGET_OBJECTS:pathie-cpp>
   $<TARGET_OBJECTS:zlib>
+  $<TARGET_OBJECTS:faiss>
 )
 target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 
