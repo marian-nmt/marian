@@ -137,9 +137,9 @@ namespace marian {
       inputs.emplace_back(encoderContexts[i]);
       inputs.emplace_back(encoderEmbeddingInputs[1+2*i]);
     }
-    outputs.emplace_back(std::make_pair("logits", decodeFirstState->getLogProbs().getLogits()));
+    outputs.emplace_back(std::make_pair("first_logits", decodeFirstState->getLogProbs().getLogits()));
     for (const auto& dss : extractStates(decodeFirstState))
-      outputs.emplace_back(std::make_pair("out_decoder_state_" + std::to_string(outputs.size()-1), dss));
+      outputs.emplace_back(std::make_pair("first_decoder_state_" + std::to_string(outputs.size()-1), dss));
     functionDefs["decode_first"] = std::make_pair(std::move(inputs), std::move(outputs));
 
     // descriptor for decode_next(prev_word, data_1_posrange, encoder_context_0, data_0_mask, decoder_state_0, decoder_state_1, ...) -> logits, decoder_state_0, decoder_state_1, ...
@@ -151,9 +151,9 @@ namespace marian {
     }
     for (const auto& dss : extractStates(decodeFirstState))
       inputs.emplace_back(std::make_pair("decoder_state_" + std::to_string(inputs.size() - (numEncoders*2 + 2)), dss));
-    outputs.emplace_back(std::make_pair("logits", decodeNextState->getLogProbs().getLogits()));
+    outputs.emplace_back(std::make_pair("next_logits", decodeNextState->getLogProbs().getLogits()));
     for (const auto& dss : extractStates(decodeNextState))
-      outputs.emplace_back(std::make_pair("out_decoder_state_" + std::to_string(outputs.size() - 1), dss));
+      outputs.emplace_back(std::make_pair("next_decoder_state_" + std::to_string(outputs.size() - 1), dss));
     functionDefs["decode_next"] = std::make_pair(std::move(inputs), std::move(outputs));
 
     // now export the sub-graph as given by the function descriptor

@@ -12,6 +12,7 @@ sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_AL
 def get_function(path, output_vars):
     print("Reading ONNX function from", path)
     #model = onnx.load(path)
+    #print("Done", flush=True)
     #print(model)
     ort_sess = ort.InferenceSession(path, sess_options)
     output_defs = ort_sess.get_outputs()
@@ -37,19 +38,20 @@ id2word = { id : word.rstrip() for id, word in enumerate(open('c:/work/marian-de
 word2id = { word : id for id, word in id2word.items() }
 unk_id = word2id["<unk>"]
 
-model_path_prefix = "c:/work/marian-dev/local/model/model.npz.best-ce-mean-words-debug-sin"
+model_path_prefix = "c:/work/marian-dev/local/model/model.npz.best-ce-mean-words-debug-sin-uniq-notrans"
 encode_source = get_function(model_path_prefix + '.encode_source.onnx',
                              ['encoder_context_0'])
 decode_first  = get_function(model_path_prefix + '.decode_first.onnx',
-                             ['logits', 'out_decoder_state_0', 'out_decoder_state_1', 'out_decoder_state_2', 'out_decoder_state_3', 'out_decoder_state_4', 'out_decoder_state_5'])
+                             ['first_logits', 'first_decoder_state_0', 'first_decoder_state_1', 'first_decoder_state_2', 'first_decoder_state_3', 'first_decoder_state_4', 'first_decoder_state_5'])
 decode_next   = get_function(model_path_prefix + '.decode_next.onnx',
-                             ['logits', 'out_decoder_state_0', 'out_decoder_state_1', 'out_decoder_state_2', 'out_decoder_state_3', 'out_decoder_state_4', 'out_decoder_state_5'])
+                             ['next_logits', 'next_decoder_state_0', 'next_decoder_state_1', 'next_decoder_state_2', 'next_decoder_state_3', 'next_decoder_state_4', 'next_decoder_state_5'])
 
 def greedy_decode(data_0):
     if len(data_0) == 1:  # special handling for the empty sentence, like Marian
         return data_0
     data_0_mask = [[[1.]]] * len(data_0)
     data_0_index_range = [[[float(t)]] for t in range(len(data_0))]
+    #print(data_0, data_0_mask, data_0_index_range)
 
     max_len = len(data_0) * 3
     Y = []
@@ -69,7 +71,7 @@ def greedy_decode(data_0):
     return Y
 
 start_time = time.time()
-with open("C:/work/marian-dev/local/model/predictions.out-onnx-debug-sin-3-first100.tok", 'wt', encoding='utf-8') as out_f:
+with open("C:/work/marian-dev/local/model/predictions.out-onnx-debug-sin-notrans-first100-d.tok", 'wt', encoding='utf-8') as out_f:
     for line in open("C:/work/marian-dev/local/model/predictions.in-first100.tok", encoding='utf-8').readlines():
         data = [word2id.get(w, unk_id) for w in (line.rstrip() + " </s>").split(' ') if w]
         Y = greedy_decode(data)
