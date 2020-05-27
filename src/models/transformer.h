@@ -87,6 +87,7 @@ public:
       // according to paper embeddings are scaled up by \sqrt(d_m)
       embeddings = std::sqrt((float)dimEmb) * embeddings; // embeddings were initialized to unit length; so norms will be in order of sqrt(dimEmb)
 
+#ifdef USE_ONNX // TODO 'Sin' op and constant sine generate different result. So, use constant when 'USE_ONNX' is not defined for now.
       // precompute the arguments to sin() (the cos(x) are expressed as sin(x+pi/2))
       if (sinusoidalEmbeddingsFreq_.empty()) {
         auto numTimescales = dimEmb / 2;
@@ -100,6 +101,10 @@ public:
       auto positionRange = graph_->constant({ dimWords, 1, 1 }, inits::range((float)start, (float)start + (float)dimWords));
       positionRange->set_name("data_" + std::to_string(batchIndex_) + "_posrange");
       auto signal = sin(positionRange * frequencies + cosOffsets);
+#else // USE_ONNX
+      auto signal = graph_->constant({dimWords, 1, dimEmb},
+                                     inits::sinusoidalPositionEmbeddings(start));
+#endif // USE_ONNX
 
       embeddings = embeddings + signal;
     }
