@@ -356,16 +356,16 @@ namespace marian {
           }
           float extraScalar = 1.0f;
           if (v->type() == "bdot") {  // this maps to ONNX MatMul
-            scalar = 1.0f;            // we cannot scale in ONNX MatMul
             extraScalar = scalar;     // must add extra scale operation at the end
+            scalar = 1.0f;            // we cannot scale in ONNX MatMul
             ABORT_IF(transA || transB || scalar != 1.0f, "Transposition and/or scalar not mapped away??");
             n = bdot(a, b, transA, transB, scalar);
           }
           else { // dot, affine
             // @BUGBUG: Gemm always crashes with ONNX runtime. So we can't do this optimization.
             //if (a->shape().size() != 2 || b->shape().size() != 2) {  // not ONNX MatMul: must use explicit scale operation
-              scalar = 1.0f;
               extraScalar = scalar;
+              scalar = 1.0f;
             //}
             n = dot(a, b, transA, transB, scalar);
             //LOG(info, "{} {} x {} -> {}", v->type(), std::string(a->shape()), std::string(b->shape()), std::string(n->shape()));

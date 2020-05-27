@@ -47,6 +47,21 @@ namespace marian {
     }
     setInference(true);  // note: must also set "inference" parameter on options
 
+    // if we must suppress <unk>, we do that by patching the bias
+    const auto trgUnkId = vocabs.back()->getUnkId();
+    int unkColId = -1;
+    if (trgUnkId != Word::NONE && !modelOptions->get<bool>("allow-unk", false)) { // do we need to suppress unk?
+      unkColId = trgUnkId.toWordIndex(); // what's the raw index of unk in the log prob vector?
+      // find the bias
+      const std::string outputBiasName = "decoder_ff_logit_out_b";
+      auto outputBias = graph->get(outputBiasName);
+      auto outputBiasVal = outputBias->val();
+      std::vector<float> outputBiasVec;
+      outputBiasVal->get(outputBiasVec);
+      outputBiasVec[unkColId] = -std::numeric_limits<float>::infinity();
+      outputBiasVal->set(outputBiasVec);
+    }
+
     // the input length is represented by a value that hopefully is not used elsewhere
     const size_t sentinelDim = 97;  // who uses prime numbers as dimensions anyways!
     size_t numEncoders = vocabs.size() - 1;  // @TODO: test this exporter for >1 encoder

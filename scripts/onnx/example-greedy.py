@@ -38,7 +38,7 @@ id2word = { id : word.rstrip() for id, word in enumerate(open('c:/work/marian-de
 word2id = { word : id for id, word in id2word.items() }
 unk_id = word2id["<unk>"]
 
-model_path_prefix = "c:/work/marian-dev/local/model/model.npz.best-ce-mean-words-debug-sin-uniq-notrans"
+model_path_prefix = "c:/work/marian-dev/local/model/model.npz.best-ce-mean-words-debug-sin-uniq-notrans-nounk"
 encode_source = get_function(model_path_prefix + '.encode_source.onnx',
                              ['encoder_context_0'])
 decode_first  = get_function(model_path_prefix + '.decode_first.onnx',
