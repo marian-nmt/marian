@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     ABORT("Unknown gemm-type: {}", saveGemmTypeStr);
   }
 
-  LOG(info, "Outputting {}", modelTo);
+  LOG(info, "Outputting {}, precision: {}", modelTo, saveGemmType);
 
   YAML::Node config;
   std::stringstream configStr;
