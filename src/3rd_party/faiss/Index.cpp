@@ -11,7 +11,6 @@
 #include "common/logging.h"
 #include <cstring>
 
-
 namespace faiss {
 
 Index::~Index ()

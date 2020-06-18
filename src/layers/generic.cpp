@@ -219,9 +219,13 @@ namespace marian {
 
       // this option is only set in the decoder
       if(!lsh_ && options_->hasAndNotEmpty("output-approx-knn")) {
+#if BLAS_FOUND
         auto k     = opt<std::vector<int>>("output-approx-knn")[0];
         auto nbits = opt<std::vector<int>>("output-approx-knn")[1];
         lsh_ = New<LSH>(k, nbits);
+#else
+        ABORT("Requires BLAS library");
+#endif
       }
 
       auto name = options_->get<std::string>("prefix");
@@ -264,6 +268,7 @@ namespace marian {
       lazyConstruct(input->shape()[-1]);
 
       auto affineOrLSH = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
+#if BLAS_FOUND
         if(lsh_) {
           ABORT_IF( transA, "Transposed query not supported for LSH");
           ABORT_IF(!transB, "Untransposed indexed matrix not supported for LSH");
@@ -271,6 +276,9 @@ namespace marian {
         } else {
           return affine(x, W, b, transA, transB);
         }
+#else
+        return affine(x, W, b, transA, transB);
+#endif
       };
 
       if (shortlist_ && !cachedShortWt_) { // shortlisted versions of parameters are cached within one batch, then clear()ed

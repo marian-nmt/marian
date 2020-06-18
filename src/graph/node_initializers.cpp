@@ -254,6 +254,7 @@ template Ptr<NodeInitializer> range<IndexType>(IndexType begin, IndexType end, I
 }  // namespace marian
 
 
+#if BLAS_FOUND
 #include "faiss/VectorTransform.h"
 
 namespace marian {
@@ -272,3 +273,4 @@ Ptr<NodeInitializer> randomRotation(size_t seed) {
 
 }  // namespace inits
 }  // namespace marian
+#endif
