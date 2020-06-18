@@ -136,6 +136,10 @@ void saveItemsNpz(const std::string& fileName, const std::vector<Item>& items) {
       type = cnpy::map_type(typeid(double));
     else if(item.type == Type::int8)
       type = cnpy::map_type(typeid(char));
+    else if(item.type == Type::int32)
+      type = cnpy::map_type(typeid(int32_t));
+    else if (item.type == Type::uint32)
+        type = cnpy::map_type(typeid(uint32_t));
     else
       ABORT("Other types not supported yet");
 

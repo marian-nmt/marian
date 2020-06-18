@@ -31,6 +31,7 @@ struct UnaryNodeOp : public NaryNodeOp {
 
 struct ScalarAddNodeOp : public UnaryNodeOp {
 private:
+  friend class SerializationHelpers;
   float scalar_{0};
 
 public:
@@ -88,6 +89,7 @@ public:
 
 struct ScalarMultNodeOp : public UnaryNodeOp {
 private:
+  friend class SerializationHelpers;
   float scalar_{0};
 
 public:
@@ -462,6 +464,7 @@ enum class ReduceNodeOpCode {
 };
 
 struct ReduceNodeOp : public UnaryNodeOp {
+  friend class SerializationHelpers;
   int axis_;
   ReduceNodeOpCode opCode_;
   int reducedDim_; // dimension of axis being reduced, e.g. used in mean()
@@ -470,7 +473,10 @@ struct ReduceNodeOp : public UnaryNodeOp {
       : UnaryNodeOp(a, newShape(a, axis)), opCode_(opCode)
   {
     reducedDim_ = a->shape()[axis]; // e.g. used in mean()
-    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), "bug in determining reducedDim");
+    ABORT_IF(reducedDim_ != a->shape().elements() / shape().elements(), 
+             "Bug in determining reducedDim {} != {}",
+             reducedDim_,
+             a->shape().elements() / shape().elements());
   }
 
   NodeOps forwardOps() override {
@@ -611,6 +617,54 @@ struct ExpNodeOp : public UnaryNodeOp {
   const std::string type() override { return "exp"; }
 };
 
+struct SinNodeOp : public UnaryNodeOp {
+  SinNodeOp(Expr a) : UnaryNodeOp(a) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return {NodeOp(Element(_1 = sin(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return {NodeOp(Add(_1 * cos(_2), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() override { return "sin"; }
+};
+
+struct CosNodeOp : public UnaryNodeOp {
+  CosNodeOp(Expr a) : UnaryNodeOp(a) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return {NodeOp(Element(_1 = cos(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return {NodeOp(Add(_1 * -sin(_2), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() override { return "sin"; }
+};
+
+struct TanNodeOp : public UnaryNodeOp {
+  TanNodeOp(Expr a) : UnaryNodeOp(a) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return {NodeOp(Element(_1 = tan(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return {NodeOp(Add(_1 / sqr(cos(_2)), child(0)->grad(), adj_, child(0)->val()))};
+  }
+
+  const std::string type() override { return "sin"; }
+};
+
 struct SqrtNodeOp : public UnaryNodeOp {
   float epsilon_;
 
@@ -679,13 +733,10 @@ struct NegNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(-_1, child(0)->grad(), adj_))};
   }
 
-  const std::string type() override { return "-"; }
+  const std::string type() override { return "negate"; }
 };
 
 struct TransposeNodeOp : public UnaryNodeOp {
-  std::vector<int> axes_;
-  std::vector<int> axesBw_;
-
   TransposeNodeOp(Expr a, const std::vector<int>& axes)
       : UnaryNodeOp(a, newShape(a, axes)), axes_{axes}, axesBw_(axes.size()) {
     for(int i = 0; i < axes_.size(); ++i)
@@ -736,10 +787,16 @@ struct TransposeNodeOp : public UnaryNodeOp {
   const std::string type() override { return "transpose"; }
 
   const std::string color() override { return "orange"; }
+
+private:
+  friend class SerializationHelpers;
+  std::vector<int> axes_;
+  std::vector<int> axesBw_;
 };
 
 class ReshapeNodeOp : public UnaryNodeOp {
 private:
+  friend class SerializationHelpers;
   Expr reshapee_;
 
 public:
@@ -751,7 +808,7 @@ public:
 
   ~ReshapeNodeOp() {}
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -817,7 +874,7 @@ public:
 
   ~ClipGradientNodeOp() {}
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -874,6 +931,7 @@ public:
 // The resulting object must be consecutive in memory.
 class SliceViewNodeOp : public UnaryNodeOp {
 private:
+  friend class SerializationHelpers;
   Expr viewedNode_; // viewed underlying node
   Slice slice_;     // index range
   int axis_;        // and axis along which it is viewed
@@ -903,7 +961,7 @@ public:
     return outShape;
   }
 
-  size_t allocate() override { return 0; }
+  void allocate() override {}
   void free() override {}
 
   void forward() override {}
@@ -999,8 +1057,26 @@ struct ShiftNodeOp : public UnaryNodeOp {
     return true;
   }
 
+private:
+  friend class SerializationHelpers;
   Shape shift_;     // shift offsets in each dimension
   float padValue_;  // what value to shift in
+};
+
+struct AbsNodeOp : public UnaryNodeOp {
+  AbsNodeOp(Expr a) : UnaryNodeOp(a) {}
+
+  NodeOps forwardOps() override {
+    using namespace functional;
+    return {NodeOp(Element(_1 = abs(_2), val_, child(0)->val()))};
+  }
+
+  NodeOps backwardOps() override {
+    using namespace functional;
+    return {NodeOp(Add(sgn(_1) * _2, child(0)->grad(), child(0)->val(), adj_))};
+  }
+
+  const std::string type() override { return "abs"; }
 };
 
 #ifdef CUDNN
@@ -1068,6 +1144,7 @@ public:
   const std::string type() override { return "layer_pooling"; }
 
 protected:
+  friend class SerializationHelpers;
   Expr mask_;
   int width_;
   bool isEven_;

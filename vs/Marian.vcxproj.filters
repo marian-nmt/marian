@@ -250,6 +250,15 @@
     <ClCompile Include="..\src\common\version.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.cc">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.cpp">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rescorer\score_collector.cpp">
+      <Filter>rescorer</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\tensors\cpu\sharp\int_gemm.cpp">
       <Filter>tensors\cpu\sharp</Filter>
     </ClCompile>
@@ -426,39 +435,6 @@
     </ClCompile>
     <ClCompile Include="..\src\3rd_party\pathie-cpp\src\temp.cpp">
       <Filter>3rd_party\pathie-cpp\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\attention_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\cli_test.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\dropout_test.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\graph_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\logger_test.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\operator_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\pooling_test.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\prod.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\rnn_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\run_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\sqlite_test.cpp">
-      <Filter>tests</Filter>
     </ClCompile>
     <ClCompile Include="..\src\examples\mnist\mnist_ffnn.cpp">
       <Filter>examples\mnist</Filter>
@@ -876,6 +852,84 @@
     </ClCompile>
     <ClCompile Include="..\src\training\graph_group.cpp">
       <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\file_utils.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tensors\cpu\topk.cpp">
+      <Filter>tensors\cpu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\protobuf.cpp">
+      <Filter>onnx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_exporter.cpp">
+      <Filter>onnx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_serialization.cpp">
+      <Filter>onnx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\cli.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\dropout.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\logger.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\pooling.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\prod.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\sqlite.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\attention_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\fastopt_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\graph_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\operator_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\rnn_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\run_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\utils_tests.cpp">
+      <Filter>tests\units</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\Index.cpp">
+      <Filter>3rd_party\faiss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\IndexLSH.cpp">
+      <Filter>3rd_party\faiss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\VectorTransform.cpp">
+      <Filter>3rd_party\faiss</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\hamming.cpp">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\Heap.cpp">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\misc.cpp">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\random.cpp">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\layers\lsh.cpp">
+      <Filter>layers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1687,6 +1741,12 @@
     <ClInclude Include="..\src\tensors\gpu\sparse.h">
       <Filter>tensors\gpu</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.h">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.h">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model.h">
       <Filter>3rd_party\sentencepiece\src</Filter>
     </ClInclude>
@@ -2251,6 +2311,43 @@
     <ClInclude Include="..\src\tensors\cpu\fbgemm\packed_gemm.h">
       <Filter>tensors\cpu\fbgemm</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common\file_utils.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tensors\gpu\add_all.h">
+      <Filter>tensors\gpu</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\src\onnx\expression_graph_onnx_exporter.h">
+      <Filter>onnx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\Index.h">
+      <Filter>3rd_party\faiss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\IndexLSH.h">
+      <Filter>3rd_party\faiss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\VectorTransform.h">
+      <Filter>3rd_party\faiss</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\utils\hamming.h">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\utils\hamming-inl.h">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\utils\Heap.h">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\utils\misc.h">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\faiss\utils\random.h">
+      <Filter>3rd_party\faiss\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\layers\lsh.h">
+      <Filter>layers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2499,6 +2596,24 @@
     <Filter Include="tensors\cpu\fbgemm">
       <UniqueIdentifier>{bf361868-f451-45b8-9695-570d67924972}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd_party\onnx">
+      <UniqueIdentifier>{ba00e638-d55d-4722-9caa-c9e6e133a072}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\onnx\protobuf">
+      <UniqueIdentifier>{153199ee-2f29-4bd6-8187-4235ac020ccd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="onnx">
+      <UniqueIdentifier>{f3849101-b84e-48c1-af5d-27c79ce89e70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\units">
+      <UniqueIdentifier>{d145421b-1723-47f1-858d-2e49adb24b03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\faiss">
+      <UniqueIdentifier>{e479c8b0-9309-4df4-a28c-9af145c69b51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd_party\faiss\utils">
+      <UniqueIdentifier>{b100324b-a506-45fa-948e-40be75b239fc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
@@ -2627,6 +2742,18 @@
     <None Include="..\src\3rd_party\half_float\umHalf.inl">
       <Filter>3rd_party\half_float</Filter>
     </None>
+    <None Include="..\src\tensors\gpu\add_all.inc">
+      <Filter>tensors\gpu</Filter>
+    </None>
+    <None Include="..\src\3rd_party\onnx\protobuf\onnx-ml.proto">
+      <Filter>3rd_party\onnx\protobuf</Filter>
+    </None>
+    <None Include="..\src\3rd_party\faiss\LICENSE">
+      <Filter>3rd_party\faiss</Filter>
+    </None>
+    <None Include="..\src\3rd_party\faiss\README">
+      <Filter>3rd_party\faiss</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
@@ -2640,6 +2767,12 @@
     </Text>
     <Text Include="..\src\examples\CMakeLists.txt">
       <Filter>examples</Filter>
+    </Text>
+    <Text Include="..\src\tests\units\CMakeLists.txt">
+      <Filter>tests\units</Filter>
+    </Text>
+    <Text Include="..\src\3rd_party\faiss\CMakeLists.txt">
+      <Filter>3rd_party\faiss</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -2669,6 +2802,15 @@
     </CudaCompile>
     <CudaCompile Include="..\src\tensors\gpu\sparse.cu">
       <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\add_all.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\topk.cu">
+      <Filter>tensors\gpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\tests\tensor.cu">
+      <Filter>tests</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

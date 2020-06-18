@@ -246,7 +246,7 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
 
 // @TODO: clean-up this code and unify with marian-conv. The targetPrec parameter is not clear enought etc.
 bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec) {
-  std::cout << "Converting from: " << inputFile << ", to: " << outputFile << std::endl;
+  std::cerr << "Converting from: " << inputFile << ", to: " << outputFile << ", precision: " << targetPrec << std::endl;
 
   YAML::Node config;
   std::stringstream configStr;
@@ -268,7 +268,7 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
   // added a flag if the weights needs to be packed or not
   graph->packAndSave(outputFile, configStr.str(), saveGemmType);
 
-  std::cout << "Conversion Finished." << std::endl;
+  std::cerr << "Conversion Finished." << std::endl;
 
   return true;
 }

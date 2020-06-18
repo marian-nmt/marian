@@ -65,9 +65,9 @@ public:
 
   void free(const Tensor& tensor) { tensors_->free(tensor); }
 
-  // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() { return tensors_->allocator(); }
-
+  Ptr<Allocator>       getAllocator() { return tensors_->allocator(); }
+  Ptr<TensorAllocator> getTensorAllocator() { return tensors_; }
+  
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
     // memoize constant nodes that are not parameters
@@ -115,14 +115,16 @@ typedef std::map<Type, Ptr<Parameters>> ElementTypeParamsMap; // keep it sorted,
 class ExpressionGraph : public std::enable_shared_from_this<ExpressionGraph> {
   size_t count_{0};
 
+  std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
+
+protected:  // (these are protected, not private, for ONNX exporting)
   std::list<Expr> nodesForward_;
   std::list<Expr> nodesBackward_;
-
-  std::unordered_set<Expr> topNodes_; // current set of roots. In the end, all but one must have been consumed.
 
   // Holds memory and expressions that correspond to temporary expressions.
   // This gets cleared before a new graph is built.
   Ptr<Tensors> tensors_;
+private:
 
   std::unordered_map<size_t, std::vector<Expr>> memoized_;
 
@@ -463,8 +465,11 @@ public:
       tensors_->free(tensor);
   }
 
-  // @TODO: get rid of this, not really used or can be done better
-  Ptr<Allocator> allocator() { return tensors_->allocator(); }
+  // Returns the memory allocator of the graph workspace, allocates row unstructured memory (but 256-byte aligned)
+  Ptr<Allocator> allocator() { return tensors_->getAllocator(); } // @TODO: rename this to getAllocator();
+
+  // Returns the tensor allocator of the graph workspace, different from above as proper tensor objects are allocated
+  Ptr<TensorAllocator> getTensorAllocator() { return tensors_->getTensorAllocator(); }
 
   void clear() {
     // clear everything apart from parameters and memoized nodes

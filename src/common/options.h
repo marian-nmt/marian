@@ -68,6 +68,10 @@ public:
   Options(const std::string& key, T value, Args&&... moreArgs) : Options() {
     set(key, value, std::forward<Args>(moreArgs)...);
   }
+
+  Options(const YAML::Node& node) : Options() {
+     merge(node);
+  }
   
   // constructor that clones and zero or more updates
   // options->with("var1", val1, "var2", val2, ...)

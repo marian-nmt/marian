@@ -63,7 +63,7 @@ public:
   virtual NodeOps forwardOps() = 0;
   virtual NodeOps backwardOps() = 0;
 
-  virtual size_t allocate() = 0;
+  virtual void allocate() = 0;
   virtual void free() = 0;
   virtual void init() = 0;
   virtual void init_dependent() {}

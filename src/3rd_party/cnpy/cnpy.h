@@ -5,6 +5,8 @@
 #ifndef LIBCNPY_H_
 #define LIBCNPY_H_
 
+#include "3rd_party/zlib/zlib.h"
+
 #include<string>
 #include<stdexcept>
 #include<sstream>
@@ -13,7 +15,6 @@
 #include<typeinfo>
 #include<iostream>
 #include<cassert>
-#include<zlib.h>
 #include<map>
 #include <memory>
 
