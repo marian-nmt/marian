@@ -10,6 +10,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsuggest-override"
 #endif
+#undef HOST
 #include "mpi.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

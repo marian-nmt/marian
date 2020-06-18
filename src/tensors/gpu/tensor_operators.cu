@@ -478,6 +478,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTranspose0213<false><<<blocks, threads>>>(out->data<float>(), in->data<float>(), rows, cols, stride1, stride2);
+    } else if(in->type() == Type::uint32) {
+      gTranspose0213<false><<<blocks, threads>>>(out->data<uint32_t>(), in->data<uint32_t>(), rows, cols, stride1, stride2);
 #if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       gTranspose0213<false><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols, stride1, stride2);
@@ -501,6 +503,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTransposeND<false, float><<<blocks, threads>>>(out, in, axes);
+    } else if(in->type() == Type::uint32) {
+      gTransposeND<false, uint32_t><<<blocks, threads>>>(out, in, axes);
 #if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       gTransposeND<false, half><<<blocks, threads>>>(out, in, axes);

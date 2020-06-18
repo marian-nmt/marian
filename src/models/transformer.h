@@ -333,6 +333,7 @@ public:
                       const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
                       const Expr& values, // ...?
                       const Expr& mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                      int dimHeads,
                       bool cache = false,
                       bool saveAttentionWeights = false) {
     int dimModel = input->shape()[-1];
@@ -341,10 +342,8 @@ public:
     auto opsPre = opt<std::string>("transformer-preprocess");
     auto output = preProcess(prefix + "_Wo", opsPre, input, dropProb);
 
-    auto heads = opt<int>("transformer-heads");
-
     // multi-head self-attention over previous input
-    output = MultiHead(prefix, dimModel, heads, output, keys, values, mask, cache, saveAttentionWeights);
+    output = MultiHead(prefix, dimModel, dimHeads, output, keys, values, mask, cache, saveAttentionWeights);
     
     auto opsPost = opt<std::string>("transformer-postprocess");
     output = postProcess(prefix + "_Wo", opsPost, output, input, dropProb);
@@ -367,7 +366,7 @@ public:
     decoderLayerState.output = values;
 
     return LayerAttention(prefix, input, values, values, selfMask,
-                          /*cache=*/false);
+                          opt<int>("transformer-heads"), /*cache=*/false);
   }
 
   static inline
@@ -552,7 +551,8 @@ public:
                              layer, // query
                              layer, // keys
                              layer, // values
-                             layerMask); // [batch size, num heads broadcast=1, max length broadcast=1, max length]
+                             layerMask, // [batch size, num heads broadcast=1, max length broadcast=1, max length]
+                             opt<int>("transformer-heads"));
       layer = LayerFFN(prefix_ + "_l" + std::to_string(i) + "_ffn", layer);
       checkpoint(layer); // sets a manually specified checkpoint if gradient checkpointing is enabled, does nothing otherwise.
     }
@@ -697,6 +697,7 @@ public:
       selfMask = selfMask * decoderMask;
     }
 
+    // gather encoder contexts
     std::vector<Expr> encoderContexts;
     std::vector<Expr> encoderMasks;
     for(auto encoderState : state->getEncoderStates()) {
@@ -763,7 +764,7 @@ public:
 
       checkpoint(query);
 
-      // source-target attention
+      // cross-attention (source-target)
       // Iterate over multiple encoders and simply stack the attention blocks
       if(encoderContexts.size() > 0) {
         for(size_t j = 0; j < encoderContexts.size(); ++j) { // multiple encoders are applied one after another
@@ -794,6 +795,7 @@ public:
                                  encoderContexts[j], // keys
                                  encoderContexts[j], // values
                                  encoderMasks[j],
+                                 opt<int>("transformer-heads"),
                                  /*cache=*/true,
                                  saveAttentionWeights);
         }
