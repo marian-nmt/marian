@@ -1,8 +1,10 @@
 #include "common/file_stream.h"
+#include "common/utils.h"
 
 #include <streambuf>
 #include <string>
 #include <vector>
+#include <cstdio>
 #ifdef _MSC_VER
 #include <io.h>
 #include <windows.h>
@@ -18,23 +20,42 @@ namespace io {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 InputFileStream::InputFileStream(const std::string &file)
-    : std::istream(NULL), file_(file) {
-  ABORT_IF(!marian::filesystem::exists(file_), "File '{}' does not exist", file);
-
+    : std::istream(NULL) {
+  // the special syntax "command |" starts command in a sh shell and reads out its result
+  if (marian::utils::endsWith(file, "|")) {
+#ifdef __unix__
+    auto command = file.substr(0, file.size() - 1);
+    // open as a pipe
+    pipe_ = popen(command.c_str(), "r");
+    ABORT_IF(!pipe_, "Command failed to execute ({}): {}", errno, command);
+    // there is no official way to construct a filebuf from a FILE* or fd, so we use /proc/{pid}/fd/{fd}
+    // For now, this only works on Linux. There are similar workarounds for Windows.
+    file_ = "/proc/" + std::to_string(getpid()) + "/fd/" + std::to_string(fileno(pipe_));
+#else
+    ABORT("Pipe syntax not supported in this build of Marian: {}", file);
+#endif
+  }
+  else
+    file_ = file;
   streamBuf1_.reset(new std::filebuf());
-  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file.c_str(), std::ios::in | std::ios::binary);
-  ABORT_IF(!ret, "File cannot be opened", file);
+  auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file_.string().c_str(), std::ios::in | std::ios::binary);
+  ABORT_IF(!ret, "Error opening file ({}): {}", errno, file_.string());
   ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
 
-  if(file_.extension() == marian::filesystem::Path(".gz")) {
-    streamBuf2_.reset(new zstr::istreambuf(streamBuf1_.get()));
-    this->init(streamBuf2_.get());
-  } else {
-    this->init(streamBuf1_.get());
+  // insert .gz decompression
+  if(marian::utils::endsWith(file, ".gz")) {
+    streamBuf2_ = std::move(streamBuf1_);
+    streamBuf1_.reset(new zstr::istreambuf(streamBuf2_.get()));
   }
+
+  // initialize the underlying istream
+  this->init(streamBuf1_.get());
 }
 
-InputFileStream::~InputFileStream() {}
+InputFileStream::~InputFileStream() {
+  if (pipe_)
+    pclose(pipe_);  // non-NULL if pipe syntax was used
+}
 
 bool InputFileStream::empty() {
   return this->peek() == std::ifstream::traits_type::eof();

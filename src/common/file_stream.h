@@ -49,8 +49,9 @@ public:
 
 protected:
   marian::filesystem::Path file_;
-  std::unique_ptr<std::streambuf> streamBuf1_;
-  std::unique_ptr<std::streambuf> streamBuf2_;
+  std::unique_ptr<std::streambuf> streamBuf1_;  // main streambuf
+  std::unique_ptr<std::streambuf> streamBuf2_;  // in case of a .gz file
+  FILE* pipe_{};                                // in case of pipe syntax
   std::vector<char> readBuf_;
 };
 
