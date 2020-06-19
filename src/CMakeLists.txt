@@ -70,6 +70,7 @@ add_library(marian STATIC
   layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
+  layers/lsh.cpp 
 
   rnn/cells.cpp
   rnn/attention.cpp
@@ -105,11 +106,8 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:SQLiteCpp>
   $<TARGET_OBJECTS:pathie-cpp>
   $<TARGET_OBJECTS:zlib>
+  $<TARGET_OBJECTS:faiss>
 )
-
-if(BLAS_FOUND)
-  target_sources(marian PRIVATE ${CMAKE_CURRENT_LIST_DIR}/layers/lsh.cpp $<TARGET_OBJECTS:faiss>)
-endif()
 
 target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 

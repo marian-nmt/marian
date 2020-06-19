@@ -6,7 +6,6 @@
 #endif
 #endif
 
-#if BLAS_FOUND
 inline void sgemm(bool transA,
                   bool transB,
                   int rows_a,
@@ -20,6 +19,7 @@ inline void sgemm(bool transA,
                   float beta,
                   float* c,
                   int ldc) {
+#if BLAS_FOUND
   cblas_sgemm(CblasRowMajor,
               transA ? CblasTrans : CblasNoTrans,
               transB ? CblasTrans : CblasNoTrans,
@@ -34,5 +34,7 @@ inline void sgemm(bool transA,
               beta,
               c,
               ldc);
-}
+#else
+    ABORT("Marian must be compiled with a BLAS library");
 #endif
+}
