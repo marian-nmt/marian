@@ -107,7 +107,7 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:zlib>
 )
 
-if(COMPILE_CPU)
+if(BLAS_FOUND)
   target_sources(marian PRIVATE ${CMAKE_CURRENT_LIST_DIR}/layers/lsh.cpp $<TARGET_OBJECTS:faiss>)
 endif()
 
