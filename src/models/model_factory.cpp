@@ -10,6 +10,7 @@
 #include "models/amun.h"
 #include "models/nematus.h"
 #include "models/s2s.h"
+#include "models/laser.h"
 #include "models/transformer_factory.h"
 
 #ifdef CUDNN
@@ -29,6 +30,9 @@ namespace models {
 Ptr<EncoderBase> EncoderFactory::construct(Ptr<ExpressionGraph> graph) {
   if(options_->get<std::string>("type") == "s2s")
     return New<EncoderS2S>(graph, options_);
+  
+  if(options_->get<std::string>("type") == "laser" || options_->get<std::string>("type") == "laser-sim")
+    return New<EncoderLaser>(graph, options_);
 
 #ifdef CUDNN
   if(options_->get<std::string>("type") == "char-s2s")
@@ -59,6 +63,17 @@ Ptr<ClassifierBase> ClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
     return New<BertClassifier>(graph, options_);
   else
     ABORT("Unknown classifier type");
+}
+
+Ptr<PoolerBase> PoolerFactory::construct(Ptr<ExpressionGraph> graph) {
+  if(options_->get<std::string>("type") == "max-pooler")
+    return New<MaxPooler>(graph, options_);
+  if(options_->get<std::string>("type") == "slice-pooler")
+    return New<SlicePooler>(graph, options_);
+  else if(options_->get<std::string>("type") == "sim-pooler")
+    return New<SimPooler>(graph, options_);
+  else
+    ABORT("Unknown pooler type");
 }
 
 Ptr<IModel> EncoderDecoderFactory::construct(Ptr<ExpressionGraph> graph) {
@@ -97,9 +112,54 @@ Ptr<IModel> EncoderClassifierFactory::construct(Ptr<ExpressionGraph> graph) {
   return enccls;
 }
 
+Ptr<IModel> EncoderPoolerFactory::construct(Ptr<ExpressionGraph> graph) {
+  Ptr<EncoderPooler> encpool = New<EncoderPooler>(options_);
+
+  for(auto& ef : encoders_)
+    encpool->push_back(ef(options_).construct(graph));
+
+  for(auto& pl : poolers_)
+    encpool->push_back(pl(options_).construct(graph));
+
+  return encpool;
+}
+
 Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> options) {
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
+
+  if(use == usage::embedding) { // hijacking an EncoderDecoder model for embedding only
+    int dimVocab = options->get<std::vector<int>>("dim-vocabs")[0];
+    
+    Ptr<Options> newOptions;
+    if(options->get<bool>("compute-similarity")) {
+      newOptions = options->with("usage", use,
+                                 "original-type", type,
+                                 "input-types", std::vector<std::string>({"sequence", "sequence"}),
+                                 "dim-vocabs", std::vector<int>(2, dimVocab));
+    } else {
+      newOptions = options->with("usage", use,
+                                 "original-type", type,
+                                 "input-types", std::vector<std::string>({"sequence"}),
+                                 "dim-vocabs", std::vector<int>(1, dimVocab));
+    }
+    
+    auto res = New<EncoderPooler>(newOptions);      
+    if(options->get<bool>("compute-similarity")) {
+      res->push_back(models::encoder(newOptions->with("index", 0)).construct(graph));
+      res->push_back(models::encoder(newOptions->with("index", 1)).construct(graph));
+      res->push_back(New<SimPooler>(graph, newOptions->with("type", "sim-pooler")));
+    } else {
+      res->push_back(models::encoder(newOptions->with("index", 0)).construct(graph));
+      if(type == "laser")
+        res->push_back(New<MaxPooler>(graph, newOptions->with("type", "max-pooler")));
+      else
+        res->push_back(New<SlicePooler>(graph, newOptions->with("type", "slice-pooler")));
+    }
+
+    return res;
+  }
+
   if(type == "s2s" || type == "amun" || type == "nematus") {
     return models::encoder_decoder(options->with(
          "usage", use,
@@ -313,7 +373,7 @@ Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage use) {
     else
       ABORT("'usage' parameter 'translation' cannot be applied to model type: {}", type);
   }
-  else if (use == usage::raw)
+  else if (use == usage::raw || use == usage::embedding)
     return baseModel;
   else
     ABORT("'Usage' parameter must be 'translation' or 'raw'");

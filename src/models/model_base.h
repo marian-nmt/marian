@@ -8,7 +8,7 @@
 namespace marian {
 namespace models {
 
-enum struct usage { raw, training, scoring, translation };
+enum struct usage { raw, training, scoring, translation, embedding };
 }
 }  // namespace marian
 

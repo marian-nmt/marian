@@ -83,6 +83,7 @@ add_library(marian STATIC
   models/transformer_stub.cpp
 
   rescorer/score_collector.cpp
+  embedder/vector_collector.cpp
 
   translator/history.cpp
   translator/output_collector.cpp

@@ -51,6 +51,7 @@ EncoderDecoder::EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options)
   modelFeatures_.insert("transformer-tied-layers");
   modelFeatures_.insert("transformer-guided-alignment-layer");
   modelFeatures_.insert("transformer-train-position-embeddings");
+  modelFeatures_.insert("transformer-pool");
 
   modelFeatures_.insert("bert-train-type-embeddings");
   modelFeatures_.insert("bert-type-vocab-size");

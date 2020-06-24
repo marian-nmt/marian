@@ -91,6 +91,9 @@ ConfigParser::ConfigParser(cli::mode mode)
     case cli::mode::scoring:
       addOptionsScoring(cli_);
       break;
+    case cli::mode::embedding:
+      addOptionsEmbedding(cli_);
+      break;
     default:
       ABORT("wrong CLI mode");
       break;
@@ -235,6 +238,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       8);
   cli.add<bool>("--transformer-no-projection",
       "Omit linear projection after multi-head attention (transformer)");
+  cli.add<bool>("--transformer-pool",
+      "Pool encoder states instead of using cross attention (selects first encoder state, best used with special token)");
   cli.add<int>("--transformer-dim-ffn",
       "Size of position-wise feed-forward network (transformer)",
       2048);
@@ -688,6 +693,45 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
 
+  addSuboptionsInputLength(cli);
+  addSuboptionsTSV(cli);
+  addSuboptionsDevices(cli);
+  addSuboptionsBatching(cli);
+
+  cli.add<bool>("--optimize",
+      "Optimize speed aggressively sacrificing memory or precision");
+  cli.add<bool>("--fp16",
+      "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
+  cli.add<std::vector<std::string>>("--precision",
+      "Mixed precision for inference, set parameter type in expression graph",
+      {"float32"});
+
+  cli.switchGroup(previous_group);
+  // clang-format on
+}
+
+void ConfigParser::addOptionsEmbedding(cli::CLIWrapper& cli) {
+  auto previous_group = cli.switchGroup("Scorer options");
+
+  // clang-format off
+  cli.add<bool>("--no-reload",
+      "Do not load existing model specified in --model arg");
+  // TODO: move options like vocabs and train-sets to a separate procedure as they are defined twice
+  cli.add<std::vector<std::string>>("--train-sets,-t",
+      "Paths to corpora to be scored: source target");
+  cli.add<std::string>("--output,-o",
+      "Path to output file, stdout by default",
+      "stdout");
+  cli.add<std::vector<std::string>>("--vocabs,-v",
+      "Paths to vocabulary files have to correspond to --train-sets. "
+      "If this parameter is not supplied we look for vocabulary files source.{yml,json} and target.{yml,json}. "
+      "If these files do not exists they are created");
+
+  cli.add<bool>("--compute-similarity",
+      "Expect two inputs and compute cosine similarity instead of outputting embedding vector");
+  cli.add<bool>("--binary",
+      "Output vectors as binary floats");
+  
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);
   addSuboptionsDevices(cli);

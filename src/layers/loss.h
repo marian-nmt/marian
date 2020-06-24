@@ -416,7 +416,7 @@ protected:
     ABORT_IF(logits.getNumFactorGroups() > 1, "Unlikelihood loss is not implemented for factors");
 
     ABORT_IF(!mask, "mask is required"); // @TODO: check this, it seems weights for padding are by default 1, which would make this obsolete.
-    // use label weights, where 1 is GOOD and 0 is BAD. After inversion here, now 1 marks, mask again to eliminate padding (might be obsolete)
+    // use label weights, where 1 is GOOD and 0 is BAD. After inversion here, now 1 marks BAD, mask again to eliminate padding (might be obsolete)
     auto errorMask = (1.f - cast(labelWeights, Type::float32)) * cast(mask, Type::float32);
 
     auto ceUl = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {

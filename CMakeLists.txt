@@ -187,6 +187,13 @@ else(MSVC)
   set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 endif(MSVC)
 
+# with gcc 7.0 and above we need to mark fallthrough in switch case statements
+# that can be done in comments for backcompat, but CCACHE removes comments.
+# -C makes gcc keep comments.
+if(USE_CCACHE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -C")
+endif()
+
 ###############################################################################
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
