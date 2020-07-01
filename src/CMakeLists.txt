@@ -122,7 +122,6 @@ if(NOT IS_DIRECTORY ${MARIAN_GIT_DIR}) # i.e., it's a submodule
   if(NOT IS_ABSOLUTE ${MARIAN_GIT_DIR})
     get_filename_component(MARIAN_GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${MARIAN_GIT_DIR}" ABSOLUTE)
   endif()
-  message("MARIAN GIT DIR IS: ${MARIAN_GIT_DIR}")
 endif(NOT IS_DIRECTORY ${MARIAN_GIT_DIR})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h
