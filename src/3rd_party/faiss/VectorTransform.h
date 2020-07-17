@@ -18,6 +18,9 @@
 #include <stdint.h>
 
 #include <faiss/Index.h>
+#ifdef __APPLE__
+#include <x86intrin.h>
+#endif
 
 
 namespace faiss {
