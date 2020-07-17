@@ -66,7 +66,7 @@ if(USE_SENTENCEPIECE)
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    foreach(t sentencepiece sentencepiece_train sentencepiece_train-static
+    foreach(t sentencepiece-static sentencepiece_train-static
         spm_decode spm_encode spm_export_vocab spm_normalize spm_train)
       set_property(TARGET ${t} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-compare -Wno-unused")
       if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0)
