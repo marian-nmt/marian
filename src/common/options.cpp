@@ -2,9 +2,9 @@
 
 namespace marian {
 
-Options::Options() 
+Options::Options()
 #if FASTOPT
-  : fastOptions_(options_) 
+  : fastOptions_(options_)
 #endif
 {}
 

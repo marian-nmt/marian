@@ -32,8 +32,6 @@ Ptr<MultiRationalLoss> newMultiLoss(Ptr<Options> options) {
       return New<MeanMultiRationalLoss>();
     else
       ABORT("Unknown multi-loss-type {}", multiLossType);
-
-    return nullptr;
 }
 
 }  // namespace marian
