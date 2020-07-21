@@ -442,8 +442,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/project_version.h.in
 # Generate build_info.cpp with CMake cache variables
 include(GetCacheVariables)
 
+# make sure src/common/build_info.cpp has been removed
+execute_process(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp
+                OUTPUT_QUIET ERROR_QUIET)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp.in
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp @ONLY)
+               ${CMAKE_CURRENT_BINARY_DIR}/src/common/build_info.cpp @ONLY)
 
 # Compile source files
 include_directories(${marian_SOURCE_DIR}/src)
