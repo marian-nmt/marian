@@ -22,7 +22,7 @@ partial_models = mo.export_marian_model_components(marian_npz, marian_vocs)
 
 # use the ONNX models in a greedy-search
 # The result is a fully self-contained model that implements greedy search.
-onnx_model = mo.combine_model_components_with_greedy_search(partial_models, num_decoder_layers)
+onnx_model = mo.compose_model_components_with_greedy_search(partial_models, num_decoder_layers)
 
 # save as ONNX file
 onnx_model.save(onnx_model_path)
