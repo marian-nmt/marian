@@ -207,6 +207,7 @@ if(USE_ONNX)
   message(STATUS "Enabling experimental ONNX support")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_ONNX")
   set(EXT_LIBS ${EXT_LIBS} protobuf)
+  include_directories(${Protobuf_INCLUDE_DIRS})
 endif()
 
 # Find packages

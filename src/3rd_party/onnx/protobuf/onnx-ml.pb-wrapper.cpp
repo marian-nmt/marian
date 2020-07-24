@@ -18,9 +18,10 @@
 #pragma warning(disable : 4100 4125 4127 4244 4267 4512 4456 4510 4610 4800)
 #endif
 #ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-variable"  // note: GCC <6.0 ignores this when inside push/pop
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wsuggest-override"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 #define AuxillaryParseTableField AuxiliaryParseTableField  // in protobuf 3.12, the generated source has a spelling error
