@@ -391,6 +391,13 @@ if(COMPILE_SERVER)
     message(STATUS "Found OpenSSL")
     include_directories(${OPENSSL_INCLUDE_DIR})
     set(EXT_LIBS ${EXT_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+    if(MSVC AND USE_STATIC_LIBS)
+      # "If you link with static OpenSSL libraries then you're expected to additionally link your
+      # application with WS2_32.LIB, GDI32.LIB, ADVAPI32.LIB, CRYPT32.LIB and USER32.LIB"
+      # See https://github.com/openssl/openssl/blob/OpenSSL_1_1_1d/NOTES.WIN#L127
+      # Linking with crypt32.lib seem to be enough.
+      set(EXT_LIBS ${EXT_LIBS} crypt32.lib)
+    endif()
     set(BOOST_COMPONENTS ${BOOST_COMPONENTS} system)
   else(OpenSSL_FOUND)
     message(WARNING "Cannot find OpenSSL library. Not compiling server.")
