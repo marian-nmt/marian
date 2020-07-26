@@ -51,6 +51,8 @@ message(STATUS "Project version: ${PROJECT_VERSION_STRING_FULL}")
 execute_process(COMMAND git submodule update --init --recursive --no-fetch
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Note that with CMake MSVC build, the option CMAKE_BUILD_TYPE is automatically derived from the key
+# 'configurationType' in CMakeSettings.json configurations
 if(NOT CMAKE_BUILD_TYPE)
   message(WARNING "CMAKE_BUILD_TYPE not set; setting to Release")
   set(CMAKE_BUILD_TYPE "Release")
@@ -65,7 +67,8 @@ if(MSVC)
   # Disabled bogus warnings for CPU intrinsics:
   # C4310: cast truncates constant value
   # C4324: 'marian::cpu::int16::`anonymous-namespace'::ScatterPut': structure was padded due to alignment specifier
-  set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\"")
+  # C4702: unreachable code; note it is also disabled globally in the VS project file
+  set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\" /wd\"4702\"")
 
   # set(INTRINSICS "/arch:AVX")
   add_definitions(-DUSE_SSE2=1)

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- GitHub workflows on Ubuntu, Windows, and MacOS
 - LSH indexing to replace short list
 - ONNX support for transformer models
 - Add topk operator like PyTorch's topk
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   and translation with options --tsv and --tsv-fields n.
 
 ### Fixed
+- CMake-based compilation on Windows
 - Fix minor issues with compilation on MacOS
 - Fix warnings in Windows MSVC builds using CMake
 - Fix building server with Boost 1.72

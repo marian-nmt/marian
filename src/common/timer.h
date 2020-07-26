@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <ctime>
 
 namespace marian {
 namespace timer {

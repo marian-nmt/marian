@@ -1,0 +1,51 @@
+name: macos-10.5-cpu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-10.15
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: brew install openblas protobuf
+
+    # Openblas location is exported explicitly because openblas is keg-only,
+    # which means it was not symlinked into /usr/local/.
+    # CMake cannot find BLAS on GitHub runners if Marian is being compiled
+    # statically, hence USE_STATIC_LIBS=off
+    - name: Configure CMake
+      run: |
+        export LDFLAGS="-L/usr/local/opt/openblas/lib"
+        export CPPFLAGS="-I/usr/local/opt/openblas/include"
+        mkdir -p build
+        cd build
+        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off
+
+    - name: Compile
+      working-directory: build
+      run: make -j2
+
+    - name: Run unit tests
+      working-directory: build
+      run: make test
+
+    - name: Print versions
+      working-directory: build
+      run: |
+        ./marian --version
+        ./marian-decoder --version
+        ./marian-scorer --version
+        ./spm_encode --version
+

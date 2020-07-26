@@ -679,7 +679,8 @@ PHF_PUBLIC void PHF::compact(struct phf *phf) {
 	}
 
 	/* simply keep old array if realloc fails */
-	if ((tmp = realloc(phf->g, phf->r * size)))
+	tmp = realloc(phf->g, phf->r * size);
+	if (tmp != 0)
 		phf->g = static_cast<uint32_t *>(tmp);
 } /* PHF::compact() */
 
