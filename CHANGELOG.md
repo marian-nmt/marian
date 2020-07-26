@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Providing a single value to vector-like options using the equals sign, e.g. --models=model.npz
+- Fix quiet-translation in marian-server
 - CMake-based compilation on Windows
 - Fix minor issues with compilation on MacOS
 - Fix warnings in Windows MSVC builds using CMake

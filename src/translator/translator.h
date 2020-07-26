@@ -254,7 +254,7 @@ public:
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
     data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
 
-    auto collector = New<StringCollector>();
+    auto collector = New<StringCollector>(options_->get<bool>("quiet-translation", false));
     auto printer = New<OutputPrinter>(options_, trgVocab_);
     size_t batchId = 0;
 
