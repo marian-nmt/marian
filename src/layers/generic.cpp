@@ -23,7 +23,7 @@ namespace marian {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
 
     auto firstLogits = logits_.front()->loss();
-    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(), 
+    ABORT_IF(labels.size() * firstLogits->shape()[-1] != firstLogits->shape().elements(),
              "Labels not matching logits shape ({} != {}, {})??",
              labels.size() * firstLogits->shape()[-1],
              firstLogits->shape().elements(),
@@ -267,8 +267,8 @@ namespace marian {
     Logits Output::applyAsLogits(Expr input) /*override final*/ {
       lazyConstruct(input->shape()[-1]);
 
-      auto affineOrLSH = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
 #if BLAS_FOUND
+      auto affineOrLSH = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
         if(lsh_) {
           ABORT_IF( transA, "Transposed query not supported for LSH");
           ABORT_IF(!transB, "Untransposed indexed matrix not supported for LSH");
@@ -276,10 +276,12 @@ namespace marian {
         } else {
           return affine(x, W, b, transA, transB);
         }
-#else
-        return affine(x, W, b, transA, transB);
-#endif
       };
+#else
+      auto affineOrLSH = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
+        return affine(x, W, b, transA, transB);
+      };
+#endif
 
       if (shortlist_ && !cachedShortWt_) { // shortlisted versions of parameters are cached within one batch, then clear()ed
         cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
@@ -362,7 +364,7 @@ namespace marian {
             factorLogits = affineOrLSH(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
           else
             factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
-          
+
           // optionally add lemma-dependent bias
           if (Plemma) { // [B... x U0]
             int lemmaVocabDim = Plemma->shape()[-1];
@@ -448,7 +450,7 @@ namespace marian {
 
     // Embedding layer initialization should depend only on embedding size, hence fanIn=false
     auto initFunc = inits::glorotUniform(/*fanIn=*/false, /*fanOut=*/true); // -> embedding vectors have roughly unit length
-    
+
     if (options_->has("embFile")) {
       std::string file = opt<std::string>("embFile");
       if (!file.empty()) {
