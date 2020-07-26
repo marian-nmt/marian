@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   and translation with options --tsv and --tsv-fields n.
 
 ### Fixed
+- Providing a single value to vector-like options using the equals sign, e.g. --models=model.npz
 - CMake-based compilation on Windows
 - Fix minor issues with compilation on MacOS
 - Fix warnings in Windows MSVC builds using CMake
