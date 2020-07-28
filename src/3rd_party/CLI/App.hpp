@@ -1595,7 +1595,8 @@ class App {
         if(num < 0) {
             // RG: We need to keep track if the vector option is empty and handle this separately as
             // otherwise the parser will mark the command-line option as not set
-            bool emptyVectorArgs = true;
+            // RG: An option value after '=' was already collected
+            bool emptyVectorArgs = (collected <= 0);
             while(!args.empty() && _recognize(args.back()) == detail::Classifer::NONE) {
                 if(collected >= -num) {
                     // We could break here for allow extras, but we don't

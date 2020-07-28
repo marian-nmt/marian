@@ -1,0 +1,49 @@
+name: windows-2019-cpu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Prepare vcpkg
+      uses: lukka/run-vcpkg@v3
+      with:
+        vcpkgArguments: protobuf
+        vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+        vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+        vcpkgTriplet: x64-windows-static
+
+    # Note that we build with a simplified CMake settings JSON file
+    - name: Run CMake
+      uses: lukka/run-cmake@v2
+      with:
+        buildDirectory: ${{ github.workspace }}/build/
+        cmakeAppendedArgs: -G Ninja
+        cmakeListsOrSettingsJson: CMakeSettingsJson
+        cmakeSettingsJsonPath: ${{ github.workspace }}/CMakeSettingsCI.json
+        useVcpkgToolchainFile: true
+
+    - name: Run unit tests
+      working-directory: build/Debug/
+      run: ctest
+
+    - name: Print versions
+      working-directory: build/Debug/
+      run: |
+        .\marian.exe --version
+        .\marian-decoder.exe --version
+        .\marian-scorer.exe --version
+        .\spm_encode.exe --version
+

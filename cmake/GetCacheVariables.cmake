@@ -34,17 +34,18 @@ foreach(_variableName ${_variableNames})
         (NOT "${_variableType}" STREQUAL "INTERNAL") AND
         (NOT "${_variableValue}" STREQUAL "") )
 
-
-        set(PROJECT_CMAKE_CACHE_ADVANCED "${PROJECT_CMAKE_CACHE_ADVANCED}    \"${_variableName}=${_variableValue}\\n\"\n")
+        string(REPLACE "\"" " " _variableValueEscapedQuotes ${_variableValue})
+        string(REPLACE "\\" "/" _variableValueEscaped ${_variableValueEscapedQuotes})
+        set(PROJECT_CMAKE_CACHE_ADVANCED "${PROJECT_CMAKE_CACHE_ADVANCED}    \"${_variableName}=${_variableValueEscaped}\\n\"\n")
 
         # Get the variable's advanced flag
         get_property(_isAdvanced CACHE ${_variableName} PROPERTY ADVANCED SET)
         if(NOT _isAdvanced)
-          set(PROJECT_CMAKE_CACHE "${PROJECT_CMAKE_CACHE}    \"${_variableName}=${_variableValue}\\n\"\n")
+          set(PROJECT_CMAKE_CACHE "${PROJECT_CMAKE_CACHE}    \"${_variableName}=${_variableValueEscaped}\\n\"\n")
         endif()
 
         # Print variables for debugging
-        #message(STATUS "${_variableName}=${${_variableName}}")
+        #message(STATUS "${_variableName}=${_variableValueEscaped}")
         #message(STATUS "  Type=${_variableType}")
         #message(STATUS "  Advanced=${_isAdvanced}")
     endif()

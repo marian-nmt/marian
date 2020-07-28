@@ -14,7 +14,9 @@ namespace filesystem {
 // Pretend that Windows knows no named pipes. It does, by the way, but
 // they seem to be different from pipes on Unix / Linux. See
 // https://docs.microsoft.com/en-us/windows/win32/ipc/named-pipes
-bool is_fifo(char const*) { return false; }
+bool is_fifo(char const* /*path*/) {
+  return false;
+}
 #else
 bool is_fifo(char const* path) {
   struct stat buf;
