@@ -61,16 +61,13 @@ public:
     // if a similarity is computed then double the input types and vocabs for
     // the two encoders that are used in the model.
     if(options->get<bool>("compute-similarity")) {
-      auto vInputTypes = options_->get<std::vector<std::string>>("input-types");
       auto vVocabs     = options_->get<std::vector<std::string>>("vocabs");
       auto vDimVocabs  = options_->get<std::vector<size_t>>("dim-vocabs");
 
-      vInputTypes.push_back(vInputTypes.back());
       vVocabs.push_back(vVocabs.back());
       vDimVocabs.push_back(vDimVocabs.back());
 
-      options_ = options_->with("input-types", vInputTypes,
-                                "vocabs",      vVocabs,
+      options_ = options_->with("vocabs",      vVocabs,
                                 "dim-vocabs",  vDimVocabs);
     }
 

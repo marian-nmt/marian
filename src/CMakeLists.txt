@@ -102,6 +102,7 @@ add_library(marian STATIC
 
   # this is only compiled to catch build errors, but not linked
   microsoft/quicksand.cpp
+  microsoft/cosmos.cpp
 
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
@@ -235,6 +236,7 @@ if(APPLE) # This is a dependency of pathie but I can't seem to link it into that
 endif()
 
 foreach(exec ${EXECUTABLES})
+  # @TODO: consider adding MKL and other libs to the library rather than the executables if at all possible
   target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})

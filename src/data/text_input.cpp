@@ -44,21 +44,24 @@ SentenceTuple TextInput::next() {
   for(size_t i = 0; i < files_.size(); ++i) {
     std::string line;
     if(io::getline(*files_[i], line)) {
-      Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
+      Words words = vocabs_[i]->encode(line, /*addEOS=*/true, /*inference=*/inference_);
       if(this->maxLengthCrop_ && words.size() > this->maxLength_) {
         words.resize(maxLength_);
         words.back() = vocabs_.back()->getEosId();  // note: this will not work with class-labels
       }
-      if(words.empty())
-        words.push_back(Word::ZERO); // @TODO: What is this for? @BUGBUG: addEOS=true, so this can never happen, right?
+
+      ABORT_IF(words.empty(),   "No words (not even EOS) found in string??");
+      ABORT_IF(tup.size() != i, "Previous tuple elements are missing.");
       tup.push_back(words);
     }
   }
 
-  // check if each input file provided an example
-  if(tup.size() == files_.size())
+  if(tup.size() == files_.size()) // check if each input file provided an example
     return tup;
-  return SentenceTuple(0);
+  else if(tup.size() == 0) // if no file provided examples we are done
+    return SentenceTuple(0);
+  else // neither all nor none => we have at least on missing entry
+    ABORT("There are missing entries in the text tuples.");
 }
 
 }  // namespace data
