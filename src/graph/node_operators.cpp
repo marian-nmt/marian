@@ -16,13 +16,10 @@ ConstantNode::ConstantNode(Ptr<ExpressionGraph> graph,
   setTrainable(false);
 }
 
-size_t ConstantNode::allocate() {
-  size_t elements = 0;
+void ConstantNode::allocate() {
   if(!val_) {
     graph()->allocateForward(this);
-    elements = val_->shape().elements();
   }
-  return elements;
 }
 
 void ConstantNode::init() {

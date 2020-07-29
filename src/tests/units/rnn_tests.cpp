@@ -181,7 +181,7 @@ void tests(DeviceType type, Type floatType = Type::float32) {
 
       auto context = concatenate({rnnFw.construct(graph)->transduce(input, mask),
                                   rnnBw.construct(graph)->transduce(input, mask)},
-                                  /*axis =*/ input->shape().size() - 1);
+                                  /*axis =*/ (int)input->shape().size() - 1);
 
       if(second > 0) {
         // add more layers (unidirectional) by transducing the output of the

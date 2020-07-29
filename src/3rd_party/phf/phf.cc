@@ -249,8 +249,8 @@ namespace PHF {
 
 		template<>
 		int cmp(const phf_string_t *a, const phf_string_t *b) {
-			int cmp;
-			if ((cmp = memcmp(a->p, b->p, PHF_MIN(a->n, b->n))))
+			int cmp = memcmp(a->p, b->p, PHF_MIN(a->n, b->n));
+			if (cmp)
 				return cmp;
 			if (a->n > b->n)
 				return -1;
@@ -415,8 +415,8 @@ static inline uint32_t phf_f(uint32_t d, T k, uint32_t seed) {
 static inline uint32_t phf_g(uint64_t k, uint32_t seed) {
 	uint32_t h1 = seed;
 
-	h1 = phf_round32(k, h1);
-	h1 = phf_round32(k >> 32, h1);
+	h1 = phf_round32(static_cast<uint32_t>(k), h1);
+	h1 = phf_round32(static_cast<uint32_t>(k >> 32), h1);
 
 	return phf_mix32(h1);
 } /* phf_g() */
@@ -519,7 +519,8 @@ PHF_PUBLIC int PHF::init(struct phf *phf, const key_t k[], const size_t n, const
 	uint32_t d_max = 0; /* maximum displacement value */
 	int error;
 
-	if ((phf->nodiv = nodiv)) {
+	phf->nodiv = nodiv;
+	if (phf->nodiv) {
 		/* round to power-of-2 so we can use bit masks instead of modulo division */
 		r = phf_powerup(n1 / PHF_MIN(l1, n1));
 		m = phf_powerup((n1 * 100) / a1);
@@ -532,24 +533,28 @@ PHF_PUBLIC int PHF::init(struct phf *phf, const key_t k[], const size_t n, const
 	if (r == 0 || m == 0)
 		return ERANGE;
 
-	if (!(B_k = static_cast<phf_key<key_t> *>(calloc(n1, sizeof *B_k))))
+	B_k = static_cast<phf_key<key_t> *>(calloc(n1, sizeof *B_k));
+	if (!B_k)
 		goto syerr;
-	if (!(B_z = static_cast<size_t *>(calloc(r, sizeof *B_z))))
+
+	B_z = static_cast<size_t *>(calloc(r, sizeof *B_z));
+	if (!B_z)
 		goto syerr;
 
 	for (size_t i = 0; i < n; i++) {
-		phf_hash_t g = phf_g_mod_r<nodiv>(k[i], seed, r);
+		phf_hash_t gt = phf_g_mod_r<nodiv>(k[i], seed, r);
 
 		B_k[i].k = k[i];
-		B_k[i].g = g;
-		B_k[i].n = &B_z[g];
+		B_k[i].g = gt;
+		B_k[i].n = &B_z[gt];
 		++*B_k[i].n;
 	}
 
 	qsort(B_k, n1, sizeof *B_k, reinterpret_cast<int(*)(const void *, const void *)>(&phf_keycmp<key_t>));
 
 	T_n = PHF_HOWMANY(m, PHF_BITS(*T));
-	if (!(T = static_cast<phf_bits_t *>(calloc(T_n * 2, sizeof *T))))
+	T = static_cast<phf_bits_t *>(calloc(T_n * 2, sizeof *T));
+	if (!T)
 		goto syerr;
 	T_b = &T[T_n]; /* share single allocation */
 
@@ -563,7 +568,8 @@ PHF_PUBLIC int PHF::init(struct phf *phf, const key_t k[], const size_t n, const
 	 * end of the outer loop.
 	 */
 
-	if (!(g = static_cast<uint32_t *>(calloc(r, sizeof *g))))
+	g = static_cast<uint32_t *>(calloc(r, sizeof *g));
+	if (!g)
 		goto syerr;
 
 	B_p = B_k;
@@ -579,12 +585,12 @@ retry:
 		Bi_pe = B_p + *B_p->n;
 
 		for (; Bi_p < Bi_pe; Bi_p++) {
-			f = phf_f_mod_m<nodiv>(d, Bi_p->k, seed, m);
+			f = phf_f_mod_m<nodiv>((uint32_t)d, Bi_p->k, (uint32_t)seed, m);
 
 			if (phf_isset(T, f) || phf_isset(T_b, f)) {
 				/* reset T_b[] */
 				for (Bi_p = B_p; Bi_p < Bi_pe; Bi_p++) {
-					f = phf_f_mod_m<nodiv>(d, Bi_p->k, seed, m);
+					f = phf_f_mod_m<nodiv>((uint32_t)d, Bi_p->k, (uint32_t)seed, m);
 					phf_clrbit(T_b, f);
 				}
 
@@ -596,13 +602,13 @@ retry:
 
 		/* commit to T[] */
 		for (Bi_p = B_p; Bi_p < Bi_pe; Bi_p++) {
-			f = phf_f_mod_m<nodiv>(d, Bi_p->k, seed, m);
+			f = phf_f_mod_m<nodiv>((uint32_t)d, Bi_p->k, (uint32_t)seed, m);
 			phf_setbit(T, f);
 		}
 
 		/* commit to g[] */
-		g[B_p->g] = d;
-		d_max = PHF_MAX(d, d_max);
+		g[B_p->g] = (uint32_t)d;
+		d_max = PHF_MAX((uint32_t)d, d_max);
 	}
 
 	phf->seed = seed;
@@ -643,7 +649,7 @@ clean:
 template<typename dst_t, typename src_t>
 static inline void phf_memmove(dst_t *dst, src_t *src, size_t n) {
 	for (size_t i = 0; i < n; i++) {
-		dst_t tmp = src[i];
+		dst_t tmp = (dst_t)src[i];
 		dst[i] = tmp;
 	}
 } /* phf_memmove() */
@@ -673,7 +679,8 @@ PHF_PUBLIC void PHF::compact(struct phf *phf) {
 	}
 
 	/* simply keep old array if realloc fails */
-	if ((tmp = realloc(phf->g, phf->r * size)))
+	tmp = realloc(phf->g, phf->r * size);
+	if (tmp != 0)
 		phf->g = static_cast<uint32_t *>(tmp);
 } /* PHF::compact() */
 
@@ -750,7 +757,7 @@ PHF_PUBLIC phf_hash_t PHF::hash(struct phf *phf, T k) {
 		return phf_hash_<true>(reinterpret_cast<uint32_t *>(phf->g), k, phf->seed, phf->r, phf->m);
 	default:
 		abort();
-		return 0;
+		// return 0;
 	}
 #endif
 } /* PHF::hash() */

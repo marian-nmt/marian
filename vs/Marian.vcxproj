@@ -55,7 +55,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(MSMPI_INC); $(MSMPI_INC)\x64</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSMPI_INC); $(MSMPI_INC)\x64; $(PROTOBUF_RUNTIME_INC)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(Configuration);$(SolutionDir)$(Platform)\$(Configuration);$(MSMPI_LIB64)</AdditionalLibraryDirectories>
@@ -70,7 +70,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MKL;ASMJIT_EXPORTS;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE; FBGEMM_EXPORTS; USE_FBGEMM=1; USE_SSE2=1; CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MKL;ASMJIT_EXPORTS;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE; FBGEMM_EXPORTS; USE_FBGEMM=1; USE_SSE2=1; CUDA_FOUND=1; MKL_FOUND=1; FINTEGER=uint64_t; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/bigobj /arch:AVX %(AdditionalOptions)</AdditionalOptions>
@@ -107,7 +107,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>USE_MKL;ASMJIT_EXPORTS;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE; FBGEMM_EXPORTS; USE_FBGEMM=1; USE_SSE2=1; CUDA_FOUND=1; MKL_FOUND=1; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MKL;ASMJIT_EXPORTS;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE; FBGEMM_EXPORTS; USE_FBGEMM=1; USE_SSE2=1; CUDA_FOUND=1; MKL_FOUND=1; FINTEGER=uint64_t; MPI_FOUND=1; BLAS_FOUND=1; MKL_ILP64; WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalOptions>/d2Zi+ /bigobj /arch:AVX %(AdditionalOptions)</AdditionalOptions>
@@ -141,6 +141,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\3rd_party\ExceptionWithCallStack.cpp" />
+    <ClCompile Include="..\src\3rd_party\faiss\Index.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\IndexLSH.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\hamming.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\Heap.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\misc.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\utils\random.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\faiss\VectorTransform.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\src\3rd_party\fbgemm\bench\BenchUtils.cc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -805,6 +833,16 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
     </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(MSMPI_INC); $(MSMPI_INC)\x64; $(PROTOBUF_RUNTIME_INC)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(MSMPI_INC); $(MSMPI_INC)\x64; $(PROTOBUF_RUNTIME_INC)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.cc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\3rd_party\sentencepiece\src\bpe_model.cc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1010,6 +1048,14 @@
     <ClInclude Include="..\src\3rd_party\any_type.h" />
     <ClInclude Include="..\src\3rd_party\avx_mathfun.h" />
     <ClInclude Include="..\src\3rd_party\ExceptionWithCallStack.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\Index.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\IndexLSH.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\utils\hamming-inl.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\utils\hamming.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\utils\Heap.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\utils\misc.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\utils\random.h" />
+    <ClInclude Include="..\src\3rd_party\faiss\VectorTransform.h" />
     <ClInclude Include="..\src\3rd_party\fbgemm\bench\AlignedVec.h" />
     <ClInclude Include="..\src\3rd_party\fbgemm\bench\BenchUtils.h" />
     <ClInclude Include="..\src\3rd_party\fbgemm\include\fbgemm\ConvUtils.h" />
@@ -1206,6 +1252,14 @@
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\pathie_ofstream.hpp" />
     <ClInclude Include="..\src\3rd_party\pathie-cpp\include\temp.hpp" />
     <ClInclude Include="..\src\3rd_party\phf\phf.h" />
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb-wrapper.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\src\3rd_party\onnx\protobuf\onnx-ml.pb.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\src\3rd_party\sentencepiece\src\bpe_model.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1341,6 +1395,7 @@
     <ClCompile Include="..\src\common\fastopt.cpp" />
     <ClCompile Include="..\src\common\filesystem.cpp" />
     <ClCompile Include="..\src\common\file_stream.cpp" />
+    <ClCompile Include="..\src\common\file_utils.cpp" />
     <ClCompile Include="..\src\common\io.cpp" />
     <ClCompile Include="..\src\common\options.cpp" />
     <ClCompile Include="..\src\common\types.cpp" />
@@ -1373,11 +1428,18 @@
     </ClCompile>
     <ClCompile Include="..\src\layers\generic.cpp" />
     <ClCompile Include="..\src\layers\loss.cpp" />
+    <ClCompile Include="..\src\layers\lsh.cpp" />
     <ClCompile Include="..\src\layers\weight.cpp" />
     <ClCompile Include="..\src\microsoft\quicksand.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\models\transformer_stub.cpp" />
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_exporter.cpp" />
+    <ClCompile Include="..\src\onnx\expression_graph_onnx_serialization.cpp" />
+    <ClCompile Include="..\src\onnx\protobuf.cpp">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\src\rescorer\score_collector.cpp" />
     <ClCompile Include="..\src\tensors\backend.cpp" />
     <ClCompile Include="..\src\tensors\cpu\device.cpp" />
@@ -1398,33 +1460,22 @@
     <ClCompile Include="..\src\optimizers\optimizers.cpp" />
     <ClCompile Include="..\src\models\model_factory.cpp" />
     <ClCompile Include="..\src\models\encoder_decoder.cpp" />
+    <ClCompile Include="..\src\tensors\cpu\topk.cpp" />
     <ClCompile Include="..\src\tensors\rand.cpp" />
     <ClCompile Include="..\src\tensors\tensor.cpp" />
-    <ClCompile Include="..\src\tests\attention_tests.cpp">
+    <ClCompile Include="..\src\tests\cli.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\cli_test.cpp">
+    <ClCompile Include="..\src\tests\dropout.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\dropout_test.cpp">
+    <ClCompile Include="..\src\tests\logger.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\graph_tests.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\logger_test.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\operator_tests.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\src\tests\pooling_test.cpp">
+    <ClCompile Include="..\src\tests\pooling.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1432,15 +1483,35 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\rnn_tests.cpp">
+    <ClCompile Include="..\src\tests\sqlite.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\run_tests.cpp">
+    <ClCompile Include="..\src\tests\units\attention_tests.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\tests\sqlite_test.cpp">
+    <ClCompile Include="..\src\tests\units\fastopt_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\graph_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\operator_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\rnn_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\run_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\tests\units\utils_tests.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1485,6 +1556,9 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp" />
+    <ClInclude Include="..\src\layers\lsh.h" />
+    <ClInclude Include="..\src\onnx\expression_graph_onnx_exporter.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common\binary.h" />
@@ -1493,6 +1567,7 @@
     <ClInclude Include="..\src\common\config_validator.h" />
     <ClInclude Include="..\src\common\fastopt.h" />
     <ClInclude Include="..\src\common\filesystem.h" />
+    <ClInclude Include="..\src\common\file_utils.h" />
     <ClInclude Include="..\src\common\hash.h" />
     <ClInclude Include="..\src\common\io.h" />
     <ClInclude Include="..\src\common\io_item.h" />
@@ -1733,6 +1808,7 @@
     <ClInclude Include="..\src\tensors\device.h" />
     <ClInclude Include="..\src\tensors\dispatch.h" />
     <ClInclude Include="..\src\tensors\gpu\add.h" />
+    <ClInclude Include="..\src\tensors\gpu\add_all.h" />
     <ClInclude Include="..\src\tensors\gpu\algorithm.h" />
     <ClInclude Include="..\src\tensors\gpu\backend.h" />
     <ClInclude Include="..\src\tensors\gpu\cuda_helpers.h" />
@@ -1771,6 +1847,8 @@
     <ClInclude Include="..\src\training\communicator_nccl.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\3rd_party\faiss\LICENSE" />
+    <None Include="..\src\3rd_party\faiss\README" />
     <None Include="..\src\3rd_party\half_float\Readme.md" />
     <None Include="..\src\3rd_party\half_float\umHalf.inl" />
     <None Include="..\src\3rd_party\nccl\src\bootstrap.cu">
@@ -1860,6 +1938,10 @@
     <None Include="..\src\3rd_party\nccl\src\transport\shm.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="..\src\3rd_party\onnx\protobuf\onnx-ml.proto">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\tensors\gpu\add.cu" />
@@ -1868,6 +1950,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <FileType>Document</FileType>
     </ClInclude>
+    <CudaCompile Include="..\src\tensors\gpu\add_all.cu" />
     <CudaCompile Include="..\src\tensors\gpu\algorithm.cu" />
     <CudaCompile Include="..\src\tensors\gpu\cudnn_wrappers.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -1897,10 +1980,19 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CudaCompile>
+    <CudaCompile Include="..\src\tensors\gpu\topk.cu" />
+    <CudaCompile Include="..\src\tests\tensor.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </CudaCompile>
     <CudaCompile Include="..\src\translator\helpers.cu" />
     <CudaCompile Include="..\src\translator\nth_element.cu" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\src\tensors\gpu\add_all.inc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <None Include="..\src\tests\README.md" />
     <None Include="..\src\3rd_party\pathie-cpp\CHANGELOG" />
     <None Include="..\src\3rd_party\pathie-cpp\LICENSE" />
@@ -1924,6 +2016,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\src\3rd_party\faiss\CMakeLists.txt" />
     <Text Include="..\src\3rd_party\pathie-cpp\CMakeLists.txt" />
     <Text Include="..\src\3rd_party\sentencepiece\src\CMakeLists.txt">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -1931,6 +2024,7 @@
     </Text>
     <Text Include="..\src\examples\CMakeLists.txt" />
     <Text Include="..\src\tests\CMakeLists.txt" />
+    <Text Include="..\src\tests\units\CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

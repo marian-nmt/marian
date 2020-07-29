@@ -646,6 +646,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<bool>("--output-sampling",
      "Noise output layer with gumbel noise",
       false);
+  cli.add<std::vector<int>>("--output-approx-knn",
+     "Use approximate knn search in output layer (currently only in transformer)")
+     ->implicit_val("100 1024");
 
 #if 0 // @TODO: Ask Hany if there are any decoding-time options
   // add ULR settings

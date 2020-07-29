@@ -5,8 +5,6 @@
 using namespace marian;
 
 TEST_CASE("FastOpt can be constructed from a YAML node", "[fastopt]") {
-  YAML::Node node;
-  
   SECTION("from a simple node") {
     YAML::Node node = YAML::Load("{foo: bar}");
     const FastOpt o(node);

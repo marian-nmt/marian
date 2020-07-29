@@ -64,15 +64,13 @@ public:
   inline int& dim(int i) {
     if(i >= 0) {
       ABORT_IF(i >= (int)size(),
-               "Index {} is out of bounds, shape has {} dimension",
-               i,
-               size());
+               "Index {} is out of bounds, shape {} has {} dimension",
+               i, std::string(*this), size());
       return shape_[i];
     } else {
       ABORT_IF((int)size() + i < 0,
-               "Negative index {} is out of bounds, shape has {} dimension",
-               i,
-               size());
+               "Negative index {} is out of bounds, shape {} has {} dimension",
+               i, std::string(*this), size());
       return shape_[size() + i];
     }
   }

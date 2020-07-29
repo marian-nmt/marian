@@ -4,6 +4,7 @@
 #include "graph/node_operators.h"
 #include "graph/node_operators_binary.h"
 #include "graph/node_operators_unary.h"
+#include "graph/node_operators_tuple.h"
 
 #include "graph/auto_tuner.h"
 #include "tensors/cpu/int16.h"
@@ -23,6 +24,16 @@ Expr debug(Expr a, const std::string& message) {
 Expr checkpoint(Expr a) {
   a->markCheckpoint();
   return a;
+}
+
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+            LambdaNodeFunctor fwd) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd);
+}
+
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+            LambdaNodeFunctor fwd, LambdaNodeFunctor bwd) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd, bwd);
 }
 
 // logistic function. Note: scipy name is expit()
@@ -55,6 +66,10 @@ Expr log(Expr a) {
 
 Expr exp(Expr a) {
   return Expression<ExpNodeOp>(a);
+};
+
+Expr sin(Expr a) {
+  return Expression<SinNodeOp>(a);
 };
 
 Expr swish(Expr a) {
@@ -118,12 +133,52 @@ Expr logaddexp(Expr a, Expr b) {
   return Expression<LogAddExpNodeOp>(a, b);
 }
 
+Expr2 topk(Expr a, int k, int axis, bool descending) {
+  // only supports topk along last dimension, hence transpose if required
+  a = swapAxes(a, axis, -1);                              // non-op if axes are the same
+  auto topkVal = Expression<TopKNodeOp>(a, k, -1, descending); // axis=-1 is OK now as we swapped
+  auto topkIdx = std::dynamic_pointer_cast<TopKNodeOp>(topkVal)->tupleView(); // get a view on the top-k values
+  return std::make_tuple(swapAxes(topkVal, axis, -1), swapAxes(topkIdx, axis, -1)); // non-op if axes are the same
+}
+
+Expr2 argmax(Expr a, int axis) {
+  return topk(a, 1, axis, /*descending=*/true);
+}
+
+Expr2 argmin(Expr a, int axis) {
+  return topk(a, 1, axis, /*descending=*/false);
+}
+
 Expr maximum(Expr a, Expr b) {
   return Expression<MaximumNodeOp>(a, b);
 }
 
+// @TODO: implement version without constant
+Expr maximum(float a, Expr b) {
+  auto aExpr = b->graph()->constant({}, inits::fromValue(a));
+  return Expression<MaximumNodeOp>(aExpr, b);
+}
+
+Expr maximum(Expr a, float b) {
+  return maximum(b, a);
+}
+
 Expr minimum(Expr a, Expr b) {
   return Expression<MinimumNodeOp>(a, b);
+}
+
+// @TODO: implement version without constant
+Expr minimum(float a, Expr b) {
+  auto aExpr = b->graph()->constant({}, inits::fromValue(a));
+  return Expression<MinimumNodeOp>(aExpr, b);
+}
+
+Expr minimum(Expr a, float b) {
+  return minimum(b, a);
+}
+
+Expr abs(Expr a) {
+  return Expression<AbsNodeOp>(a);
 }
 
 Expr lt(Expr a, Expr b) { return Expression<CmpNodeOp>(a, b, -1, false); }

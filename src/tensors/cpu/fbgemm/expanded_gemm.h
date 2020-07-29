@@ -97,7 +97,7 @@ struct FbgemmPacked16PackNodeOp : public UnaryNodeOp {
 
   const std::string type() override { return "packMatFp16"; }
 
-  Shape newShape(Expr MAYBE_UNUSED a, bool MAYBE_UNUSED transpose) {
+  Shape newShape(Expr a, bool transpose) {
 #if USE_FBGEMM
     auto shapeMat = a->shape();
     // Should be 2D - weight matrix
@@ -118,6 +118,7 @@ struct FbgemmPacked16PackNodeOp : public UnaryNodeOp {
     Shape outShape({(int)packsize_});
     return outShape;
 #else
+    a; transpose;
     ABORT("Packed GEMM requires a build with USE_FBGEMM enabled");
     return Shape();
 #endif  // USE_FBGEMM

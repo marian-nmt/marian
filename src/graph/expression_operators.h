@@ -10,6 +10,10 @@ Expr checkpoint(Expr a);
 
 typedef Expr(ActivationFunction)(Expr);
 
+typedef std::function<void(Expr, const std::vector<Expr>&)> LambdaNodeFunctor;
+Expr lambda(const std::vector<Expr>&, Shape, Type, LambdaNodeFunctor);
+Expr lambda(const std::vector<Expr>&, Shape, Type, LambdaNodeFunctor, LambdaNodeFunctor);
+
 Expr plus(const std::vector<Expr>&);
 
 // TODO: should be logistic(), not sigmoid()
@@ -40,8 +44,11 @@ Expr prelu(Expr a, float alpha = 0.01);
 Expr prelu(const std::vector<Expr>&, float alpha = 0.01);
 
 Expr log(Expr a);
-
 Expr exp(Expr a);
+
+Expr sin(Expr a);
+Expr cos(Expr a);
+Expr tan(Expr a);
 
 Expr clip(Expr a, float c);
 
@@ -65,6 +72,8 @@ Expr operator/(Expr a, Expr b);
 Expr operator/(float a, Expr b);
 Expr operator/(Expr a, float b);
 
+Expr abs(Expr a);
+
 // Expr pow(Expr a, Expr b);
 // Expr pow(float a, Expr b);
 // Expr pow(Expr a, float b);
@@ -73,7 +82,30 @@ Expr logaddexp(Expr a, Expr b);
 
 // Note: Following numpy, minimum() is element-wise, while min() is along an axis in both Numpy and PyTorch.
 Expr maximum(Expr a, Expr b);
+Expr maximum(float a, Expr b);
+Expr maximum(Expr a, float b);
+
 Expr minimum(Expr a, Expr b);
+Expr minimum(float a, Expr b);
+Expr minimum(Expr a, float b);
+
+// Pair of expressions, currently used for topk nodes only
+typedef std::tuple<Expr, Expr> Expr2;
+
+// Marian pseudo-operator to access elements of a tuple, just the same as std::get<N>(tuple)
+template <int I>
+Expr get(Expr2 tuple) { return std::get<I>(tuple); }
+
+// PyTorch-like topk operator, returns a 2-tuple of nodes, first node is top-k values
+// second node is indices of these values according to given axis. Order is descending
+// by default, outputs are ordered.
+Expr2 topk(Expr a, int k, int axis, bool descending = true);
+
+// Convenience operator that maps to topk(a, k=1, axis, descending=true) 
+Expr2 argmax(Expr a, int axis);
+
+// Convenience operator that maps to topk(a, k=1, axis, descending=false)
+Expr2 argmin(Expr a, int axis);
 
 // Note: We cannot overload the relational operators, as they also mean something for Expr itself.
 // Note: These names follow PyTorch convention.
@@ -159,6 +191,30 @@ Expr flatten_2d(Expr a);
 Expr stopGradient(Expr a);
 
 Expr gather(Expr a, int axis, Expr indices);
+
+#if 0
+ // reverse operation to gather. a is expression into with values from b are inserted and positions indices along axis.
+ // with broadcasting
+
+ auto knn = get<0>(KNN->apply(query, k)); // [beam, time, batch, k]
+
+ auto W = reshape(gather(Wt_, -2, flatten(knn)), {beam * time * batch, k, dim});
+ auto b = reshape(gather(b_,  -1, flatten(knn)), {beam * time * batch, 1, k });
+ query       = reshape(query, {beam * time * batch, 1, dim});
+ auto logits = bdot(query, W, false, true); // [beam * time * batch, 1, k]
+ logits      = reshape(logits + b, {beam, time, batch, k}); // @TODO: add baffine node
+
+ auto shape = indices.shape();
+ shape.set(-1, 32000);
+ auto output = grep->constant(shape, inits::lowest(), logits->value_type());
+ output = scatter(output, -1, indices, logits);
+
+ // auto a = graph->constant({2,2,5,32000}, inits::fromValue(minimal))
+ // scatter(a, -1, indices, values)
+ // PyTorch does for out-of-place scatter: out = a.scatter(-1, indices, values)
+Expr scatter(Expr a, int axis, Expr indices, Expr b);
+
+#endif
 
 // Warning: Don't try to pass a scalar literal 0 as indices; it will compile but pass nullptr...
 Expr index_select(Expr a, int axis, Expr indices);

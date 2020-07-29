@@ -23,8 +23,11 @@ const SentenceTuple& TextIterator::dereference() const {
 TextInput::TextInput(std::vector<std::string> inputs,
                      std::vector<Ptr<Vocab>> vocabs,
                      Ptr<Options> options)
-    : DatasetBase(inputs, options), vocabs_(vocabs) {
-  // note: inputs are automatically stored in the inherited variable named paths_, but these are
+    : DatasetBase(inputs, options),
+      vocabs_(vocabs),
+      maxLength_(options_->get<size_t>("max-length")),
+      maxLengthCrop_(options_->get<bool>("max-length-crop")) {
+  // Note: inputs are automatically stored in the inherited variable named paths_, but these are
   // texts not paths!
   for(const auto& text : paths_)
     files_.emplace_back(new std::istringstream(text));
@@ -42,6 +45,10 @@ SentenceTuple TextInput::next() {
     std::string line;
     if(io::getline(*files_[i], line)) {
       Words words = vocabs_[i]->encode(line, /*addEOS =*/ true, /*inference =*/ inference_);
+      if(this->maxLengthCrop_ && words.size() > this->maxLength_) {
+        words.resize(maxLength_);
+        words.back() = vocabs_.back()->getEosId();  // note: this will not work with class-labels
+      }
       if(words.empty())
         words.push_back(Word::ZERO); // @TODO: What is this for? @BUGBUG: addEOS=true, so this can never happen, right?
       tup.push_back(words);

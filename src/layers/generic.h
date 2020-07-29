@@ -228,6 +228,12 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
+} // namespace mlp
+
+class LSH;
+
+namespace mlp {
+
 class Output : public LayerBase, public IUnaryLogitLayer, public IHasShortList {
 private:
   // parameters held by this layer
@@ -239,10 +245,11 @@ private:
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
   Ptr<FactoredVocab> factoredVocab_;
-
+  
   // optional parameters set/updated after construction
   Expr tiedParam_;
   Ptr<data::Shortlist> shortlist_;
+  Ptr<LSH> lsh_;
 
   void lazyConstruct(int inputDim);
 public:

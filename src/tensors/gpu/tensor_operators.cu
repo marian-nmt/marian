@@ -139,6 +139,8 @@ void CopyCast(Tensor out, const Tensor in) {
 #endif
   } else if(in->type() == Type::float64) {
     CopyCastFrom(out, in->data<double>(), (int)in->size());
+  } else if(in->type() == Type::uint32) {
+    CopyCastFrom(out, in->data<uint32_t>(), (int)in->size());
   } else {
     ABORT("CopyCastFrom from type {} not implemented", in->type());
   }
@@ -476,6 +478,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTranspose0213<false><<<blocks, threads>>>(out->data<float>(), in->data<float>(), rows, cols, stride1, stride2);
+    } else if(in->type() == Type::uint32) {
+      gTranspose0213<false><<<blocks, threads>>>(out->data<uint32_t>(), in->data<uint32_t>(), rows, cols, stride1, stride2);
 #if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       gTranspose0213<false><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols, stride1, stride2);
@@ -499,6 +503,8 @@ void TransposeND(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
     if(in->type() == Type::float32) {
       gTransposeND<false, float><<<blocks, threads>>>(out, in, axes);
+    } else if(in->type() == Type::uint32) {
+      gTransposeND<false, uint32_t><<<blocks, threads>>>(out, in, axes);
 #if COMPILE_FP16
     } else if(in->type() == Type::float16) {
       gTransposeND<false, half><<<blocks, threads>>>(out, in, axes);
@@ -1217,6 +1223,14 @@ void Select(Tensor out,
                                 indices->data<IndexType>(),
                                 indices->shape());
 #endif
+  } else if(out->type() == Type::uint32) {
+    gSelect<<<blocks, threads>>>(out->data<IndexType>(),
+                                 out->shape(),
+                                 in->data<IndexType>(),
+                                 in->shape(),
+                                 axisGPU,
+                                 indices->data<IndexType>(), 
+                                 indices->shape());
   } else {
     ABORT("Select not implemented for type {}", out->type());
   }

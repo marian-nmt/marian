@@ -33,20 +33,37 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
   std::vector<T> values, values2;
 
-  SECTION("scalar multiplication") {
+  SECTION("elementwise unary and binary operators with scalars") {
     graph->clear();
     values.clear();
-    std::vector<T> vB({1, 2, 3, 4, 5, 6});
 
-    auto B = graph->param("B", {3, 2}, inits::fromVector(vB));
-    auto B2 = B * 2.0f;
+    std::vector<T> vA({1, -2, 3, -4});
+    auto a = graph->constant({2, 2, 1}, inits::fromVector(vA));
+
+    auto compare = [&](Expr res, std::function<float(float)> f) -> bool {
+      if (res->shape() != Shape({ 2, 2, 1 }))
+          return false;
+      res->val()->get(values);
+      std::vector<float> ref{f(vA[0]), f(vA[1]), f(vA[2]), f(vA[3])};
+      return std::equal(values.begin(), values.end(), ref.begin(), floatEqual);
+    };
+
+    // @TODO: add all operators and scalar variants here for completeness
+    auto rsmult = 2.f * a;
+    auto rabs   = abs(a);
+    auto rmax1  = maximum(a, 1);
+    auto rmax2  = maximum(1, a);
+    auto rmin1  = minimum(a, 1);
+    auto rmin2  = minimum(1, a);
+
     graph->forward();
 
-    CHECK(B2->shape() == Shape({3, 2}));
-    B2->val()->get(values);
-
-    std::vector<T> vB2({2, 4, 6, 8, 10, 12});
-    CHECK(values == vB2);
+    CHECK(compare(rsmult, [](float a) {return 2.f * a;}));
+    CHECK(compare(rabs,   [](float a) {return std::abs(a);}));
+    CHECK(compare(rmax1,  [](float a) {return std::max(a, 1.f);}));
+    CHECK(compare(rmax2,  [](float a) {return std::max(1.f, a);}));
+    CHECK(compare(rmin1,  [](float a) {return std::min(a, 1.f);}));
+    CHECK(compare(rmin2,  [](float a) {return std::min(1.f, a);}));
   }
 
   SECTION("elementwise binary operators with broadcasting") {
@@ -59,12 +76,23 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     auto a = graph->constant({2, 2, 1}, inits::fromVector(vA));
     auto b = graph->constant({2, 1}, inits::fromVector(vB));
 
-    auto compare = [&](Expr res, std::function<float(float,float)> f, bool exactMatch) -> bool {
+    // Two lambdas below differ in the use of floatEqual or floatApprox and
+    // are not merged because MSVC compiler returns C2446: no conversion from
+    // lambda_x to lambda_y
+    auto compare = [&](Expr res, std::function<float(float,float)> f) -> bool {
       if (res->shape() != Shape({ 2, 2, 1 }))
           return false;
       res->val()->get(values);
       std::vector<float> ref{f(vA[0], vB[0]), f(vA[1], vB[1]), f(vA[2], vB[0]), f(vA[3], vB[1])};
-      return std::equal(values.begin(), values.end(), ref.begin(), exactMatch ? floatEqual : floatApprox);
+      return std::equal(values.begin(), values.end(), ref.begin(), floatEqual);
+    };
+
+    auto compareApprox = [&](Expr res, std::function<float(float, float)> f) -> bool {
+      if(res->shape() != Shape({2, 2, 1}))
+        return false;
+      res->val()->get(values);
+      std::vector<float> ref{f(vA[0], vB[0]), f(vA[1], vB[1]), f(vA[2], vB[0]), f(vA[3], vB[1])};
+      return std::equal(values.begin(), values.end(), ref.begin(), floatApprox);
     };
 
     auto rplus  = a + b;
@@ -83,19 +111,19 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
     graph->forward();
 
-    CHECK(compare(rplus,  [](float a, float b) {return a + b;}, true));
-    CHECK(compare(rminus, [](float a, float b) {return a - b;}, true));
-    CHECK(compare(rmult,  [](float a, float b) {return a * b;}, true));
-    CHECK(compare(rdiv,   [](float a, float b) {return a / b;}, false));
-    CHECK(compare(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}, false));
-    CHECK(compare(rmax,   [](float a, float b) {return std::max(a, b);}, true));
-    CHECK(compare(rmin,   [](float a, float b) {return std::min(a, b);}, true));
-    CHECK(compare(rlt,    [](float a, float b) {return a <  b;}, true));
-    CHECK(compare(req,    [](float a, float b) {return a == b;}, true));
-    CHECK(compare(rgt,    [](float a, float b) {return a >  b;}, true));
-    CHECK(compare(rge,    [](float a, float b) {return a >= b;}, true));
-    CHECK(compare(rne,    [](float a, float b) {return a != b;}, true));
-    CHECK(compare(rle,    [](float a, float b) {return a <= b;}, true));
+    CHECK(compare(rplus,  [](float a, float b) {return a + b;}));
+    CHECK(compare(rminus, [](float a, float b) {return a - b;}));
+    CHECK(compare(rmult,  [](float a, float b) {return a * b;}));
+    CHECK(compareApprox(rdiv,   [](float a, float b) {return a / b;}));
+    CHECK(compareApprox(rlae,   [](float a, float b) {return logf(expf(a) + expf(b));}));
+    CHECK(compare(rmax,   [](float a, float b) {return std::max(a, b);}));
+    CHECK(compare(rmin,   [](float a, float b) {return std::min(a, b);}));
+    CHECK(compare(rlt,    [](float a, float b) {return a <  b;}));
+    CHECK(compare(req,    [](float a, float b) {return a == b;}));
+    CHECK(compare(rgt,    [](float a, float b) {return a >  b;}));
+    CHECK(compare(rge,    [](float a, float b) {return a >= b;}));
+    CHECK(compare(rne,    [](float a, float b) {return a != b;}));
+    CHECK(compare(rle,    [](float a, float b) {return a <= b;}));
   }
 
   SECTION("transposing and reshaping") {
@@ -382,8 +410,8 @@ void tests(DeviceType device, Type floatType = Type::float32) {
       std::vector<float> SV;    // create CSR version of S
       std::vector<IndexType> SI, SO;
       SO.push_back((IndexType)SI.size());
-      for (IndexType i = 0; i < S->shape()[0]; i++) {
-        for (IndexType j = 0; j < S->shape()[1]; j++) {
+      for (IndexType i = 0; i < (IndexType)S->shape()[0]; i++) {
+        for (IndexType j = 0; j < (IndexType)S->shape()[1]; j++) {
           auto k = 4 * i + j;
           if (vS[k] != 0) {
             SV.push_back(vS[k]);
@@ -460,7 +488,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     aff1->val()->get(values);
     CHECK(values == vAff);
 
-    std::vector<T> values2;
+    values2.clear();
     CHECK(aff2->shape() == aff1->shape());
     aff2->val()->get(values2);
     CHECK(values2 == values);
@@ -636,7 +664,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   SECTION("relation of rows and columns selection using transpose") {
     graph->clear();
     values.clear();
-    std::vector<T> values2;
+    values2.clear();
 
     std::vector<T> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
     std::vector<IndexType> idx({0, 1});
@@ -746,7 +774,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
   SECTION("rows/cols as gather operations") {
     graph->clear();
     values.clear();
-    std::vector<T> values2;
+    values2.clear();
 
 
     std::vector<T> vA({0, .3333, -.2, -.3, 0, 4.5, 5.2, -10, 101.45, -100.05, 0, 1.05e-5});
@@ -769,6 +797,80 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     C1->val()->get(values);
     C2->val()->get(values2);
     CHECK( values == values2 );
+  }
+
+  SECTION("topk operations") {
+    graph->clear();
+    values.clear();
+
+    std::vector<T> vA({   0,      .3333,   -.2,
+                          -.3,   0,        4.5,
+                          5.2, -10,      101.45,
+                       -100.05,  0,        1.05e-5});
+
+    auto a = graph->constant({2, 2, 3}, inits::fromVector(vA));
+
+    // get top-k indices and values as a tuple
+    auto rtopk1 = topk(a, /*k=*/2, /*axis=*/-1, /*descending=*/true);
+    auto rval1  = get<0>(rtopk1);  // values from top-k
+    auto ridx1  = get<1>(rtopk1);  // indices from top-k
+    auto gval1  = gather(a, -1, ridx1); // get the same values via gather and indices
+
+    auto ridx2  = get<1>(topk(a, /*k=*/2, /*axis=*/-1, /*descending=*/false));
+    auto gval2  = gather(a, -1, ridx2); // get the same values via gather and indices
+
+    auto ridx3  = get<1>(argmin(a, -1));
+    auto ridx3_ = slice(ridx2, -1, 0); // slice and cast now support uint32_t/IndexType
+
+    // @TODO: add integer types to more operators
+    auto eq3 = eq(cast(ridx3, floatType), cast(ridx3_, floatType));
+
+    auto rtopk4 = argmax(a, /*axis=*/-2); // axes other than -1 are currently implemented via inefficient transpose
+    auto rval4  = get<0>(rtopk4);
+    auto ridx4  = get<1>(rtopk4);
+    auto gval4  = gather(a, -2, ridx4);
+
+    graph->forward();
+
+    CHECK(rval1 != gval1);
+    CHECK(rval1->shape() == gval1->shape());
+    CHECK(ridx1->shape() == gval1->shape());
+
+    std::vector<T> vval1 = { 0.3333,  0,
+                             4.5,     0,
+                           101.45,    5.2,
+                             1.05e-5, 0 };
+
+    std::vector<T> rvalues;
+    std::vector<T> gvalues;
+    rval1->val()->get(rvalues);
+    gval1->val()->get(gvalues);
+    CHECK( rvalues == gvalues );
+    CHECK( rvalues == vval1 );
+
+    std::vector<T> vval2 = { -0.2,  0,
+                             -0.3,  0,
+                            -10.0,  5.2,
+                           -100.05, 0 };
+    gval2->val()->get(values);
+    CHECK( values == vval2 );
+
+    eq3->val()->get(values);
+    CHECK( values == std::vector<T>({1, 1, 1, 1}) );
+
+    std::vector<IndexType> vidx4;
+    ridx4->val()->get(vidx4);
+    CHECK( ridx4->shape() == Shape({2, 1, 3}) );
+    CHECK( vidx4 == std::vector<IndexType>({0, 0, 1,
+                                            0, 1, 0}) );
+
+    std::vector<T> vval4 = { 0,   0.3333,   4.5,
+                             5.2, 0,      101.45 };
+    rval4->val()->get(values);
+    CHECK( values == vval4 );
+
+    gval4->val()->get(values);
+    CHECK( values == vval4 );
   }
 }
 
@@ -795,7 +897,7 @@ TEST_CASE("Expression graph supports basic math operations (cpu)", "[operator]")
 
 TEST_CASE("Compare aggregate operator", "[graph]") {
   auto floatApprox = [](float x, float y) -> bool { return x == Approx(y).margin(0.001f); };
-  
+
   Config::seed = 1234;
 
   std::vector<float> initc;
@@ -817,7 +919,7 @@ TEST_CASE("Compare aggregate operator", "[graph]") {
   SECTION("initializing with zero (cpu)") {
     std::vector<float> values1;
     std::vector<float> values2;
-    
+
     auto graph1 = New<ExpressionGraph>();
     graph1->setDevice({0, DeviceType::cpu});
     graph1->reserveWorkspaceMB(40);
@@ -825,7 +927,7 @@ TEST_CASE("Compare aggregate operator", "[graph]") {
     auto graph2 = New<ExpressionGraph>();
     graph2->setDevice({0, DeviceType::gpu});
     graph2->reserveWorkspaceMB(40);
-  
+
     auto chl1 = graph1->param("1x10x512x2048", {1, 10, 512, 2048}, inits::fromVector(initc));
     auto adj1 = graph1->param("1x1x512x2048",  {1,  1, 512, 2048}, inits::fromVector(inita));
     auto prod1 = scalar_product(chl1, adj1, -1);

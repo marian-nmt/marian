@@ -33,6 +33,9 @@ private:
 
   size_t pos_{0};
 
+  size_t maxLength_{0};
+  bool maxLengthCrop_{false};
+
 public:
   typedef SentenceTuple Sample;
 

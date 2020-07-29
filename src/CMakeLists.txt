@@ -40,6 +40,7 @@ add_library(marian STATIC
 
   3rd_party/cnpy/cnpy.cpp
   3rd_party/ExceptionWithCallStack.cpp
+  3rd_party/onnx/protobuf/onnx-ml.pb-wrapper.cpp
 
   3rd_party/phf/phf.cc
 
@@ -48,6 +49,7 @@ add_library(marian STATIC
   tensors/tensor.cpp
   tensors/cpu/device.cpp
   tensors/cpu/prod.cpp
+  tensors/cpu/topk.cpp
   tensors/cpu/tensor_operators.cpp
 
   tensors/cpu/sharp/int_gemm.cpp
@@ -60,6 +62,9 @@ add_library(marian STATIC
   graph/node.cpp
   graph/node_operators.cpp
   graph/node_initializers.cpp
+
+  onnx/expression_graph_onnx_exporter.cpp
+  onnx/expression_graph_onnx_serialization.cpp
 
   layers/convolution.cpp
   layers/generic.cpp
@@ -101,6 +106,11 @@ add_library(marian STATIC
   $<TARGET_OBJECTS:pathie-cpp>
   $<TARGET_OBJECTS:zlib>
 )
+
+if(BLAS_FOUND)
+  target_sources(marian PRIVATE ${CMAKE_CURRENT_LIST_DIR}/layers/lsh.cpp $<TARGET_OBJECTS:faiss>)
+endif()
+
 target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 
 # Generate git_revision.h to reflect current git revision information
@@ -140,6 +150,7 @@ cuda_add_library(marian_cuda
   tensors/gpu/device.cu
   tensors/gpu/algorithm.cu
   tensors/gpu/prod.cpp
+  tensors/gpu/topk.cu
   tensors/gpu/element.cu
   tensors/gpu/add.cu
   tensors/gpu/add_all.cu
@@ -212,7 +223,13 @@ endif(USE_STATIC_LIBS)
 if(COMPILE_SERVER)
   add_executable(marian_server command/marian_server.cpp)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME marian-server)
-  target_compile_options(marian_server PUBLIC ${ALL_WARNINGS})
+  if(MSVC)
+    # Disable warnings from the SimpleWebSocketServer library needed for compilation of marian-server
+    target_compile_options(marian_server PUBLIC ${ALL_WARNINGS})
+  else(MSVC)
+    # -Wno-suggest-override disables warnings from Boost 1.69+
+    target_compile_options(marian_server PUBLIC ${ALL_WARNINGS} -Wno-suggest-override)
+  endif(MSVC)
   set(EXECUTABLES ${EXECUTABLES} marian_server)
 endif(COMPILE_SERVER)
 

@@ -18,7 +18,7 @@ void AggregateAllVar(Ptr<Allocator> allocator,
                      AccType aggInit,
                      AggFunctor aggFunctor,
                      AccType scale,
-                     Tensor out, 
+                     marian::Tensor out, 
                      const Tensors... tensors) {
   cudaSetDevice(out->getDeviceId().no);
 
@@ -34,7 +34,7 @@ void AggregateAllVar(Ptr<Allocator> allocator,
 
   // The all_reduce kernel by nivida needs to perform multiple passes if the number of blocks needed to perform the reduction is larger than 1.
   // Here we allocate the memory for the intermediate reductions for each block.
-  Tensor blockMem;
+  marian::Tensor blockMem;
   if(blocks > 1 || out->type() != typeId<AccType>()) { // if the out tensor does not have elementType AccType we need to allocate and convert later
     MemoryPiece::PtrType temporaryMemory;
     if(allocator) {
@@ -45,7 +45,7 @@ void AggregateAllVar(Ptr<Allocator> allocator,
       temporaryMemory = MemoryPiece::New(temporaryMemoryPtr, sizeof(AccType) * blocks); // @TODO: consider implementing MemoryPiece::cudaMalloc<T>(size) for managed memory
     }
     blockMem = TensorBase::New(temporaryMemory,
-                               Shape({blocks}), 
+                               marian::Shape({blocks}), 
                                typeId<AccType>(), 
                                out->getBackend());
     blockMem->set(aggInit); // set temporary memory to aggInit
@@ -81,8 +81,8 @@ void AggregateAll(Ptr<Allocator> allocator,
                   AccType aggInit,
                   AggFunctor aggFunctor,
                   AccType scale,
-                  Tensor out, 
-                  const Tensor in1) {
+                  marian::Tensor out, 
+                  const marian::Tensor in1) {
   AggregateAllVar<T, AccType>(allocator, functor, aggInit, aggFunctor, scale, out, in1);
 }
 
@@ -92,9 +92,9 @@ void AggregateAll(Ptr<Allocator> allocator,
                   AccType aggInit,
                   AggFunctor aggFunctor,
                   AccType scale,
-                  Tensor out, 
-                  const Tensor in1,
-                  const Tensor in2) {
+                  marian::Tensor out, 
+                  const marian::Tensor in1,
+                  const marian::Tensor in2) {
   AggregateAllVar<T, AccType>(allocator, functor, aggInit, aggFunctor, scale, out, in1, in2);
 }
 
@@ -104,10 +104,10 @@ void AggregateAll(Ptr<Allocator> allocator,
                   AccType aggInit,
                   AggFunctor aggFunctor,
                   AccType scale,
-                  Tensor out, 
-                  const Tensor in1,
-                  const Tensor in2,
-                  const Tensor in3) {
+                  marian::Tensor out, 
+                  const marian::Tensor in1,
+                  const marian::Tensor in2,
+                  const marian::Tensor in3) {
   AggregateAllVar<T, AccType>(allocator, functor, aggInit, aggFunctor, scale, out, in1, in2, in3);
 }
 

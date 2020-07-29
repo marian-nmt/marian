@@ -100,7 +100,7 @@ public:
   virtual bool marked_for_debug() override { return markedForDebug_; }
   virtual const std::string& debug_message() override { return debugMessage_; }
 
-  virtual size_t allocate() override;
+  virtual void allocate() override;
 
   virtual void free() override;
 

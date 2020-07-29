@@ -36,11 +36,23 @@ class TensorBase {
              Ptr<Backend> backend)
       : memory_(memory), shape_(shape), type_(type), backend_(backend) {}
 
-  TensorBase(MemoryPiece::PtrType memory, Shape shape, Ptr<Backend> backend)
+  TensorBase(MemoryPiece::PtrType memory, 
+             Shape shape, 
+             Ptr<Backend> backend)
       : memory_(memory),
         shape_(shape),
         type_(Type::float32),
         backend_(backend) {}
+
+  // Wraps existing memory
+  template <typename T>
+  TensorBase(T* rawMemory,
+             size_t rawMemoryNum,
+             Shape shape,
+             Type type,
+             Ptr<Backend> backend)
+      : memory_(MemoryPiece::New((uint8_t*)rawMemory, rawMemoryNum * sizeof(T))), 
+        shape_(shape), type_(type), backend_(backend) {}
 
 public:
   // Use this whenever pointing to MemoryPiece
