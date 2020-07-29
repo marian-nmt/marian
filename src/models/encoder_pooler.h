@@ -47,12 +47,14 @@ public:
   virtual Logits build(Ptr<ExpressionGraph> graph,
                        Ptr<data::Batch> batch,
                        bool clearGraph = true) override {
+    clearGraph;
     ABORT("Poolers cannot produce Logits");
   };
 
   virtual Logits build(Ptr<ExpressionGraph> graph,
                        Ptr<data::CorpusBatch> batch,
                        bool clearGraph = true) {
+    clearGraph;
     ABORT("Poolers cannot produce Logits");
   }
 

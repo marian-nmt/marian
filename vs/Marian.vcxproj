@@ -1379,6 +1379,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClCompile Include="..\src\command\marian_embedder.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\command\marian_main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -1414,6 +1418,7 @@
     <ClCompile Include="..\src\data\corpus_nbest.cpp" />
     <ClCompile Include="..\src\data\text_input.cpp" />
     <ClCompile Include="..\src\3rd_party\cnpy\cnpy.cpp" />
+    <ClCompile Include="..\src\embedder\vector_collector.cpp" />
     <ClCompile Include="..\src\examples\iris\helper.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -1556,7 +1561,12 @@
     <ClCompile Include="..\src\3rd_party\yaml-cpp\tag.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilder.cpp" />
     <ClCompile Include="..\src\3rd_party\yaml-cpp\contrib\graphbuilderadapter.cpp" />
+    <ClInclude Include="..\src\embedder\embedder.h" />
+    <ClInclude Include="..\src\embedder\vector_collector.h" />
     <ClInclude Include="..\src\layers\lsh.h" />
+    <ClInclude Include="..\src\models\encoder_pooler.h" />
+    <ClInclude Include="..\src\models\laser.h" />
+    <ClInclude Include="..\src\models\pooler.h" />
     <ClInclude Include="..\src\onnx\expression_graph_onnx_exporter.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

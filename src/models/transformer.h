@@ -331,9 +331,8 @@ public:
   // Reduce the encoder to a single sentence vector, here we just take the contextual embedding of the first word per sentence
   // Replaces cross-attention in LASER-like models
   Expr LayerPooling(std::string prefix,
-                    Expr input,           // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-                    const Expr& values,   // [-4: beam depth=1, -3: batch size, -2: max length (src or trg), -1: vector dim]
-                    const Expr& mask) {   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                    Expr input,            // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+                    const Expr& values) {  // [-4: beam depth=1, -3: batch size, -2: max length (src or trg), -1: vector dim]
     int dimModel = input->shape()[-1];
     auto output = slice(values, -2, 0); // Select first word [-4: beam depth, -3: batch size, -2: 1, -1: vector dim]
 
@@ -817,8 +816,7 @@ public:
           if(options_->get<bool>("transformer-pool", false)) {
             query = LayerPooling(prefix,
                                  query,
-                                 encoderContexts[j], // values
-                                 encoderMasks[j]);
+                                 encoderContexts[j]); // values
           } else {
             query = LayerAttention(prefix,
                                    query,

@@ -141,9 +141,9 @@ public:
           // collect embedding vector per sentence.
           // if we compute similarities this is only one similarity per sentence pair.
           for(size_t i = 0; i < batch->size(); ++i) {
-              int embSize = embeddings->shape()[-1];
-              int beg = i * embSize;
-              int end = (i + 1) * embSize;
+              auto embSize = embeddings->shape()[-1];
+              auto beg = i * embSize;
+              auto end = (i + 1) * embSize;
               std::vector<float> sentVector(sentVectors.begin() + beg, sentVectors.begin() + end);
               output->Write((long)batch->getSentenceIds()[i],
                             sentVector);

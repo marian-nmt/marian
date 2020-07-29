@@ -53,8 +53,10 @@ InputFileStream::InputFileStream(const std::string &file)
 }
 
 InputFileStream::~InputFileStream() {
+#ifdef __unix__  // (pipe syntax is only supported on UNIX-like OS)
   if (pipe_)
     pclose(pipe_);  // non-NULL if pipe syntax was used
+#endif
 }
 
 bool InputFileStream::empty() {
