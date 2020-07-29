@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Training and scoring from STDIN
 - Support for reading from TSV files from STDIN and other sources during training
   and translation with options --tsv and --tsv-fields n.
+- interal optional parameter in n-best list generation that skips empty hypotheses
 
 ### Fixed
 - Fix compilation without BLAS installed
@@ -35,6 +36,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed bug in finding .git/logs/HEAD when Marian is a submodule in another project.
 - Properly record cmake variables in the cmake build directory instead of the source tree.
 - Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
+- Added a few missing header files in shortlist.h and beam_search.h.
 
 ### Changed
 - Move Simple-WebSocket-Server to submodule
