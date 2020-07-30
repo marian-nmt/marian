@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Training and scoring from STDIN
 - Support for reading from TSV files from STDIN and other sources during training
   and translation with options --tsv and --tsv-fields n.
-- internal optional parameter in n-best list generation that skips empty hypotheses
+- Internal optional parameter in n-best list generation that skips empty hypotheses.
 
 ### Fixed
 - Fix compilation without BLAS installed
