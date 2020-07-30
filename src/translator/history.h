@@ -37,7 +37,15 @@ public:
 
   size_t size() const { return history_.size(); } // number of time steps
 
-  NBestList nBest(size_t n, bool skip_empty = false) const {
+  /* return n best hypothesize
+   * @param n size of n-best list
+   * @param skipEmpty skip empty hypotheses (see also: https://arxiv.org/abs/1908.10090)
+   * @return at most max(n, beamSize) translation hypotheses
+   * Note: if n is equal to the beam size, skipEmpty is true, and the empty hypothesis is in
+   *       the top-n translations, the function will return less than n candidates. It is up to
+   *       the caller to check the number of returned hypotheses.
+   */
+  NBestList nBest(size_t n, bool skipEmpty = false) const {
     NBestList nbest;
     for (auto topHypsCopy = topHyps_; nbest.size() < n && !topHypsCopy.empty(); topHypsCopy.pop()) {
       auto bestHypCoord = topHypsCopy.top();
@@ -48,7 +56,7 @@ public:
 
       // trace back best path
       Words targetWords = bestHyp->tracebackWords();
-      if (skip_empty && targetWords.size() == 0)
+      if (skipEmpty && targetWords.size() == 0)
         continue; // skip empty translation
       // note: bestHyp->getPathScore() is not normalized, while bestHypCoord.normalizedPathScore is
       nbest.emplace_back(targetWords, bestHyp, bestHypCoord.normalizedPathScore);
