@@ -37,7 +37,7 @@ public:
 
   size_t size() const { return history_.size(); } // number of time steps
 
-  /* return n best hypothesize
+  /* return n best hypotheses
    * @param n size of n-best list
    * @param skipEmpty skip empty hypotheses (see also: https://arxiv.org/abs/1908.10090)
    * @return at most max(n, beamSize) translation hypotheses
