@@ -129,7 +129,9 @@ set(MARIAN_GIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../.git)
 if(NOT IS_DIRECTORY ${MARIAN_GIT_DIR}) # i.e., it's a submodule
   file(READ ${MARIAN_GIT_DIR} MARIAN_GIT_DIR)
   string(REGEX REPLACE "gitdir: (.*)\n" "\\1" MARIAN_GIT_DIR ${MARIAN_GIT_DIR})
-  get_filename_component(MARIAN_GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${MARIAN_GIT_DIR}" ABSOLUTE)
+  if(NOT IS_ABSOLUTE ${MARIAN_GIT_DIR})
+    get_filename_component(MARIAN_GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${MARIAN_GIT_DIR}" ABSOLUTE)
+  endif()
 endif(NOT IS_DIRECTORY ${MARIAN_GIT_DIR})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/common/git_revision.h

@@ -5,6 +5,7 @@
 #include "translator/history.h"
 #include "translator/scorers.h"
 #include "data/factored_vocab.h"
+#include "data/shortlist.h"
 
 #include "translator/helpers.h"
 #include "translator/nth_element.h"
@@ -68,21 +69,21 @@ public:
       // They can be between 0 and (vocabSize * nBestBeamSize * batchSize)-1.
       // (beamHypIdx refers to the GPU tensors, *not* the beams[] array; they are not the same in case of purging)
       const auto  key       = nBestKeys[i];
-      
+
       // decompose key into individual indices (batchIdx, beamHypIdx, wordIdx)
       const auto beamHypIdx      = (key / vocabSize) % nBestBeamSize;
       const auto currentBatchIdx = (key / vocabSize) / nBestBeamSize;
       const auto origBatchIdx    = reverseBatchIdxMap.empty() ? currentBatchIdx : reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
 
       bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx] && factorGroup == 0;
-      
+
       WordIndex wordIdx;
       if(dropHyp) { // if we force=drop the hypothesis, assign EOS, otherwise the expected word id.
         if(factoredVocab) { // when using factoredVocab, extract the EOS lemma index from the word id, we predicting factors one by one here, hence lemma only
           std::vector<size_t> eosFactors;
           factoredVocab->word2factors(factoredVocab->getEosId(), eosFactors);
           wordIdx = (WordIndex)eosFactors[0];
-        } else { // without factoredVocab lemma index and word index are the same. Safe cruising. 
+        } else { // without factoredVocab lemma index and word index are the same. Safe cruising.
           wordIdx = trgVocab_->getEosId().toWordIndex();
         }
       } else { // we are not dropping anything, just assign the normal index
@@ -90,9 +91,9 @@ public:
       }
 
       // @TODO: We currently assign a log probability of 0 to all beam entries of the dropped batch entry, instead it might be a good idea to use
-      // the per Hyp pathScore without the current expansion (a bit hard to obtain). 
-      // For the case where we drop empty inputs, 0 is fine. For other use cases like a forced stop, the penultimate pathScore might be better. 
-      // For the empty hyp this would naturally result in 0, too. 
+      // the per Hyp pathScore without the current expansion (a bit hard to obtain).
+      // For the case where we drop empty inputs, 0 is fine. For other use cases like a forced stop, the penultimate pathScore might be better.
+      // For the empty hyp this would naturally result in 0, too.
       const float pathScore = dropHyp ? 0.f : nBestPathScores[i]; // 0 (Prob = 1, maximum score) if dropped or expanded path score for (batchIdx, beamHypIdx, word)
 
       const auto& beam = beams[origBatchIdx];
@@ -102,7 +103,7 @@ public:
         continue;
       if(pathScore == INVALID_PATH_SCORE) // (dummy slot or word that cannot be expanded by current factor)
         continue;
-      
+
       ABORT_IF(pathScore < INVALID_PATH_SCORE, "Actual pathScore ({}) is lower than INVALID_PATH_SCORE ({})??", pathScore, INVALID_PATH_SCORE); // This should not happen in valid situations. Currently the only smaller value would be -inf (effect of overflow in summation?)
       ABORT_IF(beamHypIdx >= beam.size(), "Out of bounds beamHypIdx??"); // effectively this is equivalent to ABORT_IF(beams[origBatchIdx].empty(), ...)
 

@@ -261,7 +261,7 @@ public:
                  Ptr<Options> options,
                  Ptr<BatchStats> stats = nullptr)
       : data_(data), options_(options), stats_(stats), threadPool_(1) {
-    auto shuffle = options_->get<std::string>("shuffle");
+    auto shuffle = options_->get<std::string>("shuffle", "none");
     shuffleData_ = shuffle == "data";
     shuffleBatches_ = shuffleData_ || shuffle == "batches";
   }
