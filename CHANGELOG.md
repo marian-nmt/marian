@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Printing word-level scores in marian-scorer
 - Optimize LayerNormalization on CPU by 6x through vectorization (ffast-math) and fixing performance regression introduced with strides in 77a420
 - Decoding multi-source models in marian-server with --tsv
 - GitHub workflows on Ubuntu, Windows, and MacOS

@@ -687,6 +687,8 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.add<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
+  cli.add<bool>("--word-scores",
+      "Print word-level scores");
 
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);

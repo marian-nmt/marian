@@ -233,8 +233,8 @@ public:
 };
 
 /**
- * @brief Batch of source and target sentences with additional information,
- * such as guided alignments and sentence or word-leve weighting.
+ * @brief Batch of source(s) and target sentences with additional information,
+ * such as guided alignments and sentence or word-level weighting.
  */
 class CorpusBatch : public Batch {
 protected:
