@@ -12,6 +12,63 @@
 #include "tensors/gpu/cuda_helpers.h"
 // clang-format on
 
+// recreations of a few cusparse functions that were deprecated in CUDA 11
+// @TODO: Fill these in. This is not trivial. Until then, using these with CUDA 11 will fail.
+#if CUDA_VERSION >= 11000
+cusparseStatus_t
+cusparseSgemmi10(cusparseHandle_t handle,
+               int              m,
+               int              n,
+               int              k,
+               int              nnz,
+               const float*     alpha,
+               const float*     A,
+               int              lda,
+               const float*     cscValB,
+               const int*       cscColPtrB,
+               const int*       cscRowIndB,
+               const float*     beta,
+               float*           C,
+               int              ldc) {
+  ABORT("Sparse matrix operations are currently not supported by Marian under CUDA 11");
+}
+#define cusparseSgemmi cusparseSgemmi10
+cusparseStatus_t
+cusparseScsr2csc(cusparseHandle_t    handle,
+                 int                 m,
+                 int                 n,
+                 int                 nnz,
+                 const float*        csrVal,
+                 const int*          csrRowPtr,
+                 const int*          csrColInd,
+                 float*              cscVal,
+                 int*                cscRowInd,
+                 int*                cscColPtr,
+                 cusparseAction_t    copyValues,
+                 cusparseIndexBase_t idxBase) {
+  ABORT("Sparse matrix operations are currently not supported by Marian under CUDA 11");
+}
+cusparseStatus_t
+cusparseScsrmm(cusparseHandle_t         handle,
+               cusparseOperation_t      transA,
+               int                      m,
+               int                      n,
+               int                      k,
+               int                      nnz,
+               const float*             alpha,
+               const cusparseMatDescr_t descrA,
+               const float*             csrValA,
+               const int*               csrRowPtrA,
+               const int*               csrColIndA,
+               const float*             B,
+               int                      ldb,
+               const float*             beta,
+               float*                   C,
+               int                      ldc) {
+  ABORT("Sparse matrix operations are currently not supported by Marian under CUDA 11");
+}
+#endif
+
 namespace marian {
 
 namespace gpu {
