@@ -4,6 +4,10 @@
 #include "models/model_factory.h"
 #include "data/text_input.h"
 
+#if MKL_FOUND
+#include "mkl.h"
+#endif
+
 namespace marian {
 
 // Thin wrapper around IModel that makes sure model can be cast to an EncoderPooler
@@ -144,6 +148,9 @@ public:
 /* Interface functions ***************************************************************************/
 
 MarianEmbedder::MarianEmbedder() {
+#if MKL_FOUND
+  mkl_set_num_threads(1);
+#endif
   marian::setThrowExceptionOnAbort(true); // globally defined to throw now
 }
 
@@ -159,6 +166,9 @@ bool MarianEmbedder::load(const std::string& modelPath, const std::string& vocab
 }
 
 MarianCosineScorer::MarianCosineScorer() {
+#if MKL_FOUND
+  mkl_set_num_threads(1);
+#endif
   marian::setThrowExceptionOnAbort(true); // globally defined to throw now
 }
 
