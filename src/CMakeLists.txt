@@ -85,6 +85,7 @@ add_library(marian STATIC
   rescorer/score_collector.cpp
   embedder/vector_collector.cpp
 
+  translator/beam_search.cpp
   translator/history.cpp
   translator/output_collector.cpp
   translator/output_printer.cpp
