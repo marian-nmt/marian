@@ -22,8 +22,8 @@ namespace marian {
  *
  * @see CLIWrapper::alias()
  *
- * The order of alias definitions *does* matter: options from later aliases override earlier
- * regardless of its order in the command line or config file.
+ * The order of alias definitions *does* matter: options from an alias defined later override
+ * options defined in earlier aliases regardless of their order in the command line or config file.
  */
 void ConfigParser::addAliases(cli::CLIWrapper& cli) {
   cli.alias("fp16", "true", [&](YAML::Node& config) {

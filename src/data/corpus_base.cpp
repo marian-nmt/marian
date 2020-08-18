@@ -30,6 +30,9 @@ const SentenceTuple& CorpusIterator::dereference() const {
   return tup_;
 }
 
+// These types of corpus constructors are used in in-training validators
+// (only?), so do not load additional files for guided alignment or data
+// weighting.
 CorpusBase::CorpusBase(const std::vector<std::string>& paths,
                        const std::vector<Ptr<Vocab>>& vocabs,
                        Ptr<Options> options)
@@ -39,11 +42,11 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")),
       tsv_(options_->get<bool>("tsv", false)),
-      tsvNumFields_(options->get<size_t>("tsv-fields", 0)) {
+      tsvNumInputFields_(getNumberOfTSVInputFields(options)) {
   // TODO: support passing only one vocab file if we have fully-tied embeddings
   if(tsv_) {
-    ABORT_IF(tsvNumFields_ != vocabs_.size(),
-             "Number of TSV fields and vocab files does not agree");
+    ABORT_IF(tsvNumInputFields_ != vocabs_.size(),
+             "Number of TSV input fields and vocab files does not agree");
   } else {
     ABORT_IF(paths_.size() != vocabs_.size(),
              "Number of corpus files and vocab files does not agree");
@@ -64,7 +67,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")),
       tsv_(options_->get<bool>("tsv", false)),
-      tsvNumFields_(options->get<size_t>("tsv-fields", 0)) {
+      tsvNumInputFields_(getNumberOfTSVInputFields(options)) {
   bool training = !translate;
 
   if(training)
@@ -72,21 +75,64 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
   else
     paths_ = options_->get<std::vector<std::string>>("input");
 
-  initEOS(training);
-
   std::vector<std::string> vocabPaths;
   if(!options_->get<std::vector<std::string>>("vocabs").empty())
     vocabPaths = options_->get<std::vector<std::string>>("vocabs");
 
   if(training) {
     if(tsv_) {
-      ABORT_IF(!vocabPaths.empty() && tsvNumFields_ != vocabPaths.size(),
-               "Number of TSV fields and vocab files does not agree");
+      ABORT_IF(!vocabPaths.empty() && tsvNumInputFields_ != vocabPaths.size(),
+               "Number of TSV input fields and vocab files does not agree");
     } else {
       ABORT_IF(!vocabPaths.empty() && paths_.size() != vocabPaths.size(),
                "Number of corpus files and vocab files does not agree");
     }
   }
+
+  bool useGuidedAlignment = options_->get("guided-alignment", std::string("none")) != "none";
+  bool useDataWeighting = options_->hasAndNotEmpty("data-weighting");
+
+  if(training && tsv_) {
+    // For TSV input, we expect that guided-alignment or data-weighting provide the index of a TSV
+    // field that contains the alignments or weights.
+    //
+    // Alignments and weights for non TSV input are handled later, after vocab creation.
+    if(useGuidedAlignment) {
+      try {
+        alignFileIdx_ = std::stoul(options_->get<std::string>("guided-alignment"));
+      } catch(const std::invalid_argument& /*e*/) {
+        ABORT(
+            "For TSV input, guided-alignment must provide an index of a field with alignments. "
+            "The value '{}' could not be converted to an unsigned integer.",
+            options_->get<std::string>("guided-alignment"));
+      }
+      LOG(info, "[data] Using word alignments from TSV field no. {}", alignFileIdx_);
+    }
+
+    if(useDataWeighting) {
+      try {
+        weightFileIdx_ = std::stoul(options_->get<std::string>("data-weighting"));
+      } catch(const std::invalid_argument& /*e*/) {
+        ABORT(
+            "For TSV input, data-weighting must provide an index of a field with weights. "
+            "The value '{}' could not be converted to an unsigned integer.",
+            options_->get<std::string>("data-weighting"));
+      }
+      LOG(info, "[data] Using weights from TSV field no. {}", weightFileIdx_);
+    }
+
+    // check for identical or too large indices
+    size_t maxIndex = tsvNumInputFields_ + size_t(useGuidedAlignment) + size_t(useDataWeighting) - 1;
+    ABORT_IF((useGuidedAlignment && useDataWeighting && alignFileIdx_ == weightFileIdx_)
+                 || (useGuidedAlignment && (alignFileIdx_ > maxIndex))
+                 || (useDataWeighting && (weightFileIdx_ > maxIndex)),
+             "For TSV input, guided-alignment and data-weighting must provide an index <= {} "
+             "and be different",
+             maxIndex);
+  }
+
+  // run this after determining if guided alignment or data weighting is used in TSV input
+  initEOS(training);
 
   // @TODO: check if size_t can be used instead of int
   std::vector<int> maxVocabs = options_->get<std::vector<int>>("dim-vocabs");
@@ -133,12 +179,23 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
     //  There is more cases for multi-encoder models not listed above.
     //
     if(vocabPaths.empty()) {
-      size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size();
+      size_t numStreams = tsv_ ? tsvNumInputFields_ : paths_.size();
 
-      // Creating a vocabulary from stdin is not supported
-      ABORT_IF(tsv_ && (paths_[0] == "stdin" || paths_[0] == "-"),
-               "Creating vocabularies automatically from a data stream from STDIN is not supported. "
-               "Create vocabularies first and provide them with --vocabs");
+      if(tsv_) {
+        // Creating a vocabulary from stdin is not supported
+        ABORT_IF(paths_[0] == "stdin" || paths_[0] == "-",
+                 "Creating vocabularies automatically from a data stream from STDIN is not "
+                 "supported. Create vocabularies first and provide them with --vocabs");
+
+        // Creating a vocab from a TSV input (from STDIN or a file) with alignments or weights is
+        // not supported
+        ABORT_IF(useGuidedAlignment,
+                 "Creating vocabularies automatically from TSV data with alignments is not "
+                 "supported. Create vocabularies first and provide them with --vocabs");
+        ABORT_IF(useDataWeighting,
+                 "Creating vocabularies automatically from TSV data with weights is not "
+                 "supported. Create vocabularies first and provide them with --vocabs");
+      }
 
       if(maxVocabs.size() < paths_.size())
         maxVocabs.resize(paths_.size(), 0);
@@ -170,7 +227,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       options_->set("dim-vocabs", vocabDims, "vocabs", vocabPaths1);
 
     } else { // Vocabulary paths are given
-      size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size();
+      size_t numStreams = tsv_ ? tsvNumInputFields_ : paths_.size();
 
       // Load all vocabs
       size_t numVocs = vocabPaths.size();
@@ -200,11 +257,22 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       vocabDims.resize(numVocs, 0); // make sure there is as many dims as vocab paths
 
       for(size_t i = 0; i < numVocs; ++i) {
-        // Creating a vocabulary from stdin is not supported
-        ABORT_IF(tsv_ && (paths_[0] == "stdin" || paths_[0] == "-")
-                 && (vocabPaths[i].empty() || !filesystem::exists(vocabPaths[i])),
-            "Creating vocabulary automatically from a data stream from STDIN is not supported. "
-            "Create vocabularies first and provide them with --vocabs");
+        if(tsv_) {
+          bool noVocabGiven = (vocabPaths[i].empty() || !filesystem::exists(vocabPaths[i]));
+
+          // Creating a vocabulary from stdin is not supported
+          ABORT_IF(noVocabGiven && (paths_[0] == "stdin" || paths_[0] == "-"),
+                   "Creating vocabulary automatically from a data stream from STDIN is not "
+                   "supported. Create vocabularies first and provide them with --vocabs");
+
+          // Creating a vocab from a TSV input (from STDIN or a file) with alignments or weights is not supported
+          ABORT_IF(noVocabGiven && useGuidedAlignment,
+                   "Creating vocabularies automatically from TSV data with alignments is not "
+                   "supported. Create vocabularies first and provide them with --vocabs");
+          ABORT_IF(noVocabGiven && useDataWeighting,
+                   "Creating vocabularies automatically from TSV data with weights is not "
+                   "supported. Create vocabularies first and provide them with --vocabs");
+        }
 
         // Get the set of files that corresponds to the vocab. If the next file is the same vocab,
         // it will not be created again, but just correctly loaded.
@@ -230,7 +298,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
           fileutils::cut(groupedPaths[0],  // Index 0 because there is only one TSV file
                          tsvTempFile,
                          vocabDetails.streams,
-                         tsvNumFields_,
+                         tsvNumInputFields_,
                          " ");  // Notice that tab-separated fields are joined with a whitespace
 
           groupedPaths.clear();
@@ -288,30 +356,34 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
            files_.size(),
            vocabs_.size());
 
-  if(training && options_->get("guided-alignment", std::string("none")) != "none") {
-    auto path = options_->get<std::string>("guided-alignment");
+  // Handle guided alignment and data weighting files. Alignments and weights in TSV input were
+  // handled earlier.
+  if(training && !tsv_) {
+    if(useGuidedAlignment) {
+      auto path = options_->get<std::string>("guided-alignment");
 
-    ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
-    LOG(info, "[data] Using word alignments from file {}", path);
+      ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
+      LOG(info, "[data] Using word alignments from file {}", path);
 
-    alignFileIdx_ = paths_.size();
-    paths_.emplace_back(path);
-    io::InputFileStream* strm = new io::InputFileStream(path);
-    ABORT_IF(strm->empty(), "File with alignments '{}' is empty", path);
-    files_.emplace_back(strm);
-  }
+      alignFileIdx_ = paths_.size();
+      paths_.emplace_back(path);
+      io::InputFileStream* strm = new io::InputFileStream(path);
+      ABORT_IF(strm->empty(), "File with alignments '{}' is empty", path);
+      files_.emplace_back(strm);
+    }
 
-  if(training && options_->hasAndNotEmpty("data-weighting")) {
-    auto path = options_->get<std::string>("data-weighting");
+    if(useDataWeighting) {
+      auto path = options_->get<std::string>("data-weighting");
 
-    ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
-    LOG(info, "[data] Using weights from file {}", path);
+      ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
+      LOG(info, "[data] Using weights from file {}", path);
 
-    weightFileIdx_ = paths_.size();
-    paths_.emplace_back(path);
-    io::InputFileStream* strm = new io::InputFileStream(path);
-    ABORT_IF(strm->empty(), "File with weights '{}' is empty", path);
-    files_.emplace_back(strm);
+      weightFileIdx_ = paths_.size();
+      paths_.emplace_back(path);
+      io::InputFileStream* strm = new io::InputFileStream(path);
+      ABORT_IF(strm->empty(), "File with weights '{}' is empty", path);
+      files_.emplace_back(strm);
+    }
   }
 }
 
@@ -412,23 +484,37 @@ void CorpusBase::initEOS(bool training = true) {
   // add a EOS symbol. Hence decision to add EOS is now based on input stream positions and
   // correspoding input type.
 
-  size_t numStreams = tsv_ ? tsvNumFields_ : paths_.size(); // determine number of streams
-
+  // Determine the number of streams, i.e. the number of input files (if --train-sets) or fields in
+  // a TSV input (if --tsv). Notice that in case of a TSV input, fields that contain alignments and
+  // weights are *not* included.
+  size_t numStreams = tsv_ ? tsvNumInputFields_ : paths_.size();
   addEOS_.resize(numStreams, true);
-  // @TODO: think if this should be checked and processed here or in a validation step in config?
+
+  // input-types provides the input type for each input file (if --train-sets) or for each TSV field
+  // (if --tsv), for example: sequence, class, alignment.
   auto inputTypes = options_->get<std::vector<std::string>>("input-types", {}); // empty list by default
 
-  // make sure there is an input type for each stream
-  ABORT_IF(inputTypes.size() > 0 && inputTypes.size() < numStreams,
-           "Input types have been specified ({}), you need to specify one per input ({})",
-           inputTypes.size(),
-           numStreams);
+  // @TODO: think if this should be checked and processed here or in a validation step in config?
+  if(!inputTypes.empty()) {
+    if(tsv_) {
+      // Remove 'alignment' and 'weight' from input types.
+      // Note that these input types are not typical input streams with corresponding vocabularies.
+      // For a TSV input, they were used only to determine fields that contain alignments or weights
+      // and initialize guided-alignment and data-weighting options.
+      auto pos = std::find(inputTypes.begin(), inputTypes.end(), "alignment");
+      if(pos != inputTypes.end())
+        inputTypes.erase(pos);
+      pos = std::find(inputTypes.begin(), inputTypes.end(), "weight");
+      if(pos != inputTypes.end())
+        inputTypes.erase(pos);
+    }
 
-  // make sure there is an equal number of input types and streams when training
-  ABORT_IF(training && inputTypes.size() > 0 && inputTypes.size() != numStreams,
-           "Input types have been specified ({}), you need to specify one per input ({})",
-           inputTypes.size(),
-           numStreams);
+    // Make sure there is an input type for each stream
+    // and that there is an equal number of input types and streams when training
+    ABORT_IF((inputTypes.size() < numStreams) || (training && inputTypes.size() != numStreams),
+             "Input types have been specified ({}), you need to specify one per input stream ({})",
+             inputTypes.size(), numStreams);
+  }
 
   for(int i = 0; i < numStreams; ++i)
     if(inputTypes.size() > i) {
@@ -442,6 +528,35 @@ void CorpusBase::initEOS(bool training = true) {
       // No input type specified, assuming "sequence"
       addEOS_[i] = true;
     }
+}
+
+size_t CorpusBase::getNumberOfTSVInputFields(Ptr<Options> options) {
+  if(options->get<bool>("tsv", false)) {
+    size_t n = options->get<size_t>("tsv-fields", 0);
+    if(n > 0 && options->get("guided-alignment", std::string("none")) != "none")
+      --n;
+    if(n > 0 && options->hasAndNotEmpty("data-weighting"))
+      --n;
+    return n;
+  }
+  return 0;
+}
+
+void SentenceTuple::setWeights(const std::vector<float>& weights) {
+  if(weights.size() != 1) {  // this assumes a single sentence-level weight is always fine
+    ABORT_IF(empty(), "Source and target sequences should be added to a tuple before data weights");
+    auto numWeights = weights.size();
+    auto numTrgWords = back().size();
+    // word-level weights may or may not contain a weight for EOS tokens
+    if(numWeights != numTrgWords && numWeights != numTrgWords - 1)
+      LOG(warn,
+          "[warn] "
+          "Number of weights ({}) does not match the number of target words ({}) in line #{}",
+          numWeights,
+          numTrgWords,
+          id_);
+  }
+  weights_ = weights;
 }
 
 // experimental: hide inline-fix source tokens from cross attention

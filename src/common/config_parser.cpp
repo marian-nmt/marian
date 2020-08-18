@@ -221,7 +221,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Train right-to-left model");
   cli.add<std::vector<std::string>>("--input-types",
       "Provide type of input data if different than 'sequence'. "
-      "Possible values: sequence, class. You need to provide one type per input.",
+      "Possible values: sequence, class, alignment, weight. "
+      "You need to provide one type per input file (if --train-sets) or per TSV field (if --tsv).",
       {});
   cli.add<bool>("--best-deep",
       "Use Edinburgh deep RNN configuration (s2s)");
@@ -467,7 +468,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Auto-adjusted to --mini-batch-words-ref if given.",
      0.f)->implicit_val("1e-4");
   cli.add<std::string>("--guided-alignment",
-     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'",
+     "Path to a file with word alignments. Use guided alignment to guide attention or 'none'. "
+     "If --tsv it specifies the index of a TSV field that contains the alignments (0-based)",
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
@@ -476,7 +478,8 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Weight for guided alignment cost",
      0.1);
   cli.add<std::string>("--data-weighting",
-     "Path to a file with sentence or word weights");
+     "Path to a file with sentence or word weights. "
+     "If --tsv it specifies the index of a TSV field that contains the weights (0-based)");
   cli.add<std::string>("--data-weighting-type",
      "Processing level for data weighting: sentence, word",
      "sentence");
@@ -731,7 +734,7 @@ void ConfigParser::addOptionsEmbedding(cli::CLIWrapper& cli) {
       "Expect two inputs and compute cosine similarity instead of outputting embedding vector");
   cli.add<bool>("--binary",
       "Output vectors as binary floats");
-  
+
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);
   addSuboptionsDevices(cli);
@@ -846,7 +849,7 @@ void ConfigParser::addSuboptionsTSV(cli::CLIWrapper& cli) {
   cli.add<bool>("--tsv",
       "Tab-separated input");
   cli.add<size_t>("--tsv-fields",
-      "Number of fields in the TSV input, guessed based on the model type");
+      "Number of fields in the TSV input. By default, it is guessed based on the model type");
   // clang-format on
 }
 
@@ -946,6 +949,7 @@ Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
   // remove extra config files from the config to avoid redundancy
   config_.remove("config");
 
+  // dump config and exit
   if(!get<std::string>("dump-config").empty() && get<std::string>("dump-config") != "false") {
     auto dumpMode = get<std::string>("dump-config");
     config_.remove("dump-config");
@@ -957,6 +961,43 @@ Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
     bool minimal = (dumpMode == "minimal" || dumpMode == "expand");
     std::cout << cli_.dumpConfig(minimal) << std::endl;
     exit(0);
+  }
+
+  // For TSV input, it is possible to use --input-types to determine fields that contain alignments
+  // or weights. In such case, the position of 'alignment' input type in --input-types determines
+  // the index of a TSV field that contains word alignments, and respectively, the position of
+  // 'weight' in --input-types determines the index of a TSV field that contains weights.
+  // Marian will abort if both the --guided-alignment and 'alignment' in --input-types are specified
+  // (or --data-weighting and 'weight').
+  //
+  // Note: this may modify the config, so it is safer to do it after --dump-config.
+  if(mode_ == cli::mode::training || get<bool>("tsv")) {
+    auto inputTypes = get<std::vector<std::string>>("input-types");
+    if(!inputTypes.empty()) {
+      bool seenAligns = false;
+      bool seenWeight = false;
+      YAML::Node config;
+      for(size_t i = 0; i < inputTypes.size(); ++i) {
+        if(inputTypes[i] == "alignment") {
+          ABORT_IF(seenAligns, "You can specify 'alignment' only once in input-types");
+          ABORT_IF(has("guided-alignment") && get<std::string>("guided-alignment") != "none",
+                   "You must use either guided-alignment or 'alignment' in input-types");
+          config["guided-alignment"] = std::to_string(i);
+          seenAligns = true;
+        }
+        if(inputTypes[i] == "weight") {
+          ABORT_IF(seenWeight, "You can specify 'weight' only once in input-types");
+          ABORT_IF(has("data-weighting") && !get<std::string>("data-weighting").empty(),
+                   "You must use either data-weighting or 'weight' in input-types");
+          config["data-weighting"] = std::to_string(i);
+          seenWeight = true;
+        }
+      }
+      if(!config.IsNull())
+        cli_.updateConfig(config,
+                          cli::OptionPriority::CommandLine,
+                          "Extracting 'alignment' and 'weight' types from input-types failed.");
+    }
   }
 
   cli_.parseAliases();
