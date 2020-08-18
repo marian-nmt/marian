@@ -104,8 +104,8 @@ public:
           output.resize(batchIdx + 1);
         
         int embSize = embeddings->shape()[-1];
-        int beg = i * embSize;
-        int end = (i + 1) * embSize;
+        size_t beg = i * embSize;
+        size_t end = (i + 1) * embSize;
         std::vector<float> sentVector(sentVectors.begin() + beg, sentVectors.begin() + end);
         output[batchIdx] = sentVector;
       }
