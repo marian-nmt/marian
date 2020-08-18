@@ -5,6 +5,7 @@
 #include "layers/factory.h"
 #include "models/encoder_decoder.h"
 #include "models/encoder_classifier.h"
+#include "models/encoder_pooler.h"
 
 namespace marian {
 namespace models {
@@ -32,6 +33,14 @@ public:
 };
 
 typedef Accumulator<ClassifierFactory> classifier;
+
+class PoolerFactory : public Factory {
+  using Factory::Factory;
+public:
+  virtual Ptr<PoolerBase> construct(Ptr<ExpressionGraph> graph);
+};
+
+typedef Accumulator<PoolerFactory> pooler;
 
 class EncoderDecoderFactory : public Factory {
   using Factory::Factory;
@@ -76,6 +85,28 @@ public:
 };
 
 typedef Accumulator<EncoderClassifierFactory> encoder_classifier;
+
+class EncoderPoolerFactory : public Factory {
+  using Factory::Factory;
+private:
+  std::vector<encoder> encoders_;
+  std::vector<pooler> poolers_;
+
+public:
+  Accumulator<EncoderPoolerFactory> push_back(encoder enc) {
+    encoders_.push_back(enc);
+    return Accumulator<EncoderPoolerFactory>(*this);
+  }
+
+  Accumulator<EncoderPoolerFactory> push_back(pooler cls) {
+    poolers_.push_back(cls);
+    return Accumulator<EncoderPoolerFactory>(*this);
+  }
+
+  virtual Ptr<IModel> construct(Ptr<ExpressionGraph> graph);
+};
+
+typedef Accumulator<EncoderPoolerFactory> encoder_pooler;
 
 Ptr<IModel> createBaseModelByType(std::string type, usage, Ptr<Options> options);
 

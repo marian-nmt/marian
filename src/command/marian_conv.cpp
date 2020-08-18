@@ -70,15 +70,17 @@ int main(int argc, char** argv) {
     // added a flag if the weights needs to be packed or not
     graph->packAndSave(modelTo, configStr.str(), /* --gemm-type */ saveGemmType, Type::float32);
   }
-#ifdef USE_ONNX
   else if (exportAs == "onnx-encode") {
+#ifdef USE_ONNX
     auto graph = New<ExpressionGraphONNXExporter>();
     load(graph);
     auto modelOptions = New<Options>(config)->with("vocabs", vocabPaths, "inference", true);
 
     graph->exportToONNX(modelTo, modelOptions, vocabPaths);
-  }
+#else
+    ABORT("--export-as onnx-encode requires Marian to be built with USE_ONNX=ON");
 #endif // USE_ONNX
+  }
   else
     ABORT("Unknown --export-as value: {}", exportAs);
 

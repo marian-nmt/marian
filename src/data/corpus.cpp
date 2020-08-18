@@ -46,7 +46,14 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
 }
 
 SentenceTuple Corpus::next() {
-  std::vector<std::string> fields(tsvNumFields_);  // used for handling TSV inputs
+  // Used for handling TSV inputs
+  // Determine the total number of fields including alignments or weights
+  auto tsvNumAllFields = tsvNumInputFields_;
+  if(alignFileIdx_ > -1)
+    ++tsvNumAllFields;
+  if(weightFileIdx_ > -1)
+    ++tsvNumAllFields;
+  std::vector<std::string> fields(tsvNumAllFields);
 
   for(;;) { // (this is a retry loop for skipping invalid sentences)
     // get index of the current sentence
@@ -86,11 +93,27 @@ SentenceTuple Corpus::next() {
         addWeightsToSentenceTuple(line, tup);
       } else {
         if(tsv_) {  // split TSV input and add each field into the sentence tuple
-          utils::splitTsv(line, fields, tsvNumFields_);
-          for(size_t j = 0; j < tsvNumFields_; ++j) {
-            preprocessLine(fields[j], j);
-            addWordsToSentenceTuple(fields[j], j, tup);
+          utils::splitTsv(line, fields, tsvNumAllFields);
+          size_t shift = 0;
+          for(size_t j = 0; j < tsvNumAllFields; ++j) {
+            // index j needs to be shifted to get the proper vocab index if guided-alignment or
+            // data-weighting are preceding source or target sequences in TSV input
+            if(j == alignFileIdx_ || j == weightFileIdx_) {
+              ++shift;
+            } else {
+              size_t vocabId = j - shift;
+              preprocessLine(fields[j], vocabId);
+              addWordsToSentenceTuple(fields[j], vocabId, tup);
+            }
           }
+
+          // weights are added last to the sentence tuple, because this runs a validation that needs
+          // length of the target sequence
+          if(alignFileIdx_ > -1)
+            addAlignmentToSentenceTuple(fields[alignFileIdx_], tup);
+          if(weightFileIdx_ > -1)
+            addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
+
         } else {
           preprocessLine(line, i);
           addWordsToSentenceTuple(line, i, tup);
@@ -267,9 +290,10 @@ CorpusBase::batch_ptr Corpus::toBatch(const std::vector<Sample>& batchVector) {
   auto batch = batch_ptr(new batch_type(subBatches));
   batch->setSentenceIds(sentenceIds);
 
-  if(options_->get("guided-alignment", std::string("none")) != "none" && alignFileIdx_)
+  // Add prepared word alignments and weights if they are available
+  if(alignFileIdx_ > -1 && options_->get("guided-alignment", std::string("none")) != "none")
     addAlignmentsToBatch(batch, batchVector);
-  if(options_->hasAndNotEmpty("data-weighting") && weightFileIdx_)
+  if(weightFileIdx_ > -1 && options_->hasAndNotEmpty("data-weighting"))
     addWeightsToBatch(batch, batchVector);
 
   return batch;

@@ -192,6 +192,13 @@ else(MSVC)
   set(CMAKE_C_FLAGS_PROFUSE         "${CMAKE_C_FLAGS_RELEASE} -fprofile-use -fprofile-correction")
 endif(MSVC)
 
+# with gcc 7.0 and above we need to mark fallthrough in switch case statements
+# that can be done in comments for backcompat, but CCACHE removes comments.
+# -C makes gcc keep comments.
+if(USE_CCACHE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -C")
+endif()
+
 ###############################################################################
 # Downloading SentencePiece if requested and set to compile with it.
 # Requires all the dependencies imposed by SentencePiece
@@ -205,6 +212,7 @@ if(USE_ONNX)
   message(STATUS "Enabling experimental ONNX support")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_ONNX")
   set(EXT_LIBS ${EXT_LIBS} protobuf)
+  include_directories(${Protobuf_INCLUDE_DIRS})
 endif()
 
 # Find packages
@@ -400,6 +408,13 @@ if(COMPILE_SERVER)
     message(STATUS "Found OpenSSL")
     include_directories(${OPENSSL_INCLUDE_DIR})
     set(EXT_LIBS ${EXT_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+    if(MSVC AND USE_STATIC_LIBS)
+      # "If you link with static OpenSSL libraries then you're expected to additionally link your
+      # application with WS2_32.LIB, GDI32.LIB, ADVAPI32.LIB, CRYPT32.LIB and USER32.LIB"
+      # See https://github.com/openssl/openssl/blob/OpenSSL_1_1_1d/NOTES.WIN#L127
+      # Linking with crypt32.lib seem to be enough.
+      set(EXT_LIBS ${EXT_LIBS} crypt32.lib)
+    endif()
     set(BOOST_COMPONENTS ${BOOST_COMPONENTS} system)
   else(OpenSSL_FOUND)
     message(WARNING "Cannot find OpenSSL library. Not compiling server.")

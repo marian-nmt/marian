@@ -27,6 +27,10 @@ void ConfigValidator::validateOptions(cli::mode mode) const {
       validateOptionsParallelData();
       validateOptionsScoring();
       break;
+    case cli::mode::embedding:
+      validateOptionsParallelData();
+      validateOptionsScoring();
+      break;
     case cli::mode::training:
       validateOptionsParallelData();
       validateOptionsTraining();

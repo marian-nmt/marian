@@ -2,20 +2,25 @@
   "environments": [
     {
       // Dependencies can be found automatically if you use vcpkg as your library manager.
-      // In this case, please set the VCPKG_ROOT variable to the directory that contains the vcpkg.exe
+      // In this case, please set the VCPKG_ROOT variable to the directory that contains the
+      // vcpkg.exe. If you used CheckDeps.bat to install dependencies, by default this should be an
+      // absolute path to marian-dev\vs\deps\vcpkg.
       // If you prefer managing yourself the dependencies, please fill in the other variables.
-      "VCPKG_ROOT": "D:\\Perso\\Dev\\vcpkg",
+      "VCPKG_ROOT": "C:\\path\\to\\marian-dev\\vs\\deps\\vcpkg",
 
+      // The MKL library can be automatically found by CMake. However, if you installed it in a
+      // custom directory, please set the MKLROOT to this directory path.
+      // Default is c:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl on
+      // Windows, or /opt/intel/mkl on Linux
+      "MKLROOT": "",
+
+      // Boost and OpenSSL are required if you compile with COMPILE_SERVER=TRUE
       "BOOST_INCLUDEDIR": "",
       "BOOST_LIBRARYDIR": "",
-      "ZLIB_ROOT": "",
       "OPENSSL_ROOT_DIR": "",
 
-      // The MKL library can be automatically found by CMake. However, if you installed it in a custom
-      // directory, please set the MKLROOT to this directory path.
-      // Default is c:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl on Windows, or
-      // /opt/intel/mkl on Linux
-      "MKLROOT": ""
+      // Protobuf is required if you compile with USE_SENTENCEPIECE=TRUE
+      "Protobuf_SRC_ROOT_FOLDER": ""
     }
   ],
   "configurations": [
@@ -32,18 +37,21 @@
       "variables": [
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
-        
+
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
-        
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
-        
-        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
-        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" },
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" },
+
+        { "name": "USE_CUDNN:BOOL", "value": "FALSE" },
+        { "name": "USE_FBGEMM:BOOL", "value": "TRUE" },
+        { "name": "USE_MPI:BOOL", "value": "FALSE" },
+        { "name": "USE_SENTENCEPIECE:BOOL", "value": "TRUE" },
+        { "name": "USE_STATIC_LIBS:BOOL", "value": "TRUE" }
       ]
     },
     {
@@ -59,18 +67,21 @@
       "variables": [
         { "name": "CMAKE_TOOLCHAIN_FILE", "value": "${env.VCPKG_ROOT}\\scripts\\buildsystems\\vcpkg.cmake" },
         { "name": "VCPKG_TARGET_TRIPLET", "value": "x64-windows-static" },
-        
+
         { "name": "OPENSSL_USE_STATIC_LIBS:BOOL", "value": "TRUE" },
         { "name": "OPENSSL_MSVC_STATIC_RT:BOOL", "value": "TRUE" },
-        
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" }, 
-        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" }, 
-        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" }, 
-        
-        { "name": "USE_CUDNN:BOOL", "value": "TRUE" }, 
-        { "name": "USE_MPI:BOOL", "value": "FALSE" }
+
+        { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_CPU:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" },
+        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_TESTS:BOOL", "value": "TRUE" },
+
+        { "name": "USE_CUDNN:BOOL", "value": "FALSE" },
+        { "name": "USE_FBGEMM:BOOL", "value": "TRUE" },
+        { "name": "USE_MPI:BOOL", "value": "FALSE" },
+        { "name": "USE_SENTENCEPIECE:BOOL", "value": "TRUE" },
+        { "name": "USE_STATIC_LIBS:BOOL", "value": "TRUE" }
       ]
     }
   ]

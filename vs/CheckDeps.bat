@@ -3,7 +3,8 @@
 ::
 :: This script is used to verify that all the dependencies required to build Marian are available.
 :: The Cuda SDK and the Intel MKL must be installed beforehand by the user.
-:: The Boost and OpenSSH libraries, if not found, will be installed by this script using vcpkg
+:: The rest of libraries (see README.md), if not found, will be installed by this script using
+:: vcpkg.
 ::
 ::
 @echo off
@@ -28,6 +29,7 @@ set ROOT=%~dp0
 ::set BOOST_INCLUDEDIR=
 ::set BOOST_LIBRARYDIR=
 ::set OPENSSL_ROOT_DIR=
+::set Protobuf_SRC_ROOT_FOLDER=
 
 
 :: If all the variables are empty and vcpkg is found in a known path, the script will download and
@@ -41,9 +43,9 @@ set ROOT=%~dp0
 ::set MKLROOT=
 
 
-
 if "%BOOST_INCLUDEDIR%" == "" goto :needVcPkg
 if "%OPENSSL_ROOT_DIR%" == "" goto :needVcPkg
+if "%Protobuf_SRC_ROOT_FOLDER%"=="" goto :needVcPkg
 
 goto :checkDeps
 
@@ -64,6 +66,7 @@ if not exist %VCPKG_ROOT% (
     echo --- Cloning vcpkg...
     git clone https://github.com/Microsoft/vcpkg.git %VCPKG_ROOT%
 
+    set USE_BOOST_172=1
     set BOOTSTRAP_VCPKG=1
 
 ) else (
@@ -73,10 +76,22 @@ if not exist %VCPKG_ROOT% (
     echo --- Updating vcpkg...
     for /f "delims=" %%p in ('git pull') do (
         if not "%%p" == "Already up to date." (
+            set USE_BOOST_172=1
             set BOOTSTRAP_VCPKG=1
         )
     )
 
+    popd
+)
+
+:: Checkout to the last version of Boost that is supported by the 3rd party library
+:: SimpleWebSocketServer. Vcpkg does not allow installing a specific version of library yet, but
+:: the feature has a PR and should be available soon.
+:: For more details, see https://github.com/microsoft/vcpkg/issues/1681
+if "%USE_BOOST_172%"=="1" (
+    pushd %VCPKG_ROOT%
+    echo --- Checkout to Boost version 1.72...
+    git checkout 597038559647776ee39d02dcf159da05d9342f1d --pathspec-from-file=../../pathspec-boost-1.72.txt
     popd
 )
 
@@ -89,7 +104,6 @@ if "%BOOTSTRAP_VCPKG%"=="1" (
 set VCPKG_DEFAULT_TRIPLET=x64-windows-static
 set VCPKG_INSTALL=%VCPKG_ROOT%\installed\%VCPKG_DEFAULT_TRIPLET%
 set VCPKG=%VCPKG_ROOT%\vcpkg
-
 
 
 :: -------------------------------------------------------
@@ -117,12 +131,12 @@ else (
 
 :: -------------------------
 :: The MKL setup does not set any environment variable to the installation path.
-:: The script look into the standard default installation dir
+:: The script look into the standard default installation directory.
 :: If you installed MKL in a custom directory, please set the variable MKLROOT at the top of this file.
 ::
 echo.
 echo ... Intel MKL
-if "%MKLROOT%" == "" ( 
+if "%MKLROOT%" == "" (
     set "MKLROOT=C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\mkl"
 )
 if not exist "%MKLROOT%" (
@@ -153,7 +167,7 @@ echo Found Intel MKL library in %MKLROOT%
 echo.
 echo ... Boost (1.58+)
 if "%BOOST_INCLUDEDIR%" == "" (
-    "%VCPKG%" install boost-chrono boost-filesystem boost-iostreams boost-program-options boost-regex boost-system boost-thread boost-timer boost-asio
+    "%VCPKG%" install boost-system boost-asio
     set BOOST_INCLUDEDIR=%VCPKG_INSTALL%\include
     set BOOST_LIBRARYDIR=%VCPKG_INSTALL%\lib
 )
@@ -197,17 +211,15 @@ if "%OPENSSL_ROOT_DIR%"=="" (
     set OPENSSL_ROOT_DIR=%VCPKG_INSTALL%
 )
 
-if not exist "%VCPKG_INSTALL%/bin/protoc.exe" (
-mkdir build
-cd build
-git clone https://github.com/protocolbuffers/protobuf
-cd protobuf
-git checkout v3.6.1
-cd cmake
-cmake . -A x64 -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=%VCPKG_INSTALL%
-cmake --build . --config Release --target install
-cd ..\..\..
-
+:: -------------------------
+:: Protobuf_SRC_ROOT_FOLDER can be set to an existing Protobuf installation.
+:: If not, we use vcpkg to install the library
+::
+echo.
+echo ... Protobuf
+if "%Protobuf_SRC_ROOT_FOLDER%"=="" (
+    %VCPKG% install protobuf
+    set Protobuf_SRC_ROOT_FOLDER=%VCPKG_INSTALL%
 )
 
 set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
@@ -215,13 +227,14 @@ set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
 echo.
 echo.
 echo --------------------------------------------------
-echo           CUDA_PATH ^| %CUDA_PATH%
-echo             MKLROOT ^| %MKLROOT%
-echo          VCPKG_ROOT ^| %VCPKG_ROOT%
-echo    BOOST_INCLUDEDIR ^| %BOOST_INCLUDEDIR%
-echo    BOOST_LIBRARYDIR ^| %BOOST_LIBRARYDIR%
-echo    OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
-echo   CMAKE_PREFIX_PATH ^| %CMAKE_PREFIX_PATH%
+echo         BOOST_INCLUDEDIR ^| %BOOST_INCLUDEDIR%
+echo         BOOST_LIBRARYDIR ^| %BOOST_LIBRARYDIR%
+echo        CMAKE_PREFIX_PATH ^| %CMAKE_PREFIX_PATH%
+echo                CUDA_PATH ^| %CUDA_PATH%
+echo                  MKLROOT ^| %MKLROOT%
+echo         OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
+echo Protobuf_SRC_ROOT_FOLDER ^| %Protobuf_SRC_ROOT_FOLDER%
+echo               VCPKG_ROOT ^| %VCPKG_ROOT%
 echo --------------------------------------------------
 echo.
 echo.

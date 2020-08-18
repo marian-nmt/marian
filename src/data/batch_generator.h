@@ -75,6 +75,8 @@ protected:
 
 private:
   Ptr<BatchStats> stats_;
+  
+  bool runAsync_{true}; // use asynchronous batch pre-fetching by default. We want to be able to disable this when running in library mode and for exception-safety.
 
   // state of fetching
   std::deque<BatchPtr> bufferedBatches_; // current swath of batches that next() reads from
@@ -84,7 +86,7 @@ private:
   bool newlyPrepared_{ true }; // prepare() was just called: we need to reset current_  --@TODO: can we just reset it directly?
 
   // variables for multi-threaded pre-fetching
-  mutable ThreadPool threadPool_; // (we only use one thread, but keep it around)
+  mutable UPtr<ThreadPool> threadPool_; // (we only use one thread, but keep it around)
   std::future<std::deque<BatchPtr>> futureBufferedBatches_; // next swath of batches is returned via this
 
   // this runs on a bg thread; sequencing is handled by caller, but locking is done in here
@@ -230,26 +232,37 @@ private:
   // this starts fillBatches() as a background operation
   void fetchBatchesAsync() {
     ABORT_IF(futureBufferedBatches_.valid(), "Attempted to restart futureBufferedBatches_ while still running");
-    futureBufferedBatches_ = threadPool_.enqueue([this]() {
+    ABORT_IF(!runAsync_, "Trying to run fetchBatchesAsync() but runAsync_ is false??");
+    ABORT_IF(!threadPool_, "Trying to run fetchBatchesAsync() without initialized threadPool_??");
+    futureBufferedBatches_ = threadPool_->enqueue([this]() {
       return fetchBatches();
     });
   }
 
   BatchPtr next() {
     if(bufferedBatches_.empty()) {
-      // out of data: need to get next batch from background thread
-      // We only get here if the future has been scheduled to run; it must be valid.
-      ABORT_IF(!futureBufferedBatches_.valid(), "Attempted to wait for futureBufferedBatches_ when none pending.\n"
-          "This error often occurs when Marian tries to restore the training data iterator, but the corpus has been changed or replaced.\n"
-          "If you have changed the training corpus, add --no-restore-corpus to the training command and run it again.");
-      bufferedBatches_ = std::move(futureBufferedBatches_.get());
-      // if bg thread returns an empty swath, we hit the end of the epoch
-      if (bufferedBatches_.empty()) {
-        return nullptr;
+      if(runAsync_) { // by default we will run in asynchronous mode
+        // out of data: need to get next batch from background thread
+        // We only get here if the future has been scheduled to run; it must be valid.
+        ABORT_IF(!futureBufferedBatches_.valid(), "Attempted to wait for futureBufferedBatches_ when none pending.\n"
+            "This error often occurs when Marian tries to restore the training data iterator, but the corpus has been changed or replaced.\n"
+            "If you have changed the training corpus, add --no-restore-corpus to the training command and run it again.");
+        bufferedBatches_ = std::move(futureBufferedBatches_.get());
+        // if bg thread returns an empty swath, we hit the end of the epoch
+        if (bufferedBatches_.empty()) {
+          return nullptr;
+        }
+        // and kick off the next bg operation
+        fetchBatchesAsync();
+      } else { // don't spawn any threads, i.e. batch fetching is blocking.
+        bufferedBatches_ = fetchBatches();
+        // if bufferedBatches is empty we hit the end of the epoch
+        if (bufferedBatches_.empty()) {
+          return nullptr;
+        }
       }
-      // and kick off the next bg operation
-      fetchBatchesAsync();
     }
+    
     auto batch = bufferedBatches_.front();
     bufferedBatches_.pop_front();
     return batch;
@@ -259,8 +272,10 @@ public:
 
   BatchGenerator(Ptr<DataSet> data,
                  Ptr<Options> options,
-                 Ptr<BatchStats> stats = nullptr)
-      : data_(data), options_(options), stats_(stats), threadPool_(1) {
+                 Ptr<BatchStats> stats = nullptr,
+                 bool runAsync = true)
+      : data_(data), options_(options), stats_(stats), 
+        runAsync_(runAsync), threadPool_(runAsync ? new ThreadPool(1) : nullptr) {
     auto shuffle = options_->get<std::string>("shuffle", "none");
     shuffleData_ = shuffle == "data";
     shuffleBatches_ = shuffleData_ || shuffle == "batches";
@@ -287,8 +302,9 @@ public:
       data_->reset();
     newlyPrepared_ = true;
 
-    // start the background pre-fetch operation
-    fetchBatchesAsync();
+    // start the background pre-fetch operation when running in asynchronous mode, otherwise we will fetch on demand.
+    if(runAsync_)
+      fetchBatchesAsync();
   }
 
   // Used to restore the state of a BatchGenerator after

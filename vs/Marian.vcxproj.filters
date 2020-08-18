@@ -931,6 +931,12 @@
     <ClCompile Include="..\src\layers\lsh.cpp">
       <Filter>layers</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\command\marian_embedder.cpp">
+      <Filter>command</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\embedder\vector_collector.cpp">
+      <Filter>embedder</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\marian.h" />
@@ -2348,6 +2354,21 @@
     <ClInclude Include="..\src\layers\lsh.h">
       <Filter>layers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\models\encoder_pooler.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\laser.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\models\pooler.h">
+      <Filter>models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\embedder\embedder.h">
+      <Filter>embedder</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\embedder\vector_collector.h">
+      <Filter>embedder</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="3rd_party">
@@ -2613,6 +2634,9 @@
     </Filter>
     <Filter Include="3rd_party\faiss\utils">
       <UniqueIdentifier>{b100324b-a506-45fa-948e-40be75b239fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="embedder">
+      <UniqueIdentifier>{7a11415f-9bc5-4fe4-8bf2-95fa4114736d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

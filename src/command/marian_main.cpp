@@ -11,6 +11,7 @@
 //  train
 //  decode
 //  score
+//  embed
 //  vocab
 //  convert
 // Currently, marian_server is not supported, since it is a special use case with lots of extra dependencies.
@@ -23,6 +24,9 @@
 #undef main
 #define main mainScorer
 #include "marian_scorer.cpp"
+#undef main
+#define main mainEmbedder
+#include "marian_embedder.cpp"
 #undef main
 #define main mainVocab
 #include "marian_vocab.cpp"
@@ -44,9 +48,10 @@ int main(int argc, char** argv) {
     if(cmd == "train")           return mainTrainer(argc, argv);
     else if(cmd == "decode")     return mainDecoder(argc, argv);
     else if (cmd == "score")     return mainScorer(argc, argv);
+    else if (cmd == "embed")     return mainEmbedder(argc, argv);
     else if (cmd == "vocab")     return mainVocab(argc, argv);
     else if (cmd == "convert")   return mainConv(argc, argv);
-    std::cerr << "Command must be train, decode, score, vocab, or convert." << std::endl;
+    std::cerr << "Command must be train, decode, score, embed, vocab, or convert." << std::endl;
     exit(1);
   } else
     return mainTrainer(argc, argv);

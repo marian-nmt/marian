@@ -70,6 +70,7 @@ add_library(marian STATIC
   layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
+  layers/lsh.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
@@ -82,7 +83,9 @@ add_library(marian STATIC
   models/transformer_stub.cpp
 
   rescorer/score_collector.cpp
+  embedder/vector_collector.cpp
 
+  translator/beam_search.cpp
   translator/history.cpp
   translator/output_collector.cpp
   translator/output_printer.cpp
@@ -100,16 +103,14 @@ add_library(marian STATIC
 
   # this is only compiled to catch build errors, but not linked
   microsoft/quicksand.cpp
+  microsoft/cosmos.cpp
 
   $<TARGET_OBJECTS:libyaml-cpp>
   $<TARGET_OBJECTS:SQLiteCpp>
   $<TARGET_OBJECTS:pathie-cpp>
   $<TARGET_OBJECTS:zlib>
+  $<TARGET_OBJECTS:faiss>
 )
-
-if(BLAS_FOUND)
-  target_sources(marian PRIVATE ${CMAKE_CURRENT_LIST_DIR}/layers/lsh.cpp $<TARGET_OBJECTS:faiss>)
-endif()
 
 target_compile_options(marian PUBLIC ${ALL_WARNINGS})
 
@@ -225,7 +226,7 @@ if(COMPILE_SERVER)
   set_target_properties(marian_server PROPERTIES OUTPUT_NAME marian-server)
   if(MSVC)
     # Disable warnings from the SimpleWebSocketServer library needed for compilation of marian-server
-    target_compile_options(marian_server PUBLIC ${ALL_WARNINGS})
+    target_compile_options(marian_server PUBLIC ${ALL_WARNINGS} /wd4267 /wd4244 /wd4456 /wd4458)
   else(MSVC)
     # -Wno-suggest-override disables warnings from Boost 1.69+
     target_compile_options(marian_server PUBLIC ${ALL_WARNINGS} -Wno-suggest-override)
@@ -238,6 +239,7 @@ if(APPLE) # This is a dependency of pathie but I can't seem to link it into that
 endif()
 
 foreach(exec ${EXECUTABLES})
+  # @TODO: consider adding MKL and other libs to the library rather than the executables if at all possible
   target_link_libraries(${exec} marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
   if(CUDA_FOUND)
     target_link_libraries(${exec} marian marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})

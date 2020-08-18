@@ -622,7 +622,7 @@ namespace marian {
     model.set_ir_version(IR_VERSION);
     model.set_producer_name(producerName);
     model.mutable_graph()->CopyFrom(graph);
-#define OPSET_IMPORT_VERSION 9 // 9 is needed for some newer ops
+#define OPSET_IMPORT_VERSION 11
     model.add_opset_import()->set_version(OPSET_IMPORT_VERSION);
     return model;
   }
@@ -833,7 +833,7 @@ namespace marian {
       LOG(info, s);
     }
     // axis attribute
-    size_t axis;
+    size_t axis{};
     std::vector<size_t> axes;
     if (E::tryGetAxisAttribute<ConcatenateNodeOp>(expr, axis)// ||
         //E::tryGetAxisAttribute<SelectNodeOp>(expr, axis)

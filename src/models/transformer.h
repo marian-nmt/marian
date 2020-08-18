@@ -328,6 +328,29 @@ public:
     return output;
   }
 
+  // Reduce the encoder to a single sentence vector, here we just take the contextual embedding of the first word per sentence
+  // Replaces cross-attention in LASER-like models
+  Expr LayerPooling(std::string prefix,
+                    Expr input,            // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
+                    const Expr& values) {  // [-4: beam depth=1, -3: batch size, -2: max length (src or trg), -1: vector dim]
+    int dimModel = input->shape()[-1];
+    auto output = slice(values, -2, 0); // Select first word [-4: beam depth, -3: batch size, -2: 1, -1: vector dim]
+
+    int dimPool = output->shape()[-1];
+    bool project = !opt<bool>("transformer-no-projection");
+    if(project || dimPool != dimModel) {
+      auto Wo = graph_->param(prefix + "_Wo", {dimPool, dimModel}, inits::glorotUniform());
+      auto bo = graph_->param(prefix + "_bo", {1, dimModel}, inits::zeros());
+      output = affine(output, Wo, bo);  // [-4: beam depth, -3: batch size, -2: 1, -1: vector dim]
+    }
+
+    auto opsPost = opt<std::string>("transformer-postprocess");
+    output = postProcess(prefix + "_Wo", opsPost, output, input, 0.f);
+
+    return output;
+  }
+
+
   Expr LayerAttention(std::string prefix,
                       Expr input,         // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
                       const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
@@ -790,14 +813,20 @@ public:
             saveAttentionWeights = i == attLayer;
           }
 
-          query = LayerAttention(prefix,
+          if(options_->get<bool>("transformer-pool", false)) {
+            query = LayerPooling(prefix,
                                  query,
-                                 encoderContexts[j], // keys
-                                 encoderContexts[j], // values
-                                 encoderMasks[j],
-                                 opt<int>("transformer-heads"),
-                                 /*cache=*/true,
-                                 saveAttentionWeights);
+                                 encoderContexts[j]); // values
+          } else {
+            query = LayerAttention(prefix,
+                                   query,
+                                   encoderContexts[j], // keys
+                                   encoderContexts[j], // values
+                                   encoderMasks[j],
+                                   opt<int>("transformer-heads"),
+                                   /*cache=*/true,
+                                   saveAttentionWeights);
+          }
         }
       }
 

@@ -23,7 +23,11 @@ protected:
   Ptr<Scheduler> scheduler_; // scheduler that keeps track of how much has been processed
 
   bool finalized_{false};    // 'true' if training has completed (further updates are no longer allowed)
-  size_t typicalTrgBatchWords_{ 0 }; // for dynamic batch sizing: typical batch size in words
+  size_t typicalTrgBatchWords_{0}; // for dynamic batch sizing: typical batch size in words
+
+  // determines the number of input streams (i.e. input files or fields in the TSV input) that need
+  // to be included in the batch, i.e. without alignments and weights
+  size_t numberOfInputFiles();
 
 public:
   GraphGroup(Ptr<Options> options);
