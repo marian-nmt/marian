@@ -3,7 +3,6 @@
 #include "data/factored_vocab.h"
 #include "translator/helpers.h"
 #include "translator/nth_element.h"
-#include "data/shortlist.h"
 
 namespace marian {
 

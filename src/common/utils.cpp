@@ -112,13 +112,15 @@ std::vector<std::string> splitAny(const std::string& line,
 }
 
 std::string join(const std::vector<std::string>& words, const std::string& del /*= " "*/) {
-  if(words.empty())
-    return "";
-
   std::stringstream ss;
+  if(words.empty()) {
+    return "";
+  }
+
   ss << words[0];
-  for(size_t i = 1; i < words.size(); ++i)
+  for(size_t i = 1; i < words.size(); ++i) {
     ss << del << words[i];
+  }
 
   return ss.str();
 }
@@ -127,18 +129,6 @@ std::string join(const std::vector<size_t>& nums, const std::string& del /*= " "
   std::vector<std::string> words(nums.size());
   std::transform(nums.begin(), nums.end(), words.begin(), [](size_t i) { return std::to_string(i); });
   return join(words, del);
-}
-
-std::string join(const std::vector<float>& nums, const std::string& del /*= " "*/, size_t prec /*= 5*/) {
-  if(nums.empty())
-    return "";
-
-  std::stringstream ss;
-  ss << std::fixed << std::setprecision(prec) << nums[0];
-  for(size_t i = 1; i < nums.size(); ++i)
-    ss << del << nums[i];
-
-  return ss.str();
 }
 
 // escapes a string for passing to popen, which uses /bin/sh to parse its argument string

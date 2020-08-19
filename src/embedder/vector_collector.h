@@ -15,8 +15,6 @@ namespace marian {
 class VectorCollector {
 public:
   VectorCollector(const Ptr<Options>& options);
-  virtual ~VectorCollector() {}
-  
   virtual void Write(long id, const std::vector<float>& vec);
 
 protected:

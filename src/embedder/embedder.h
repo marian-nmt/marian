@@ -115,11 +115,12 @@ public:
     auto output = New<VectorCollector>(options_);
 
     size_t batchId = 0;
+    std::mutex smutex;
     {
       ThreadPool pool(graphs_.size(), graphs_.size());
 
       for(auto batch : *batchGenerator) {
-        auto task = [=](size_t id) {
+        auto task = [=, &smutex](size_t id) {
           thread_local Ptr<ExpressionGraph> graph;
           thread_local Ptr<Model> builder;
 

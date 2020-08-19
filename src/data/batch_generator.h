@@ -276,7 +276,7 @@ public:
                  bool runAsync = true)
       : data_(data), options_(options), stats_(stats), 
         runAsync_(runAsync), threadPool_(runAsync ? new ThreadPool(1) : nullptr) {
-    auto shuffle = options_->get<std::string>("shuffle", "none");
+    auto shuffle = options_->get<std::string>("shuffle");
     shuffleData_ = shuffle == "data";
     shuffleBatches_ = shuffleData_ || shuffle == "batches";
   }

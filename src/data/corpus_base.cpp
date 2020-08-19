@@ -365,7 +365,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       ABORT_IF(!filesystem::exists(path), "Alignment file does not exist");
       LOG(info, "[data] Using word alignments from file {}", path);
 
-      alignFileIdx_ = (int)paths_.size();
+      alignFileIdx_ = paths_.size();
       paths_.emplace_back(path);
       io::InputFileStream* strm = new io::InputFileStream(path);
       ABORT_IF(strm->empty(), "File with alignments '{}' is empty", path);
@@ -378,7 +378,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
       ABORT_IF(!filesystem::exists(path), "Weight file does not exist");
       LOG(info, "[data] Using weights from file {}", path);
 
-      weightFileIdx_ = (int)paths_.size();
+      weightFileIdx_ = paths_.size();
       paths_.emplace_back(path);
       io::InputFileStream* strm = new io::InputFileStream(path);
       ABORT_IF(strm->empty(), "File with weights '{}' is empty", path);

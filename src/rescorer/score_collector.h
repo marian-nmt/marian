@@ -18,8 +18,7 @@ public:
   virtual void Write(long id, const std::string& message);
   virtual void Write(long id,
                      float score,
-                     const data::SoftAlignment& align = {},
-                     const std::vector<float>& wordScores = {});
+                     const data::SoftAlignment& align = {});
 
 protected:
   long nextId_{0};
@@ -52,8 +51,7 @@ public:
 
   virtual void Write(long id,
                      float score,
-                     const data::SoftAlignment& align = {},
-                     const std::vector<float>& wordScores = {}) override;
+                     const data::SoftAlignment& align = {}) override;
 
 private:
   std::string nBestList_;
@@ -65,7 +63,6 @@ private:
   std::string addToNBest(const std::string nbest,
                          const std::string feature,
                          float score,
-                         const data::SoftAlignment& align = {},
-                         const std::vector<float>& wordScores = {});
+                         const data::SoftAlignment& align = {});
 };
 }  // namespace marian

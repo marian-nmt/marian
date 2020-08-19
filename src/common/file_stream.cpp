@@ -34,10 +34,9 @@ InputFileStream::InputFileStream(const std::string &file)
 #else
     ABORT("Pipe syntax not supported in this build of Marian: {}", file);
 #endif
-  } else {
-    ABORT_IF(!marian::filesystem::exists(file), "File '{}' does not exist", file);
-    file_ = file;
   }
+  else
+    file_ = file;
   streamBuf1_.reset(new std::filebuf());
   auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(file_.string().c_str(), std::ios::in | std::ios::binary);
   ABORT_IF(!ret, "Error opening file ({}): {}", errno, file_.string());
