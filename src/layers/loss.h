@@ -434,16 +434,45 @@ protected:
   }
 };
 
-
 /**
- * @brief Cross entropy in rescorer used for computing sentences-level log probabilities
+ * @brief Cross entropy in rescorer used for computing sentences-level or word-level log
+ * probabilities
+ *
+ * This class differs from CrossEntropy in the different 'axes' setting, and that label smoothing
+ * is disabled.
  */
 class RescorerLoss : public CrossEntropyLoss {
+private:
+  bool wordScores_{false};  // compute word-level log probabilities
+
 public:
-  // sentence-wise CE, hence reduce only over time axis
-  // This class differs from CrossEntropy in the different 'axes' setting, and that label smoothing is disabled.
-  RescorerLoss() : CrossEntropyLoss(/*axes=*/{-3} /*time axis*/, /*smoothing=*/0.f, /*factorWeight=*/1.0f) {}
+  // For sentence-wise CE reduce only over time axis.
+  // For word-level CE do not reduce over any axis.
+  RescorerLoss(bool wordScores)
+      : CrossEntropyLoss(/*axes=*/wordScores ? std::vector<int>({}) : std::vector<int>({-3}),
+                         /*smoothing=*/0.f,
+                         /*factorWeight=*/1.0f),
+        wordScores_(wordScores) {}
+
+  virtual RationalLoss apply(Logits logits,
+                             const Words& labels,
+                             Expr mask = nullptr,
+                             Expr labelWeights = nullptr) override {
+    ABORT_IF(!mask, "Word-level CE from rescorer must have mask");
+    auto loss = CrossEntropyLoss::compute(logits, labels, mask, labelWeights);
+
+    if(!wordScores_) {  // for sentence-level CE, reduce loss and labels as in cross-entropy
+      return reduce(loss, mask);
+    } else {  // for word-level CE, reduce labels only to get sentence lengths
+      ABORT_IF(!loss, "Loss has not been computed");
+
+      Expr labelsSum = cast(mask, Type::float32);  // accumulate in float32
+      labelsSum = sum(labelsSum, -3);              // reduce over time axis to get sentence lengths
+      return RationalLoss(loss, labelsSum);
+    }
+  }
 };
+
 
 /**
  * @brief Factory for label-wise loss functions

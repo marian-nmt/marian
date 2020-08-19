@@ -56,10 +56,13 @@ void ScoreCollector::Write(long id, const std::string& message) {
 
 void ScoreCollector::Write(long id,
                            float score,
-                           const data::SoftAlignment& align) {
+                           const data::SoftAlignment& align /*= {}*/,
+                           const std::vector<float>& wordScores /*= {}*/) {
   auto msg = std::to_string(score);
   if(!alignment_.empty() && !align.empty())
     msg += " ||| " + getAlignment(align);
+  if(!wordScores.empty())
+    msg += " ||| WordScores= " + utils::join(wordScores, " ");
   Write(id, msg);
 }
 
@@ -85,7 +88,8 @@ ScoreCollectorNBest::ScoreCollectorNBest(const Ptr<Options>& options)
 
 void ScoreCollectorNBest::Write(long id,
                                 float score,
-                                const data::SoftAlignment& align) {
+                                const data::SoftAlignment& align /*= {}*/,
+                                const std::vector<float>& wordScores /*= {}*/) {
   std::string line;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -105,17 +109,20 @@ void ScoreCollectorNBest::Write(long id,
     buffer_.erase(iter);
   }
 
-  ScoreCollector::Write(id, addToNBest(line, fname_, score, align));
+  ScoreCollector::Write(id, addToNBest(line, fname_, score, align, wordScores));
 }
 
 std::string ScoreCollectorNBest::addToNBest(const std::string nbest,
                                             const std::string feature,
                                             float score,
-                                            const data::SoftAlignment& align) {
+                                            const data::SoftAlignment& align /*= {}*/,
+                                            const std::vector<float>& wordScores /*= {}*/) {
   auto fields = utils::split(nbest, "|||");
   std::stringstream ss;
   if(!alignment_.empty() && !align.empty())
     ss << " " << getAlignment(align) << " |||";
+  if(!wordScores.empty())
+    ss << " WordScores= " + utils::join(wordScores, " ") << " |||";
   ss << fields[2] << feature << "= " << score << " ";
   fields[2] = ss.str();
   return utils::join(fields, "|||");
