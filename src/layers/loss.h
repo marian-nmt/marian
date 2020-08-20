@@ -458,13 +458,13 @@ public:
                              const Words& labels,
                              Expr mask = nullptr,
                              Expr labelWeights = nullptr) override {
-    ABORT_IF(!mask, "Word-level CE from rescorer must have mask");
     auto loss = CrossEntropyLoss::compute(logits, labels, mask, labelWeights);
 
     if(!wordScores_) {  // for sentence-level CE, reduce loss and labels as in cross-entropy
       return reduce(loss, mask);
     } else {  // for word-level CE, reduce labels only to get sentence lengths
       ABORT_IF(!loss, "Loss has not been computed");
+      ABORT_IF(!mask, "Word-level CE from rescorer must have mask");
 
       Expr labelsSum = cast(mask, Type::float32);  // accumulate in float32
       labelsSum = sum(labelsSum, -3);              // reduce over time axis to get sentence lengths
