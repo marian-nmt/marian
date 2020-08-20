@@ -175,8 +175,8 @@ void TemporaryFile::MakeTemp(const std::string &base) {
   // open again with c++
   streamBuf1_.reset(new std::filebuf());
   auto ret = static_cast<std::filebuf*>(streamBuf1_.get())->open(name, std::ios::out | std::ios_base::binary);
-  ABORT_IF(!streamBuf1_, "File cannot be temp opened", name);
-  ABORT_IF(ret != streamBuf1_.get(), "Return value is not equal to streambuf pointer, that is weird");
+  ABORT_IF(!streamBuf1_, "File {} cannot be temp opened", name);
+  ABORT_IF(ret != streamBuf1_.get(), "Return value ({}) is not equal to streambuf pointer ({}), that is weird.", (size_t)ret, (size_t)streamBuf1_.get());
 
   this->init(streamBuf1_.get());
 
