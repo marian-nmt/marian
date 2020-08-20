@@ -8,11 +8,12 @@ Ptr<LabelwiseLoss> newLoss(Ptr<Options> options, bool inference) {
   float factorWeight = options->get<float>("factor-weight", 1.0f);
   std::string costType = options->get<std::string>("cost-type", "ce-mean");
   bool unlikelihood = options->get<bool>("unlikelihood-loss", false);
-  
-  if(costType == "ce-rescore") { // returns per-batch-item scores (while ce-mean reduces over batch)
-    return New<RescorerLoss>();
-  } else if(unlikelihood) {  
-    ABORT_IF(!options->hasAndNotEmpty("data-weighting") 
+
+  if(costType == "ce-rescore") {  // per-batch-item scores (while ce-mean reduces over batch)
+    bool wordScores = options->get<bool>("word-scores", false);
+    return New<RescorerLoss>(wordScores);
+  } else if(unlikelihood) {
+    ABORT_IF(!options->hasAndNotEmpty("data-weighting")
              && options->get<std::string>("data-weighting-type") != "word",
              "Unlikelihood loss training requires error annotation in form of per-target-label scores");
     return New<SequenceUnlikelihoodLoss>(smoothing, factorWeight); // this is a mix of CE-loss and unlikelihood less depending on values given for data-weighting

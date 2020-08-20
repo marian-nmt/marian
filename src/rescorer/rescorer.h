@@ -112,6 +112,9 @@ public:
     bool summarize = !summary.empty();
     // @TODO: make normalize here a float and pass into loss to compute the same way as in decoding
     bool normalize = options_->get<bool>("normalize");
+    bool wordLevel = options_->get<bool>("word-scores", false);
+
+    ABORT_IF(wordLevel && summarize, "Word-level scores can not be printed if --summarize is enabled");
 
     float sumLoss = 0;
     size_t sumWords = 0;
@@ -142,12 +145,18 @@ public:
           // get loss
           std::vector<float> scoresForSummary;
           dynamicLoss->loss(scoresForSummary);
-          std::vector<float> sentScores(scoresForSummary); // if '--normalize' then report scoresForSummary length-normalized
-          if (normalize) {
-            std::vector<float> sentLengths;
+
+          // get sentence lengths
+          std::vector<float> sentLengths(scoresForSummary);
+          if(normalize || wordLevel) {
             dynamicLoss->count(sentLengths);
-            for (size_t i = 0; i < scoresForSummary.size(); i++) {
-              if (sentScores[i] != 0) // (avoid 0/0)
+          }
+
+          std::vector<float> sentScores(scoresForSummary);
+          // if '--normalize' then report scoresForSummary length-normalized
+          if(normalize && !wordLevel) {  // sentence-level scores printed with word-level scores are calculated later
+            for(size_t i = 0; i < scoresForSummary.size(); i++) {
+              if(sentScores[i] != 0) // (avoid 0/0)
                 sentScores[i] /= (sentLengths.size() == 1 ? sentLengths[0] : sentLengths[i]); // emulate broadcasting semantics
             }
           }
@@ -158,6 +167,7 @@ public:
             getAlignmentsForBatch(builder->getAlignment(), batch, aligns);
           }
 
+          // update statistics for the summarized score
           std::unique_lock<std::mutex> lock(smutex);
           for(auto s : scoresForSummary)
             sumLoss += s;
@@ -165,10 +175,35 @@ public:
           sumSamples += batch->size();
 
           if(!summarize) {
-            for(size_t i = 0; i < batch->size(); ++i) {
-              output->Write((long)batch->getSentenceIds()[i],
-                             -1.f * sentScores[i], // report logProb while score is CE, hence negate
-                             aligns[i]);
+            if(!wordLevel) {
+              for(size_t i = 0; i < batch->size(); ++i)
+                output->Write((long)batch->getSentenceIds()[i],
+                              -1.f * sentScores[i],  // report logProb while score is CE, hence negate
+                              aligns[i]);
+            } else {
+              std::vector<float> wordScores;
+              float sentScore{0.f};
+
+              for(size_t i = 0; i < batch->size(); ++i) {
+                // Sum word-level scores to get the sentence score
+                for(size_t j = 0; j < sentLengths[i]; ++j) {
+                  size_t idx = j * batch->size() + i;            // the j-th word in i-th sentence
+                  wordScores.push_back(-1.f * sentScores[idx]);  // report logProb, hence negate
+                  sentScore += sentScores[idx];
+                }
+
+                sentScore *= -1.f;  // report logProb while score is CE, hence negate
+                if(normalize)
+                  // Printed out word-level scores (i.e. if --word-scores) are not normalized; this
+                  // is consistent with printed out word-level scores in marian-decoder.
+                  // TODO: return length-normalized scores in both marian-scorer and marian-decoder
+                  sentScore /= sentLengths[i];
+
+                output->Write((long)batch->getSentenceIds()[i], sentScore, aligns[i], wordScores);
+
+                wordScores.clear();
+                sentScore = 0.f;
+              }
             }
           }
 

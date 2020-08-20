@@ -31,8 +31,12 @@ std::vector<std::string> splitAny(const std::string& line,
                                   const std::string& del = " ",
                                   bool keepEmpty = false);
 
+// Return a string which is the concatenation of the strings in the given vector
 std::string join(const std::vector<std::string>& words, const std::string& del = " ");
+// Return a string which is the concatenation of values from the given vector of integers
 std::string join(const std::vector<size_t>& words, const std::string& del = " ");
+// Return a string which is the concatenation of values from the given vector of floats
+std::string join(const std::vector<float>& words, const std::string& del = " ", size_t prec = 5);
 
 std::string exec(const std::string& cmd, const std::vector<std::string>& args = {}, const std::string& arg = "");
 

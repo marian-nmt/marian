@@ -35,6 +35,7 @@ inline void sgemm(bool transA,
               c,
               ldc);
 #else
+    transA; transB; rows_a; rows_b; width; alpha; a; lda; b; ldb; beta; c; ldc; // make compiler happy
     ABORT("Marian must be compiled with a BLAS library");
 #endif
 }

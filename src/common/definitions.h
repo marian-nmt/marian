@@ -22,6 +22,61 @@
 #define DONT_OPTIMIZE // silently ignore on Visual Studio, where this is less of a problem
 #endif
 
+// Use these macros to enable faster floating-point math. Put them around one
+// or more functions.
+//
+// Usage:
+// MARIAN_FFAST_MATH_BEGIN
+// void LayerNormalization(float *arg) { *arg += 1.0; }
+// void SomethingElse() {}
+// MARIAN_FFAST_MATH_END
+//
+// ffast-math allows the compiler to assume associative arithmetic and finite
+// values.
+//
+// Associative arithmetic is particularly important to vectorize i.e. a sum:
+//   for (const float f : range) sum += f;
+// Without ffast-math, the sum will be done one value at a time.  On x86 it
+// still uses vector math, but only uses the first slot and wastes the rest.
+//
+// With ffast-math, the compiler can sum in batches of 4, 8, or 16 floats.
+// Also, it can run multiple adds in parallel e.g. vaddps has latency 4 and
+// throughput 0.5 on Skylake so multiple vector adds can run at once.
+//
+// On average, a vectorized sum is more numerically stable because it sums in
+// batches. Vectorized floats can still produce NaNs and infs (remember even
+// scalar operations are implemented with vector instructions).
+//
+// Allowing the compiler to assume finite values means functions like isnan or
+// isinf do not work as expected. Do not enable this for a function that
+// depends upon fully standard float behavior.
+//
+// It can also change the sign of zeros.
+//
+// Fast math also makes results more architecture dependent because different
+// register widths mean different results. They also depend on the compiler
+// and compiler version more. For example, clang <= 10 does not support the
+// float_control pragma below so it will still be conservative.
+//
+// There is a more conservative option for just associativity:
+// llvm introduced "#pragma clang fp reassociate" that goes inside a function.
+// However, llvm <11 considers that pragma an error so we'd need some ugly
+// version test (which they don't recommend) or a compilation test.  Moreover,
+// it has to be in the function to keep scope.
+// gcc supports "-fassociative-math" that has to be outside a function.
+// I didn't find a MSVC equivalent.
+#if defined(_MSC_VER)
+#define MARIAN_FFAST_MATH_BEGIN __pragma(float_control(precise, off, push))
+#define MARIAN_FFAST_MATH_END __pragma(float_control(pop))
+#elif defined(__clang__)
+#define MARIAN_FFAST_MATH_BEGIN _Pragma("float_control(precise, off, push)")
+#define MARIAN_FFAST_MATH_END _Pragma("float_control(pop)")
+#elif defined(__GNUC__)
+// Also available as __attribute__((optimize("-ffast-math"))) but done as pragmas for consistency
+#define MARIAN_FFAST_MATH_BEGIN _Pragma("GCC push_options") _Pragma("GCC optimize(\"-ffast-math\")")
+#define MARIAN_FFAST_MATH_END _Pragma("GCC pop_options")
+#endif
+
 namespace marian {
 
 // Type to be used for all index types, e.g. for integer tensors for rows operator.

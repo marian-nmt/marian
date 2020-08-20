@@ -561,7 +561,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.add<bool>("--n-best",
       "Generate n-best list");
   cli.add<bool>("--word-scores",
-      "Print word-level scores");
+      "Print word-level scores. One score per subword unit, not normalized even if --normalize");
 
   // efficiency options
   cli.add<int>("--valid-mini-batch",
@@ -626,7 +626,7 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
   cli.add<bool>("--word-scores",
-      "Print word-level scores");
+      "Print word-level scores. One score per subword unit, not normalized even if --normalize");
 #ifdef USE_SENTENCEPIECE
   cli.add<bool>("--no-spm-decode",
       "Keep the output segmented into SentencePiece subwords");
@@ -695,6 +695,8 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.add<std::string>("--alignment",
      "Return word alignments. Possible values: 0.0-1.0, hard, soft")
      ->implicit_val("1"),
+  cli.add<bool>("--word-scores",
+      "Print word-level scores. One score per subword unit, not normalized even if --normalize");
 
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);

@@ -1032,21 +1032,15 @@ void AttBack(Tensor gVa_,
   }
 }
 
-void LayerNormalization(Tensor out_,
-                        Tensor in_,
-                        Tensor gamma_,
-                        Tensor beta_,
-                        float eps) {
-  float* out = out_->data();
-  const float* in = in_->data();
-  const float* alpha = gamma_->data();
-  const float* beta = beta_ ? beta_->data() : nullptr;
-  const int alphaStride = gamma_->shape().back() > 1;  // broadcasting for alpha and beta
-  const int betaStride = beta_ && beta_->shape().back() > 1;
-
-  int rows = in_->shape().elements() / in_->shape().back();
-  int cols = in_->shape().back();
-
+MARIAN_FFAST_MATH_BEGIN
+template <int alphaStride, int betaStride, bool hasBeta>
+void LayerNormalizationImpl(float* out,
+                            const float* in,
+                            const float* alpha,
+                            const float* beta,
+                            float eps,
+                            int rows,
+                            int cols) {
 #pragma omp parallel for
   for(int j = 0; j < rows; ++j) {
     float* so = out + j * cols;
@@ -1071,15 +1065,54 @@ void LayerNormalization(Tensor out_,
 #pragma omp simd
     for(int i = 0; i < cols; ++i) {
       float t = alpha[alphaStride * i] * ((sp[i] - mean) / sigma);
-      if(beta != nullptr) {
+      if(hasBeta)
         t += beta[betaStride * i];
-      }
 
       so[i] = t;
     }
   }
 }
+MARIAN_FFAST_MATH_END
 
+template <int alphaStride>
+inline void LayerNormalizationDispatchBeta(float* out,
+                                           const float* in,
+                                           const float* alpha,
+                                           Tensor beta,
+                                           float eps,
+                                           int rows,
+                                           int cols) {
+  if (beta) {
+    if (beta->shape().back() > 1) {
+      LayerNormalizationImpl<alphaStride, 1, true>(out, in, alpha, beta->data(), eps, rows, cols);
+    } else {
+      LayerNormalizationImpl<alphaStride, 0, true>(out, in, alpha, beta->data(), eps, rows, cols);
+    }
+  } else {
+    LayerNormalizationImpl<alphaStride, 0, false>(out, in, alpha, nullptr, eps, rows, cols);
+  }
+}
+
+void LayerNormalization(Tensor out_,
+                        Tensor in_,
+                        Tensor gamma_,
+                        Tensor beta,
+                        float eps) {
+  float* out = out_->data();
+  const float* in = in_->data();
+  const float* alpha = gamma_->data();
+  const int alphaStride = gamma_->shape().back() > 1;  // broadcasting for alpha and beta
+
+  int rows = in_->shape().elements() / in_->shape().back();
+  int cols = in_->shape().back();
+  if (alphaStride == 0) {
+    LayerNormalizationDispatchBeta<0>(out, in, alpha, beta, eps, rows, cols);
+  } else {
+    LayerNormalizationDispatchBeta<1>(out, in, alpha, beta, eps, rows, cols);
+  }
+}
+
+MARIAN_FFAST_MATH_BEGIN
 void LayerNormalizationGrad(Tensor gradX_,
                             Tensor gradGamma_,
                             Tensor gradBeta_,
@@ -1191,6 +1224,7 @@ void LayerNormalizationGrad(Tensor gradX_,
     }
   }
 }
+MARIAN_FFAST_MATH_END
 
 void Shift(Tensor out_,
            Tensor in_,
