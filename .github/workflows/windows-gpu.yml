@@ -1,0 +1,63 @@
+name: Windows CPU+CUDA
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install CUDA
+      run: |
+        .\scripts\ci\install_cuda_windows.ps1 "10.2"
+        # Set path to CUDA for subsequent steps so that CMake can find it
+        echo "::set-env name=CUDA_PATH::$env:CUDA_PATH"
+        echo "::add-path::$env:CUDA_PATH/bin"
+      shell: powershell
+
+    - name: Download MKL
+      run: |
+        Invoke-WebRequest -Uri https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip -TimeoutSec 600 -OutFile mkl.zip
+        Expand-Archive -Force mkl.zip ${{ github.workspace }}/mkl
+        # Set MKLROOT environment variables so that CMake can find MKL.
+        # GITHUB_WORKSPACE is an environment variable available on all GitHub-hosted runners
+        echo "::set-env name=MKLROOT::$env:GITHUB_WORKSPACE/mkl"
+      shell: powershell
+
+    - name: Prepare vcpkg
+      uses: lukka/run-vcpkg@v2
+      with:
+        vcpkgArguments: protobuf
+        vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+        vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+        vcpkgTriplet: x64-windows-static
+
+    # Build with a simplified CMake settings JSON file.
+    # On Windows+CUDA we compile with COMPILE_CUDA=on and USE_NCCL=off
+    - name: Run CMake
+      uses: lukka/run-cmake@v2
+      with:
+        buildDirectory: ${{ github.workspace }}/build/
+        cmakeAppendedArgs: -G Ninja
+        cmakeListsOrSettingsJson: CMakeSettingsJson
+        # JSON file must be in the same directory as the main CMakeLists.txt
+        cmakeSettingsJsonPath: ${{ github.workspace }}/_CMakeSettingsCI_GPU.json
+        useVcpkgToolchainFile: true
+
+    - name: Print versions
+      working-directory: build/Debug/
+      run: |
+        .\marian.exe --version
+        .\marian-decoder.exe --version
+        .\marian-scorer.exe --version
+        .\spm_encode.exe --version
