@@ -1,0 +1,140 @@
+# Azure pipelines for Marian NMT
+#
+# The pipeline need to be added manually to the repository, for example:
+# 1. Go to Your repository > Pipelines, click 'New pipeline'
+# 2. Choose 'Azure Repos Git' and a repository
+# 3. Choose 'Existing Azure Pipelines YAML file' and specify path to this file
+# 4. 'More actions' > 'Save'
+
+# The pipeline CI trigger is set on the branch master only and PR trigger on a
+# (non-draft) pull request to any branch
+trigger:
+- master
+
+pool:
+  name: Azure Pipelines
+
+stages:
+- stage: Build
+  jobs:
+
+  ######################################################################
+  - job: BuildUbuntu
+    displayName: Ubuntu
+
+    strategy:
+      matrix:
+        # Ubuntu 20.04 supports CUDA 11+
+        # Ubuntu 18.04 supports CUDA 10.1+
+        "18.04 CUDA-10.2 gcc-8":
+          image: ubuntu-18.04
+          cuda: 10.2
+          gcc: 8
+        # Ubuntu 16.04 supports CUDA 8+
+        "16.04 CUDA-10.2 gcc-7":
+          image: ubuntu-16.04
+          cuda: 10.2
+          gcc: 7
+        "16.04 CUDA-9.2 gcc-7":
+          image: ubuntu-16.04
+          cuda: 9.2
+          gcc: 7
+
+    pool:
+      vmImage: $(image)
+
+    steps:
+    - checkout: self
+      submodules: true
+
+      # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
+      # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
+    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler
+      displayName: Install packages
+
+      # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
+    - bash: |
+        wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
+        sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
+      displayName: Install MKL
+
+      # The script simplifies installation of different versions of CUDA
+    - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
+      displayName: Install CUDA
+
+    # Boost is already installed on Azure-hosted runners in a non-standard location
+    # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
+    - bash: |
+        mkdir -p build
+        cd build
+        CC=/usr/bin/gcc-$(gcc) CXX=/usr/bin/g++-$(gcc) CUDAHOSTCXX=/usr/bin/g++-$(gcc) \
+        cmake .. \
+          -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
+          -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
+          -DBoost_ARCHITECTURE=-x64 \
+          -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
+      displayName: Configure CMake
+
+    - bash: make -j2
+      displayName: Compile
+      workingDirectory: build
+
+      # Unit tests are not run because GitHub-hosted runners do not have GPUs
+      # TODO: add an option to CMake to have unit tests only on CPU
+    #- bash: make test
+      #displayName: Run unit tests
+      #workingDirectory: build
+
+    - bash: |
+        ./marian --version
+        ./marian-decoder --version
+        ./marian-scorer --version
+        ./spm_encode --version
+      displayName: Print versions
+      workingDirectory: build
+
+  ######################################################################
+  - job: BuildMacOS
+    displayName: macOS CPU clang
+
+    pool:
+      vmImage: macos-latest
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    - bash: brew install openblas protobuf
+      displayName: Install packages
+
+    # Openblas location is exported explicitly because openblas is keg-only,
+    # which means it was not symlinked into /usr/local/.
+    # CMake cannot find BLAS on GitHub runners if Marian is being compiled
+    # statically, hence USE_STATIC_LIBS=off
+    - bash: |
+        export LDFLAGS="-L/usr/local/opt/openblas/lib"
+        export CPPFLAGS="-I/usr/local/opt/openblas/include"
+        mkdir -p build
+        cd build
+        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off
+      displayName: Configure CMake
+
+    - bash: make -j2
+      displayName: Compile
+      workingDirectory: build
+
+    - bash: make test
+      displayName: Run unit tests
+      workingDirectory: build
+
+    - bash: |
+        ./marian --version
+        ./marian-decoder --version
+        ./marian-scorer --version
+        ./spm_encode --version
+      displayName: Print versions
+      workingDirectory: build
