@@ -1,10 +1,10 @@
 # Azure pipelines for Marian NMT
 #
 # The pipeline need to be added manually to the repository, for example:
-# 1. Go to Your repository > Pipelines, click 'New pipeline'
-# 2. Choose 'Azure Repos Git' and a repository
-# 3. Choose 'Existing Azure Pipelines YAML file' and specify path to this file
-# 4. 'More actions' > 'Save'
+# 1. Go to Your repository > Pipelines, click "New pipeline"
+# 2. Choose "Azure Repos Git" and a repository
+# 3. Choose "Existing Azure Pipelines YAML file" and specify path to this file
+# 4. "More actions" > "Save"
 
 # The pipeline CI trigger is set on the branch master only and PR trigger on a
 # (non-draft) pull request to any branch
@@ -14,9 +14,128 @@ trigger:
 pool:
   name: Azure Pipelines
 
+variables:
+  CUDA_PATH_WINDOWS: "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"
+  MKL_DIR: "$(Build.SourcesDirectory)/mkl"
+  MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+  VCPKG_COMMIT: 6185aa76504a5025f36754324abf307cc776f3da
+  VCPKG_DIR: "$(Build.SourcesDirectory)/vcpkg"
+  VCPKG_PACKAGES: "protobuf"
+  # The Visual Studio installation directory can be found using:
+  #   pushd "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+  #   for /f "delims=" %%x in ('.\vswhere.exe -latest -property InstallationPath') do set VSPATH=%%x
+  #   popd
+  VS_PATH: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise"
+
 stages:
 - stage: Build
   jobs:
+
+  ######################################################################
+  - job: Windows
+
+    strategy:
+      matrix:
+        "CPU":
+          cuda: false
+          cuda_version: ""
+        "CUDA 10.2":
+          cuda: true
+          cuda_version: 10.2
+
+    pool:
+      vmImage: windows-latest
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    - pwsh: .\scripts\ci\install_cuda_windows.ps1 "$(cuda_version)"
+      displayName: Install CUDA
+      condition: eq(variables.cuda, true)
+
+    - pwsh: |
+        Invoke-WebRequest -Uri $(MKL_URL) -TimeoutSec 600 -OutFile mkl.zip
+        Expand-Archive -Force mkl.zip $(MKL_DIR)
+      displayName: Download MKL
+
+    ## Cache for vcpkg packages. It does not work yet properly due to linker errors after restoring it.
+    #- task: Cache@2
+    #  displayName: Cache
+    #  inputs:
+    #    # Change the first value (v0) to another value to clear the cache
+    #    key: 'v0 | "$(VCPKG_PACKAGES)" | vcpkg | "$(Agent.OS)"'
+    #    path: $(VCPKG_DIR)
+
+    - pwsh: |
+        git clone https://github.com/Microsoft/vcpkg.git $(VCPKG_DIR)
+        cd $(VCPKG_DIR)
+        git checkout $(VCPKG_COMMIT)
+        pushd
+        .\bootstrap-vcpkg.bat -disableMetrics
+        popd
+        # Install packages
+        .\vcpkg.exe install --triplet x64-windows-static $(VCPKG_PACKAGES)
+        # Clean to make the cache smaller
+        Remove-Item $(VCPKG_DIR)\downloads  -Force -Recurse
+        Remove-Item $(VCPKG_DIR)\buildtrees -Force -Recurse
+      displayName: Prepare vcpkg
+
+    - script: |
+        :: Set envvars so that CMake can find the installed packages
+        set MKLROOT=$(MKL_DIR)
+        set CUDA_PATH=$(CUDA_PATH_WINDOWS)/v$(cuda_version)
+        :: Load VS environment
+        call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
+        :: Create build directory
+        mkdir build
+        cd build
+        :: Run CMake
+        cmake .. -G Ninja ^
+          -DCMAKE_BUILD_TYPE="Debug" ^
+          -DCMAKE_C_COMPILER="cl.exe" ^
+          -DCMAKE_CXX_COMPILER="cl.exe" ^
+          -DCMAKE_MAKE_PROGRAM="ninja.exe" ^
+          -DCMAKE_TOOLCHAIN_FILE="$(VCPKG_DIR)\scripts\buildsystems\vcpkg.cmake" ^
+          -DVCPKG_TARGET_TRIPLET="x64-windows-static" ^
+          ^
+          -DOPENSSL_USE_STATIC_LIBS="TRUE" ^
+          -DOPENSSL_MSVC_STATIC_RT="TRUE" ^
+          ^
+          -DCOMPILE_CPU="TRUE" ^
+          -DCOMPILE_CUDA="$(cuda)" ^
+          -DCOMPILE_EXAMPLES="FALSE" ^
+          -DCOMPILE_SERVER="FALSE" ^
+          -DCOMPILE_TESTS="TRUE" ^
+          ^
+          -DUSE_CUDNN="FALSE" ^
+          -DUSE_FBGEMM="TRUE" ^
+          -DUSE_MPI="FALSE" ^
+          -DUSE_NCCL="FALSE" ^
+          -DUSE_SENTENCEPIECE="TRUE" ^
+          -DUSE_STATIC_LIBS="TRUE"
+      displayName: Configure CMake
+
+    - script: |
+        call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
+        ninja
+      displayName: Compile
+      workingDirectory: build
+
+    - script: |
+        call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
+        ctest
+      displayName: Run unit tests
+      workingDirectory: build
+      condition: eq(variables.cuda, false)
+
+    - pwsh: |
+        .\marian.exe --version
+        .\marian-decoder.exe --version
+        .\marian-scorer.exe --version
+        .\spm_encode.exe --version
+      displayName: Print versions
+      workingDirectory: build
 
   ######################################################################
   - job: BuildUbuntu
@@ -25,20 +144,36 @@ stages:
     strategy:
       matrix:
         # Ubuntu 20.04 supports CUDA 11+
+        "20.04 CUDA 11.0 gcc-9":
+          image: ubuntu-20.04
+          boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
+          cuda: 11.0
+          gcc: 9
+          unit_tests: false # disable unit tests to minimize compilation time
+          examples: false   # disable examples to minimize compilation time
         # Ubuntu 18.04 supports CUDA 10.1+
-        "18.04 CUDA-10.2 gcc-8":
+        "18.04 CUDA 10.2 gcc-8":
           image: ubuntu-18.04
+          boost: true
           cuda: 10.2
           gcc: 8
+          unit_tests: true
+          examples: true
         # Ubuntu 16.04 supports CUDA 8+
-        "16.04 CUDA-10.2 gcc-7":
+        "16.04 CUDA 10.2 gcc-7":
           image: ubuntu-16.04
+          boost: true
           cuda: 10.2
           gcc: 7
-        "16.04 CUDA-9.2 gcc-7":
+          unit_tests: true
+          examples: true
+        "16.04 CUDA 9.2 gcc-7":
           image: ubuntu-16.04
+          boost: true
           cuda: 9.2
           gcc: 7
+          unit_tests: false
+          examples: false
 
     pool:
       vmImage: $(image)
@@ -71,22 +206,23 @@ stages:
         cd build
         CC=/usr/bin/gcc-$(gcc) CXX=/usr/bin/g++-$(gcc) CUDAHOSTCXX=/usr/bin/g++-$(gcc) \
         cmake .. \
-          -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
+          -DCOMPILE_CPU=on -DCOMPILE_CUDA=on \
+          -DCOMPILE_EXAMPLES=$(examples) -DCOMPILE_SERVER=$(boost) -DCOMPILE_TESTS=$(unit_tests) \
           -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
           -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
 
-    - bash: make -j2
+    - bash: make -j3
       displayName: Compile
       workingDirectory: build
 
-      # Unit tests are not run because GitHub-hosted runners do not have GPUs
-      # TODO: add an option to CMake to have unit tests only on CPU
+    # Unit tests are not run because Azure-hosted runners do not have GPUs
+    # TODO: add an option to CMake to have unit tests only on CPU
     #- bash: make test
-      #displayName: Run unit tests
-      #workingDirectory: build
+    #  displayName: Run unit tests
+    #  workingDirectory: build
 
     - bash: |
         ./marian --version
@@ -112,7 +248,7 @@ stages:
 
     # Openblas location is exported explicitly because openblas is keg-only,
     # which means it was not symlinked into /usr/local/.
-    # CMake cannot find BLAS on GitHub runners if Marian is being compiled
+    # CMake cannot find BLAS on Azure runners if Marian is being compiled
     # statically, hence USE_STATIC_LIBS=off
     - bash: |
         export LDFLAGS="-L/usr/local/opt/openblas/lib"
