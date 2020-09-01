@@ -16,6 +16,7 @@ template <class ModelWrapper>
 class Train : public ModelTask {
 private:
   Ptr<Options> options_;
+  void installCustomSignalHandlers();
 
 public:
   Train(Ptr<Options> options) : options_(options) {}
@@ -77,6 +78,9 @@ public:
     bool restored = !options_->get<bool>("no-restore-corpus")
                     && batchGenerator->restore(trainState);
 
+    // We only want custom behavior once training starts.
+    installCustomSignalHandlers();
+
     // -- main training loop
     scheduler->started();
     while(scheduler->keepGoing()) {
@@ -107,4 +111,16 @@ public:
     finalizeMPI(std::move(mpi));
   }
 };
+
+template <class ModelWrapper>
+void Train<ModelWrapper>::installCustomSignalHandlers(){
+  const std::string sigTermAction = options_->get<std::string>("sigterm");
+  if (sigTermAction == "save-and-exit") {
+    LOG(debug, "Will save before exiting upon SIGTERM.");
+    signal(SIGTERM, requestSaveAndExit);
+  }
+  else if (sigTermAction != "exit-immediately")
+    ABORT("Unrecognized value '{}' for --sigterm", sigTermAction);
+}
+
 }  // namespace marian

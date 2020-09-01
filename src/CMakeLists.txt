@@ -25,6 +25,7 @@ add_library(marian STATIC
   common/filesystem.cpp
   common/file_stream.cpp
   common/file_utils.cpp
+  common/signal_handling.cpp
   common/types.cpp
 
   data/alignment.cpp
@@ -99,7 +100,6 @@ add_library(marian STATIC
   training/graph_group_singleton.cpp
   training/validator.cpp
   training/communicator.cpp
-  training/scheduler.cpp
 
   # this is only compiled to catch build errors, but not linked
   microsoft/quicksand.cpp
