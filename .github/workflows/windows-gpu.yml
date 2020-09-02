@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-windows-cuda:
 
     runs-on: windows-2019
 

@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build-and-upload:
+  build-ubuntu:
 
     runs-on: ubuntu-18.04
 

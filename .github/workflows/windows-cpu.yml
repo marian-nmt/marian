@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build-and-upload:
+  build-windows:
 
     runs-on: windows-2019
 
