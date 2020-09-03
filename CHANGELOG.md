@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Internal optional parameter in n-best list generation that skips empty hypotheses.
 
 ### Fixed
+- Print "server is listening on port" message after it is accepting connections
 - Fix compilation without BLAS installed
 - Providing a single value to vector-like options using the equals sign, e.g. --models=model.npz
 - Fix quiet-translation in marian-server
