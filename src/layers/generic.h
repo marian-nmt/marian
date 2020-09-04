@@ -241,6 +241,8 @@ private:
   Expr b_;
   Expr lemmaEt_; // re-embedding matrix for lemmas [lemmaDimEmb x lemmaVocabSize]
   bool isLegacyUntransposedW{false}; // legacy-model emulation: W is stored in non-transposed form
+  bool hasBias_{true};
+
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
@@ -254,7 +256,8 @@ private:
   void lazyConstruct(int inputDim);
 public:
   Output(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : LayerBase(graph, options) {
+    : LayerBase(graph, options), 
+      hasBias_{!options->get<bool>("output-omit-bias", false)} {
     clear();
   }
 

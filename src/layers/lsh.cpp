@@ -69,16 +69,16 @@ Expr LSH::affine(Expr idx, Expr input, Expr W, Expr b) {
     auto idxPtr   = inputs[0]->val()->data<uint32_t>();
     auto queryPtr = inputs[1]->val()->data<float>();
     auto WPtr     = inputs[2]->val()->data<float>();
-    auto bPtr     = inputs[3]->val()->data<float>();
+    auto bPtr     = inputs.size() > 3 ? inputs[3]->val()->data<float>() : nullptr; // nullptr if no bias given
 
     for(int row = 0; row < dimRows; ++row) {
       auto currIdxPtr    = idxPtr   + row * k_;     // move to next batch of k entries
       auto currQueryPtr  = queryPtr + row * dimIn;  // move to next input query vector
       auto currOutPtr    = outPtr   + row * dimOut; // move to next output position vector (of vocabulary size)
       for(int k = 0; k < k_; k++) {
-        int relPos = currIdxPtr[k];                 // k-th best vocabulay item
-        auto currWPtr      = WPtr + relPos * dimIn; // offset for k-th best embedding
-        currOutPtr[relPos] = bPtr[relPos];          // write bias value to position
+        int relPos = currIdxPtr[k];                   // k-th best vocabulay item
+        auto currWPtr      = WPtr + relPos * dimIn;   // offset for k-th best embedding
+        currOutPtr[relPos] = bPtr ? bPtr[relPos] : 0; // write bias value to position, init to 0 if no bias given
         
         // proceed one vector product at a time writing to the correct position
         sgemm(false, true, 1, 1, dimIn, 1.0f, currQueryPtr, dimIn, currWPtr, dimIn, 1.0f, &currOutPtr[relPos], 1);
@@ -86,7 +86,11 @@ Expr LSH::affine(Expr idx, Expr input, Expr W, Expr b) {
     }
   };
 
-  return lambda({idx, input, W, b}, 
+  std::vector<Expr> nodes = {idx, input, W};
+  if(b) // bias is optional
+    nodes.push_back(b);
+
+  return lambda(nodes, 
                 outShape,
                 input->value_type(),
                 forward);

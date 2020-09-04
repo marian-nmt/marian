@@ -219,13 +219,9 @@ namespace marian {
 
       // this option is only set in the decoder
       if(!lsh_ && options_->hasAndNotEmpty("output-approx-knn")) {
-#if BLAS_FOUND
         auto k     = opt<std::vector<int>>("output-approx-knn")[0];
         auto nbits = opt<std::vector<int>>("output-approx-knn")[1];
         lsh_ = New<LSH>(k, nbits);
-#else
-        ABORT("Requires BLAS library");
-#endif
       }
 
       auto name = options_->get<std::string>("prefix");
@@ -248,7 +244,8 @@ namespace marian {
           Wt_ = graph_->param(name + "_Wt", {numOutputClasses, inputDim}, inits::glorotUniform(false, true));
       }
 
-      b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros());
+      if(hasBias_)
+        b_ = graph_->param(name + "_b", {1, numOutputClasses}, inits::zeros());
 
       /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
       ABORT_IF(lemmaDimEmb && !factoredVocab_, "--lemma-dim-emb requires a factored vocabulary");
@@ -267,25 +264,27 @@ namespace marian {
     Logits Output::applyAsLogits(Expr input) /*override final*/ {
       lazyConstruct(input->shape()[-1]);
 
-#if BLAS_FOUND
-      auto affineOrLSH = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
+      auto affineOrDot = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
+        if(b)
+          return affine(x, W, b, transA, transB);
+        else
+          return dot(x, W, transA, transB);
+      };
+
+      auto affineOrLSH = [this, affineOrDot](Expr x, Expr W, Expr b, bool transA, bool transB) {
         if(lsh_) {
           ABORT_IF( transA, "Transposed query not supported for LSH");
           ABORT_IF(!transB, "Untransposed indexed matrix not supported for LSH");
-          return lsh_->apply(x, W, b);
+          return lsh_->apply(x, W, b); // knows how to deal with undefined bias
         } else {
-          return affine(x, W, b, transA, transB);
+          return affineOrDot(x, W, b, transA, transB);
         }
       };
-#else
-      auto affineOrLSH = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
-        return affine(x, W, b, transA, transB);
-      };
-#endif
 
       if (shortlist_ && !cachedShortWt_) { // shortlisted versions of parameters are cached within one batch, then clear()ed
-        cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
-        cachedShortb_  = index_select(b_ ,                             -1, shortlist_->indices());
+        cachedShortWt_  = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
+        if(hasBias_)
+          cachedShortb_ = index_select(b_ ,                             -1, shortlist_->indices());
       }
 
       if (factoredVocab_) {
@@ -309,8 +308,9 @@ namespace marian {
             factorB  = cachedShortb_;
           }
           else {
-            factorWt = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
-            factorB  = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
+            factorWt  = slice(Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
+            if(hasBias_)
+              factorB = slice(b_,                              -1, Slice((int)range.first, (int)range.second));
           }
           /*const*/ int lemmaDimEmb = options_->get<int>("lemma-dim-emb", 0);
           if ((lemmaDimEmb == -2 || lemmaDimEmb == -3) && g > 0) { // -2/-3 means a gated transformer-like structure (-3 = hard-max)
@@ -363,8 +363,8 @@ namespace marian {
           if(g == 0)
             factorLogits = affineOrLSH(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
           else
-            factorLogits = affine(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
-
+            factorLogits = affineOrDot(input1, factorWt, factorB, false, /*transB=*/isLegacyUntransposedW ? false : true); // [B... x U] factor logits
+          
           // optionally add lemma-dependent bias
           if (Plemma) { // [B... x U0]
             int lemmaVocabDim = Plemma->shape()[-1];

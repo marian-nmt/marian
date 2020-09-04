@@ -232,7 +232,9 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Tie source and target embeddings");
   cli.add<bool>("--tied-embeddings-all",
       "Tie all embedding layers and output layer");
-
+  cli.add<bool>("--output-omit-bias",
+      "Do not use a bias vector in decoder output layer");
+  
   // Transformer options
   cli.add<int>("--transformer-heads",
       "Number of heads in multi-head attention (transformer)",
