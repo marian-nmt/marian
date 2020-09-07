@@ -9,7 +9,12 @@ namespace marian {
 
 class LSH {  
 public:
-  LSH(int k, int nbits) : k_{k}, nbits_{nbits} {}
+  LSH(int k, int nbits) : k_{k}, nbits_{nbits} {
+#if !BLAS_FOUND
+    ABORT("LSH-based output approximation requires BLAS library");
+#endif
+  }
+
   Expr apply(Expr query, Expr values, Expr bias);
 
 private:
