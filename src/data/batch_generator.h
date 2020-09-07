@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/options.h"
+#include "common/signal_handling.h"
 #include "data/batch_stats.h"
 #include "data/rng_engine.h"
 #include "training/training_state.h"
@@ -136,6 +137,8 @@ private:
     }
     size_t sets = 0;
     while(current_ != data_->end() && maxiBatch->size() < maxSize) { // loop over data
+      if (saveAndExitRequested()) // stop generating batches
+        return std::deque<BatchPtr>();
       maxiBatch->push(*current_);
       sets = current_->size();
       // do not consume more than required for the maxi batch as this causes
@@ -161,6 +164,8 @@ private:
     if (stats_)
       cachedStatsIter = stats_->begin();
     while(!maxiBatch->empty()) { // while there are sentences in the queue
+      if (saveAndExitRequested()) // stop generating batches
+        return std::deque<BatchPtr>();
       // push item onto batch
       batchVector.push_back(maxiBatch->top());
       maxiBatch->pop(); // fetch next-shortest
@@ -249,7 +254,7 @@ private:
             "If you have changed the training corpus, add --no-restore-corpus to the training command and run it again.");
         bufferedBatches_ = std::move(futureBufferedBatches_.get());
         // if bg thread returns an empty swath, we hit the end of the epoch
-        if (bufferedBatches_.empty()) {
+        if (bufferedBatches_.empty() || saveAndExitRequested()) {
           return nullptr;
         }
         // and kick off the next bg operation
@@ -257,7 +262,7 @@ private:
       } else { // don't spawn any threads, i.e. batch fetching is blocking.
         bufferedBatches_ = fetchBatches();
         // if bufferedBatches is empty we hit the end of the epoch
-        if (bufferedBatches_.empty()) {
+        if (bufferedBatches_.empty() || saveAndExitRequested()) {
           return nullptr;
         }
       }

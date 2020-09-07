@@ -1,4 +1,4 @@
-name: ubuntu-18.04-cpu
+name: Ubuntu 18.04 CPU-only
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-ubuntu:
 
     runs-on: ubuntu-18.04
 
@@ -41,7 +41,8 @@ jobs:
       run: |
         mkdir -p build
         cd build
-        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
+        cmake .. -DCMAKE_BUILD_TYPE=Release \
+          -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
           -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
           -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64
@@ -62,3 +63,13 @@ jobs:
         ./marian-scorer --version
         ./spm_encode --version
 
+    - name: Prepare archive
+      working-directory: build
+      run: tar zcvf marian-ubuntu-release-static.tar.gz marian*
+
+    # Marian is built with FBGEMM, so there are some restrictions on what CPUs the executables can be run
+    - name: Upload archive
+      uses: actions/upload-artifact@v2
+      with:
+        name: marian-ubuntu-release-static.tar.gz
+        path: build/marian-ubuntu-release-static.tar.gz

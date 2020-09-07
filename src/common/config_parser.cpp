@@ -143,6 +143,15 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
   cli.add<std::string>("--dump-config",
     "Dump current (modified) configuration to stdout and exit. Possible values: full, minimal, expand")
     ->implicit_val("full");
+  if(mode_ == cli::mode::training) {
+    // --sigterm is deliberately not a boolean, to allow for a consistent
+    // pattern of specifying custom signal handling in the future.
+    // (e.g., dump model but continue training upon SIGUSR1, or report current
+    // training status upon SIGINFO.)
+    cli.add<std::string>("--sigterm",
+      "What to do with SIGTERM: save-and-exit or exit-immediately.",
+      "save-and-exit");
+  }
   // clang-format on
 }
 

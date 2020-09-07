@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Turing and Ampere GPU optimisation support, if the CUDA version supports it.
 - Printing word-level scores in marian-scorer
 - Optimize LayerNormalization on CPU by 6x through vectorization (ffast-math) and fixing performance regression introduced with strides in 77a420
 - Decoding multi-source models in marian-server with --tsv
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Internal optional parameter in n-best list generation that skips empty hypotheses.
 
 ### Fixed
+- Print "server is listening on port" message after it is accepting connections
 - Fix compilation without BLAS installed
 - Providing a single value to vector-like options using the equals sign, e.g. --models=model.npz
 - Fix quiet-translation in marian-server
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Properly record cmake variables in the cmake build directory instead of the source tree.
 - Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
 - Added a few missing header files in shortlist.h and beam_search.h.
+- Improved handling for receiving SIGTERM during training. By default, SIGTERM triggers 'save (now) and exit'. Prior to this fix, batch pre-fetching did not check for this sigal, potentially delaying exit considerably. It now pays attention to that. Also, the default behaviour of save-and-exit can now be disabled on the command line with --sigterm exit-immediately.
 
 ### Changed
 - Move Simple-WebSocket-Server to submodule

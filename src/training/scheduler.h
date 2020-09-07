@@ -1,15 +1,13 @@
 #pragma once
 
 #include "common/options.h"
+#include "common/signal_handling.h"
 #include "training/training_state.h"
 #include "training/validator.h"
 #include "training/communicator.h"
 #include "layers/loss.h"
 
 namespace marian {
-
-bool getSigtermFlag();
-void installSignalHandlers();
 
 class Scheduler : public TrainingObserver {
 private:
@@ -154,11 +152,10 @@ public:
       : options_(options), state_(state) {
     ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
     updateLearningRate(*state);
-    installSignalHandlers();
   }
 
   bool keepGoing() {
-    if(getSigtermFlag()) // received signal SIGERM => exit gracefully
+    if(saveAndExitRequested()) // via SIGTERM
       return false;
 
     // stop if it reached the maximum number of epochs
@@ -192,12 +189,11 @@ public:
 
   void started() { LOG(info, "Training started"); }
   void finished() {
-    if (getSigtermFlag())
-      LOG(info, "Training interrupted (SIGTERM).");
+    if (saveAndExitRequested())
+      LOG(info, "Training interrupted (via signal).");
     else
       LOG(info, "Training finished");
   }
-
 
   void addValidator(Ptr<ValidatorBase> validator) {
     validators_.push_back(validator);
@@ -223,9 +219,10 @@ public:
 
   void validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                 bool isFinal = false) {
-    // Do not validate if already validated (for instance, after the model is
-    // loaded) or if validation is scheduled for another update, or when signal SIGTERM was received
-    if(getSigtermFlag() // SIGTERM was received
+    // Do not validate if already validated (for instance, after the model is loaded)
+    // or if validation is scheduled for another update, or when a graceful shutdown
+    // was requested.
+    if(saveAndExitRequested()
        || state_->validated // already validated (in resumed training, for example)
        || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !isFinal)) // not now
       return;
