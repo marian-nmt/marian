@@ -55,7 +55,7 @@ stages:
       condition: eq(variables.cuda, true)
 
     - pwsh: |
-        Invoke-WebRequest -Uri $(MKL_URL) -TimeoutSec 600 -OutFile mkl.zip
+        C:\msys64\usr\bin\wget.exe -nv $(MKL_URL) -O mkl.zip
         Expand-Archive -Force mkl.zip $(MKL_DIR)
       displayName: Download MKL
 
@@ -82,9 +82,6 @@ stages:
       displayName: Prepare vcpkg
 
     - script: |
-        :: Set envvars so that CMake can find the installed packages
-        set MKLROOT=$(MKL_DIR)
-        set CUDA_PATH=$(CUDA_PATH_WINDOWS)/v$(cuda_version)
         :: Load VS environment
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
         :: Create build directory
@@ -115,6 +112,10 @@ stages:
           -DUSE_SENTENCEPIECE="TRUE" ^
           -DUSE_STATIC_LIBS="TRUE"
       displayName: Configure CMake
+      env:
+        # Set envvars so that CMake can find the installed packages
+        MKLROOT: $(MKL_DIR)
+        CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
 
     - script: |
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
@@ -143,14 +144,17 @@ stages:
 
     strategy:
       matrix:
+        # Disabled because FBGEMM + GCC 9+ do not compile on machines with
+        # avx512_vnni, see https://github.com/marian-nmt/marian-dev/issues/709
+        #
         # Ubuntu 20.04 supports CUDA 11+
-        "20.04 CUDA 11.0 gcc-9":
-          image: ubuntu-20.04
-          boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
-          cuda: 11.0
-          gcc: 9
-          unit_tests: false # disable unit tests to minimize compilation time
-          examples: false   # disable examples to minimize compilation time
+        #"20.04 CUDA 11.0 gcc-9":
+          #image: ubuntu-20.04
+          #boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
+          #cuda: 11.0
+          #gcc: 9
+          #unit_tests: false # disable unit tests to minimize compilation time
+          #examples: false   # disable examples to minimize compilation time
         # Ubuntu 18.04 supports CUDA 10.1+
         "18.04 CUDA 10.2 gcc-8":
           image: ubuntu-18.04
