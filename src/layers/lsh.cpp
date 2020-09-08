@@ -1,7 +1,10 @@
 #include "layers/lsh.h"
-#include "3rd_party/faiss/IndexLSH.h"
 #include "graph/expression_operators.h"
 #include "tensors/cpu/prod_blas.h"
+
+#if BLAS_FOUND
+#include "3rd_party/faiss/IndexLSH.h"
+#endif
 
 namespace marian {
 
@@ -11,6 +14,7 @@ Expr LSH::apply(Expr input, Expr W, Expr b) {
 }
 
 Expr LSH::search(Expr query, Expr values) {
+#if BLAS_FOUND
   ABORT_IF(query->graph()->getDeviceId().type == DeviceType::gpu,
            "LSH index (--output-approx-knn) currently not implemented for GPU");
 
@@ -50,6 +54,10 @@ Expr LSH::search(Expr query, Expr values) {
   };
 
   return lambda({query, values}, kShape, Type::uint32, forward);
+#else
+  query; values;
+  ABORT("LSH output layer requires a CPU BLAS library");
+#endif
 }
 
 Expr LSH::affine(Expr idx, Expr input, Expr W, Expr b) {
