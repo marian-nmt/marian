@@ -135,6 +135,7 @@ public:
     modelFeatures_.insert("transformer-preprocess");
     modelFeatures_.insert("transformer-postprocess");
     modelFeatures_.insert("transformer-postprocess-emb");
+    modelFeatures_.insert("transformer-postprocess-top");
     modelFeatures_.insert("transformer-decoder-autoreg");
     modelFeatures_.insert("transformer-tied-layers");
     modelFeatures_.insert("transformer-guided-alignment-layer");
