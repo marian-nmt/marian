@@ -153,7 +153,7 @@ if(APPLE) # This is a dependency of pathie but I can't seem to link it into that
 endif()
 
 # Add external libs to the public interface of the library
-target_link_libraries(marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(marian ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
