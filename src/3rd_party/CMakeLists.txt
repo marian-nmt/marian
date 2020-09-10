@@ -19,10 +19,10 @@ if(USE_FBGEMM)
     # only locally disabled for the 3rd_party folder
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-value -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused")
-  else()
-    # Do not compile cpuinfo executables due to a linker error, and they are not needed
-    set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools")
   endif()
+
+  # Do not compile cpuinfo executables due to a linker error, and they are not needed
+  set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools")
 
   set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "Disable fbgemm tests")
   set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "Disable fbgemm benchmark")
@@ -35,6 +35,12 @@ if(USE_FBGEMM)
   list(REMOVE_ITEM ASMJIT_COMPILE_OPTIONS -Wall -Wextra)
   set_property(TARGET asmjit PROPERTY COMPILE_OPTIONS ${ASMJIT_COMPILE_OPTIONS})
   message("   ASMJIT COMPILE FLAGS: ${ASMJIT_COMPILE_OPTIONS}")
+
+  if(GENERATE_MARIAN_INSTALL_TARGETS)
+    install(TARGETS fbgemm asmjit cpuinfo clog
+      EXPORT marian-targets
+      DESTINATION fbgemm)
+  endif(GENERATE_MARIAN_INSTALL_TARGETS)
 
 endif(USE_FBGEMM)
 
@@ -83,6 +89,18 @@ if(USE_SENTENCEPIECE)
   if(USE_STATIC_LIBS)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
   endif()
+
+  if(GENERATE_MARIAN_INSTALL_TARGETS)
+    if(USE_STATIC_LIBS)
+      install(TARGETS sentencepiece-static sentencepiece_train-static
+        EXPORT marian-targets
+        DESTINATION sentencepiece)
+    else()
+      install(TARGETS sentencepiece sentencepiece_train
+        EXPORT marian-targets
+        DESTINATION sentencepiece)
+    endif()
+  endif(GENERATE_MARIAN_INSTALL_TARGETS)
 endif(USE_SENTENCEPIECE)
 
 include_directories(./SQLiteCpp/include)

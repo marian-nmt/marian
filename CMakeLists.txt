@@ -25,16 +25,36 @@ option(USE_MPI "Use MPI library" OFF)
 option(USE_NCCL "Use NCCL library" ON)
 option(USE_SENTENCEPIECE "Download and compile SentencePiece" OFF)
 option(USE_STATIC_LIBS "Link statically against non-system libs" OFF)
+option(GENERATE_MARIAN_INSTALL_TARGETS "Generate Marian install targets (requires CMake 3.12+)" OFF)
+
+# fbgemm and sentencepiece are both defined with "non-local" installation targets (the source projects don't define them,
+# so we define them in src\3rd_party\CMakeLists.txt), but that isn't supported until CMake 3.12. Prior to CMake 3.12,
+# targets could only be install(...)ed in the same CMakeLists.txt they were defined. We currently target CMake 3.5.1
+# as our minimum supported CMake version, so this option exists to provide compatibility by disabling install targets.
+if(GENERATE_MARIAN_INSTALL_TARGETS AND ${CMAKE_VERSION} VERSION_LESS "3.12")
+  message(WARNING "Marian install targets cannot be generated on CMake <3.12.\
+    Please upgrade your CMake version or set GENERATE_MARIAN_INSTALL_TARGETS=OFF to remove this warning. Disabling installation targets.")
+  set(GENERATE_MARIAN_INSTALL_TARGETS OFF CACHE BOOL "Forcing disabled installation targets due to CMake <3.12." FORCE)
+endif()
+
+if(GENERATE_MARIAN_INSTALL_TARGETS)
+  include(GNUInstallDirs)                 # This defines default values for installation directories (all platforms even if named GNU)
+  include(InstallRequiredSystemLibraries) # Tell CMake that the `install` target needs to install required system libraries (eg: Windows SDK)
+  include(CMakePackageConfigHelpers)      # Helper to create relocatable packages
+
+  install(EXPORT marian-targets           # Installation target
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake)
+endif(GENERATE_MARIAN_INSTALL_TARGETS)
 
 # use ccache (https://ccache.dev) for faster compilation if requested and available
 if(USE_CCACHE)
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-  message(STATUS "Will be using ccache for faster repeat compilation (use cmake -DUSE_CCACHE=off to disable).")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
-else(CCACHE_PROGRAM)
-  message(WARNING "Compilation with ccache requested but no ccache found.")
-endif(CCACHE_PROGRAM)
+  find_program(CCACHE_PROGRAM ccache)
+  if(CCACHE_PROGRAM)
+    message(STATUS "Will be using ccache for faster repeat compilation (use cmake -DUSE_CCACHE=off to disable).")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+  else(CCACHE_PROGRAM)
+    message(WARNING "Compilation with ccache requested but no ccache found.")
+  endif(CCACHE_PROGRAM)
 endif(USE_CCACHE)
 
 # Project versioning
