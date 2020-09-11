@@ -121,6 +121,7 @@ stages:
         # Set envvars so that CMake can find the installed packages
         MKLROOT: $(MKL_DIR)
         CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
+        # Boost is pre-installed on Azure/GitHub-hosted Windows runners
         BOOST_ROOT: $(BOOST_ROOT_1_69_0)
 
     - script: |
