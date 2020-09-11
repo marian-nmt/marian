@@ -36,12 +36,11 @@ stages:
 
     strategy:
       matrix:
-        # TODO: Compile with Boost and marian-server
-        # Windows CPU-only build, without Boost
+        # Windows CPU-only build
         "CPU":
           cuda: false
           cuda_version: ""
-        # Windows CPU+GPU build, without Boost
+        # Windows CPU+GPU build
         "CUDA 10.2":
           cuda: true
           cuda_version: 10.2
@@ -99,13 +98,16 @@ stages:
           -DCMAKE_TOOLCHAIN_FILE="$(VCPKG_DIR)\scripts\buildsystems\vcpkg.cmake" ^
           -DVCPKG_TARGET_TRIPLET="x64-windows-static" ^
           ^
+          -DBOOST_ROOT="$(BOOST_ROOT)" ^
+          -DBOOST_INCLUDEDIR="$(BOOST_ROOT)/include" ^
+          -DBOOST_LIBRARYDIR="$(BOOST_ROOT)/lib" ^
           -DOPENSSL_USE_STATIC_LIBS="TRUE" ^
           -DOPENSSL_MSVC_STATIC_RT="TRUE" ^
           ^
           -DCOMPILE_CPU="TRUE" ^
           -DCOMPILE_CUDA="$(cuda)" ^
           -DCOMPILE_EXAMPLES="FALSE" ^
-          -DCOMPILE_SERVER="FALSE" ^
+          -DCOMPILE_SERVER="TRUE" ^
           -DCOMPILE_TESTS="TRUE" ^
           ^
           -DUSE_CUDNN="FALSE" ^
@@ -119,6 +121,7 @@ stages:
         # Set envvars so that CMake can find the installed packages
         MKLROOT: $(MKL_DIR)
         CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
+        BOOST_ROOT: $(BOOST_ROOT_1_69_0)
 
     - script: |
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
@@ -137,6 +140,7 @@ stages:
         .\marian.exe --version
         .\marian-decoder.exe --version
         .\marian-scorer.exe --version
+        .\marian-server.exe --version
         .\spm_encode.exe --version
       displayName: Print versions
       workingDirectory: build
