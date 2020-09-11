@@ -36,9 +36,12 @@ stages:
 
     strategy:
       matrix:
+        # TODO: Compile with Boost and marian-server
+        # Windows CPU-only build, without Boost
         "CPU":
           cuda: false
           cuda_version: ""
+        # Windows CPU+GPU build, without Boost
         "CUDA 10.2":
           cuda: true
           cuda_version: 10.2
@@ -144,10 +147,31 @@ stages:
 
     strategy:
       matrix:
+        ################################################################
+        # Ubuntu CPU-only build
+        "CPU-only":
+          image: ubuntu-latest
+          boost: true
+          cpu: true
+          cuda: ""
+          gcc: 7
+          unit_tests: true
+          examples: false
+        # Ubuntu GPU-only build
+        "GPU-only":
+          image: ubuntu-latest
+          boost: true
+          cpu: false
+          cuda: 10.2
+          gcc: 7
+          unit_tests: true
+          examples: false
+        ################################################################
+        # Ubuntu 20.04 supports CUDA 11+
+        #
         # Disabled because FBGEMM + GCC 9+ do not compile on machines with
         # avx512_vnni, see https://github.com/marian-nmt/marian-dev/issues/709
         #
-        # Ubuntu 20.04 supports CUDA 11+
         #"20.04 CUDA 11.0 gcc-9":
           #image: ubuntu-20.04
           #boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
@@ -155,18 +179,22 @@ stages:
           #gcc: 9
           #unit_tests: false # disable unit tests to minimize compilation time
           #examples: false   # disable examples to minimize compilation time
+        ################################################################
         # Ubuntu 18.04 supports CUDA 10.1+
         "18.04 CUDA 10.2 gcc-8":
           image: ubuntu-18.04
           boost: true
+          cpu: true
           cuda: 10.2
           gcc: 8
           unit_tests: true
           examples: true
+        ################################################################
         # Ubuntu 16.04 supports CUDA 8+
         "16.04 CUDA 10.2 gcc-7":
           image: ubuntu-16.04
           boost: true
+          cpu: true
           cuda: 10.2
           gcc: 7
           unit_tests: true
@@ -174,6 +202,7 @@ stages:
         "16.04 CUDA 9.2 gcc-7":
           image: ubuntu-16.04
           boost: true
+          cpu: true
           cuda: 9.2
           gcc: 7
           unit_tests: false
@@ -198,10 +227,12 @@ stages:
         sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
         sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
       displayName: Install MKL
+      condition: eq(variables["cpu"], true)
 
       # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
       displayName: Install CUDA
+      condition: ne(variables["cuda"], "")
 
     # Boost is already installed on Azure-hosted runners in a non-standard location
     # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
@@ -210,23 +241,27 @@ stages:
         cd build
         CC=/usr/bin/gcc-$(gcc) CXX=/usr/bin/g++-$(gcc) CUDAHOSTCXX=/usr/bin/g++-$(gcc) \
         cmake .. \
-          -DCOMPILE_CPU=on -DCOMPILE_CUDA=on \
+          -DCOMPILE_CPU=$(cpu) -DCOMPILE_CUDA=$(gpu) \
           -DCOMPILE_EXAMPLES=$(examples) -DCOMPILE_SERVER=$(boost) -DCOMPILE_TESTS=$(unit_tests) \
           -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
           -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
+      variables:
+        # The variable 'gpu' is true if 'cuda' is specified, false otherwise
+        gpu: $[ne(variables["cuda"], "")]
       displayName: Configure CMake
 
     - bash: make -j3
       displayName: Compile
       workingDirectory: build
 
-    # Unit tests are not run because Azure-hosted runners do not have GPUs
-    # TODO: add an option to CMake to have unit tests only on CPU
-    #- bash: make test
-    #  displayName: Run unit tests
-    #  workingDirectory: build
+    # Unit tests are run only for CPU-only builds because Azure-hosted runners do not have GPUs
+    # TODO: add an option to CMake to compile unit tests only for CPU
+    - bash: make test
+      displayName: Run unit tests
+      workingDirectory: build
+      condition: eq(variables["cuda"], "")
 
     - bash: |
         ./marian --version
