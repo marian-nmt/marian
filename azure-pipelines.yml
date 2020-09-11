@@ -107,7 +107,7 @@ stages:
           -DCOMPILE_CPU="TRUE" ^
           -DCOMPILE_CUDA="$(cuda)" ^
           -DCOMPILE_EXAMPLES="FALSE" ^
-          -DCOMPILE_SERVER="TRUE" ^
+          -DCOMPILE_SERVER="FALSE" ^
           -DCOMPILE_TESTS="TRUE" ^
           ^
           -DUSE_CUDNN="FALSE" ^
@@ -259,11 +259,17 @@ stages:
         cd build
         CC=/usr/bin/gcc-$(gcc) CXX=/usr/bin/g++-$(gcc) CUDAHOSTCXX=/usr/bin/g++-$(gcc) \
         cmake .. \
-          -DCOMPILE_CPU=$(cpu) -DCOMPILE_CUDA=$(gpu) \
-          -DCOMPILE_EXAMPLES=$(examples) -DCOMPILE_SERVER=$(boost) -DCOMPILE_TESTS=$(unit_tests) \
-          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
+          -DCOMPILE_CPU=$(cpu) \
+          -DCOMPILE_CUDA=$(gpu) \
+          -DCOMPILE_EXAMPLES=$(examples) \
+          -DCOMPILE_SERVER=$(boost) \
+          -DCOMPILE_TESTS=$(unit_tests) \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
           -DUSE_STATIC_LIBS=$(static) \
-          -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
+          -DBOOST_ROOT=$BOOST_ROOT_1_69_0 \
+          -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include \
+          -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
