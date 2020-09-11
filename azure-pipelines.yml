@@ -153,6 +153,7 @@ stages:
           image: ubuntu-latest
           boost: true
           cpu: true
+          gpu: false
           cuda: ""
           gcc: 7
           unit_tests: true
@@ -162,9 +163,10 @@ stages:
           image: ubuntu-latest
           boost: true
           cpu: false
+          gpu: true
           cuda: 10.2
           gcc: 7
-          unit_tests: true
+          unit_tests: false
           examples: false
         ################################################################
         # Ubuntu 20.04 supports CUDA 11+
@@ -185,6 +187,7 @@ stages:
           image: ubuntu-18.04
           boost: true
           cpu: true
+          gpu: true
           cuda: 10.2
           gcc: 8
           unit_tests: true
@@ -195,6 +198,7 @@ stages:
           image: ubuntu-16.04
           boost: true
           cpu: true
+          gpu: true
           cuda: 10.2
           gcc: 7
           unit_tests: true
@@ -203,6 +207,7 @@ stages:
           image: ubuntu-16.04
           boost: true
           cpu: true
+          gpu: true
           cuda: 9.2
           gcc: 7
           unit_tests: false
@@ -210,10 +215,6 @@ stages:
 
     pool:
       vmImage: $(image)
-
-    variables:
-      # The variable 'gpu' is true if 'cuda' is specified, false otherwise
-      gpu: $[ne(variables["cuda"], "")]
 
     steps:
     - checkout: self
@@ -236,7 +237,7 @@ stages:
       # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
       displayName: Install CUDA
-      condition: ne(variables["cuda"], "")
+      condition: eq(variables["gpu"], true)
 
     # Boost is already installed on Azure-hosted runners in a non-standard location
     # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
@@ -262,7 +263,7 @@ stages:
     - bash: make test
       displayName: Run unit tests
       workingDirectory: build
-      condition: eq(variables["cuda"], "")
+      condition: and(eq(variables["unit_tests"], true), eq(variables["gpu"], false))
 
     - bash: |
         ./marian --version
