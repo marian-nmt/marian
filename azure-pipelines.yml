@@ -141,7 +141,7 @@ stages:
         .\marian.exe --version
         .\marian-decoder.exe --version
         .\marian-scorer.exe --version
-        .\marian-server.exe --version
+        #.\marian-server.exe --version
         .\spm_encode.exe --version
       displayName: Print versions
       workingDirectory: build
