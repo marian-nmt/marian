@@ -211,6 +211,10 @@ stages:
     pool:
       vmImage: $(image)
 
+    variables:
+      # The variable 'gpu' is true if 'cuda' is specified, false otherwise
+      gpu: $[ne(variables["cuda"], "")]
+
     steps:
     - checkout: self
       submodules: true
@@ -247,9 +251,6 @@ stages:
           -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
-      variables:
-        # The variable 'gpu' is true if 'cuda' is specified, false otherwise
-        gpu: $[ne(variables["cuda"], "")]
       displayName: Configure CMake
 
     - bash: make -j3
