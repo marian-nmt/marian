@@ -232,12 +232,12 @@ stages:
         sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
         sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
       displayName: Install MKL
-      condition: eq(variables["cpu"], true)
+      condition: eq(variables.cpu, true)
 
       # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
       displayName: Install CUDA
-      condition: eq(variables["gpu"], true)
+      condition: eq(variables.gpu, true)
 
     # Boost is already installed on Azure-hosted runners in a non-standard location
     # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
@@ -263,7 +263,7 @@ stages:
     - bash: make test
       displayName: Run unit tests
       workingDirectory: build
-      condition: and(eq(variables["unit_tests"], true), eq(variables["gpu"], false))
+      condition: and(eq(variables.unit_tests, true), eq(variables.gpu, false))
 
     - bash: |
         ./marian --version
