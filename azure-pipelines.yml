@@ -295,7 +295,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntuMinimal
-    displayName: Ubuntu minimal CUDA 9.0 gcc-5 no MKL
+    displayName: Ubuntu minimal
 
     pool:
       vmImage: ubuntu-16.04
@@ -304,24 +304,24 @@ stages:
     - checkout: self
       submodules: true
 
-    # CMake 3.5.1 is the minimum version supported
-    - bash: |
-        wget https://cmake.org/files/v3.5/cmake-3.5.1-Linux-x86_64.tar.gz
-        tar zxf cmake-3.5.1-Linux-x86_64.tar.gz
-        ./cmake-3.5.1-Linux-x86_64/bin/cmake --version
-      displayName: Download CMake 3.5.1
-
     # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh "9.0"
       displayName: Install CUDA
 
-    # GCC 5.4 is the minimum version supported
+    # CMake 3.5.1 is the minimum version supported
+    - bash: |
+        wget -nv https://cmake.org/files/v3.5/cmake-3.5.1-Linux-x86_64.tar.gz
+        tar zxf cmake-3.5.1-Linux-x86_64.tar.gz
+        ./cmake-3.5.1-Linux-x86_64/bin/cmake --version
+      displayName: Download CMake
+
+    # GCC 5 is the minimum version supported
     - bash: |
         /usr/bin/gcc-5 --version
         mkdir -p build
         cd build
         CC=/usr/bin/gcc-5 CXX=/usr/bin/g++-5 CUDAHOSTCXX=/usr/bin/g++-5 \
-        ./cmake-3.5.1-Linux-x86_64/bin/cmake .. -DCOMPILE_CPU=on
+        ../cmake-3.5.1-Linux-x86_64/bin/cmake .. -DCOMPILE_CPU=on
       displayName: Configure CMake
 
     - bash: make -j3
