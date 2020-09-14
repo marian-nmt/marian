@@ -208,16 +208,6 @@ stages:
           static: true
         ################################################################
         # Ubuntu 16.04 supports CUDA 8+
-        "16.04 CUDA 10.2 gcc-7":
-          image: ubuntu-16.04
-          boost: true
-          cpu: true
-          gpu: true
-          cuda: 10.2
-          gcc: 7
-          unit_tests: true
-          examples: true
-          static: false
         "16.04 CUDA 9.2 gcc-7":
           image: ubuntu-16.04
           boost: true
@@ -225,8 +215,8 @@ stages:
           gpu: true
           cuda: 9.2
           gcc: 7
-          unit_tests: false
-          examples: false
+          unit_tests: true
+          examples: true
           static: false
 
     pool:
@@ -298,7 +288,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntuMinimal
-    displayName: Ubuntu minimal
+    displayName: Ubuntu CPU+GPU gcc-5 cmake 3.5
 
     pool:
       vmImage: ubuntu-16.04
@@ -356,17 +346,22 @@ stages:
     - bash: brew install openblas protobuf
       displayName: Install packages
 
-    # Openblas location is exported explicitly because openblas is keg-only,
-    # which means it was not symlinked into /usr/local/.
-    # CMake cannot find BLAS on Azure runners if Marian is being compiled
-    # statically, hence USE_STATIC_LIBS=off
+    # Openblas location is exported explicitly because openblas is keg-only, which means it was not symlinked into /usr/local/.
+    # CMake cannot find BLAS on Azure runners if Marian is being compiled statically, hence USE_STATIC_LIBS=off
     - bash: |
         export LDFLAGS="-L/usr/local/opt/openblas/lib"
         export CPPFLAGS="-I/usr/local/opt/openblas/include"
         mkdir -p build
         cd build
-        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
-          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off
+        cmake .. \
+          -DCOMPILE_CPU=on \
+          -DCOMPILE_CUDA=off \
+          -DCOMPILE_EXAMPLES=on \
+          -DCOMPILE_SERVER=on \
+          -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
+          -DUSE_STATIC_LIBS=off
       displayName: Configure CMake
 
     - bash: make -j2
