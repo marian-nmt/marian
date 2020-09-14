@@ -107,7 +107,7 @@ stages:
           -DCOMPILE_CPU="TRUE" ^
           -DCOMPILE_CUDA="$(cuda)" ^
           -DCOMPILE_EXAMPLES="FALSE" ^
-          -DCOMPILE_SERVER="FALSE" ^
+          -DCOMPILE_SERVER="TRUE" ^
           -DCOMPILE_TESTS="TRUE" ^
           ^
           -DUSE_CUDNN="FALSE" ^
@@ -122,7 +122,8 @@ stages:
         MKLROOT: $(MKL_DIR)
         CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
         # Boost is pre-installed on Azure/GitHub-hosted Windows runners
-        BOOST_ROOT: $(BOOST_ROOT_1_69_0)
+        # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
+        BOOST_ROOT: $(BOOST_ROOT_1_72_0)
 
     - script: |
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
@@ -137,11 +138,12 @@ stages:
       workingDirectory: build
       condition: eq(variables.cuda, false)
 
-    - pwsh: |
+    # Note that versions from Marian executables will not be printed for CUDA builds
+    - script: |
         .\marian.exe --version
         .\marian-decoder.exe --version
         .\marian-scorer.exe --version
-        #.\marian-server.exe --version
+        .\marian-server.exe --version
         .\spm_encode.exe --version
       displayName: Print versions
       workingDirectory: build
