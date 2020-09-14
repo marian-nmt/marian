@@ -149,6 +149,7 @@ stages:
   ######################################################################
   - job: BuildUbuntu
     displayName: Ubuntu
+    timeoutInMinutes: 90
 
     strategy:
       matrix:
