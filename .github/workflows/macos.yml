@@ -1,4 +1,4 @@
-name: macOS CPU-only
+name: MacOS
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-macos:
-
+    name: MacOS CPU-only
     runs-on: macos-10.15
 
     steps:
@@ -30,8 +30,15 @@ jobs:
         export CPPFLAGS="-I/usr/local/opt/openblas/include"
         mkdir -p build
         cd build
-        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
-          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off
+        cmake .. \
+          -DCOMPILE_CPU=on \
+          -DCOMPILE_CUDA=off \
+          -DCOMPILE_EXAMPLES=on \
+          -DCOMPILE_SERVER=on \
+          -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
+          -DUSE_STATIC_LIBS=off
 
     - name: Compile
       working-directory: build

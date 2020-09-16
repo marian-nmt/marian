@@ -1,0 +1,130 @@
+name: Windows
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+
+jobs:
+  build-windows:
+    strategy:
+      matrix:
+        include:
+          # Windows CPU-only build
+          - name: "Windows CPU-only"
+            cuda: ""
+            gpu: false
+          # Windows CPU+GPU build
+          - name: "Windows CPU+CUDA"
+            cuda: "10.2"
+            gpu: true
+
+    runs-on: windows-2019
+    name: ${{ matrix.name }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Download MKL
+      run: |
+        # Wget retries downloading files and is faster than Invoke-WebRequest
+        C:\msys64\usr\bin\wget.exe -nv ${{ env.MKL_URL }} -O mkl.zip
+        Expand-Archive -Force mkl.zip ${{ github.workspace }}/mkl
+        # Set the MKLROOT environment variable so that CMake can find MKL.
+        # GITHUB_WORKSPACE is an environment variable available on all
+        # GitHub-hosted runners
+        echo "::set-env name=MKLROOT::$env:GITHUB_WORKSPACE/mkl"
+      shell: powershell
+
+    - name: Install CUDA
+      run: |
+        .\scripts\ci\install_cuda_windows.ps1 "10.2"
+        # Set path to CUDA for subsequent steps so that CMake can find it
+        echo "::set-env name=CUDA_PATH::$env:CUDA_PATH"
+        echo "::add-path::$env:CUDA_PATH/bin"
+      shell: powershell
+      if: matrix.gpu == true
+
+    - name: Prepare vcpkg
+      uses: lukka/run-vcpkg@v2
+      with:
+        vcpkgArguments: protobuf
+        vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
+        vcpkgDirectory: ${{ github.workspace }}/vcpkg/
+        vcpkgTriplet: x64-windows-static
+
+    # Windows CUDA builds use USE_NCCL=off due to compilation errors.
+    - name: Build Debug
+      uses: lukka/run-cmake@v2
+      with:
+        buildDirectory: ${{ github.workspace }}/build/Debug
+        cmakeAppendedArgs: '-G Ninja
+          -DCMAKE_BUILD_TYPE="Debug"
+          -DOPENSSL_USE_STATIC_LIBS="TRUE"
+          -DOPENSSL_MSVC_STATIC_RT="TRUE"
+          -DCOMPILE_CPU="TRUE"
+          -DCOMPILE_CUDA="${{ matrix.gpu }}"
+          -DCOMPILE_SERVER="FALSE"
+          -DCOMPILE_TESTS="TRUE"
+          -DUSE_FBGEMM="TRUE"
+          -DUSE_MPI="FALSE"
+          -DUSE_NCCL="FALSE"
+          -DUSE_SENTENCEPIECE="TRUE"
+          -DUSE_STATIC_LIBS="TRUE"'
+        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+        cmakeListsTxtPath: ${{ github.workspace }}/CMakeLists.txt
+        useVcpkgToolchainFile: true
+      # Building in Debug is sufficient for the all-in CPU+GPU compilation;
+      # its main purpose is to detect warnings that the Release build is not
+      # able to find sometimes.
+      if: matrix.gpu == true
+
+    # Windows CUDA builds use USE_NCCL=off due to compilation errors
+    # Boost is pre-installed on Azure/GitHub-hosted Windows runners
+    # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
+    # (not used yet)
+    - name: Build Release
+      uses: lukka/run-cmake@v2
+      with:
+        buildDirectory: ${{ github.workspace }}/build/
+        cmakeAppendedArgs: '-G Ninja
+          -DBOOST_ROOT="$(BOOST_ROOT_1_72_0)"
+          -DBOOST_INCLUDEDIR="$(BOOST_ROOT_1_72_0)/include"
+          -DBOOST_LIBRARYDIR="$(BOOST_ROOT_1_72_0)/lib"
+          -DCMAKE_BUILD_TYPE="Release"
+          -DOPENSSL_USE_STATIC_LIBS="TRUE"
+          -DOPENSSL_MSVC_STATIC_RT="TRUE"
+          -DCOMPILE_CPU="TRUE"
+          -DCOMPILE_CUDA="${{ matrix.gpu }}"
+          -DCOMPILE_SERVER="FALSE"
+          -DCOMPILE_TESTS="TRUE"
+          -DUSE_FBGEMM="TRUE"
+          -DUSE_MPI="FALSE"
+          -DUSE_NCCL="FALSE"
+          -DUSE_SENTENCEPIECE="TRUE"
+          -DUSE_STATIC_LIBS="TRUE"'
+        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+        cmakeListsTxtPath: ${{ github.workspace }}/CMakeLists.txt
+        useVcpkgToolchainFile: true
+
+    - name: Run unit tests
+      working-directory: build/
+      run: ctest
+      # Not run in GPU builds because GitHub-hosted VMs do not have GPUs
+      if: matrix.gpu == false
+
+    - name: Print versions
+      working-directory: build/
+      run: |
+        .\marian.exe --version
+        .\marian-decoder.exe --version
+        .\marian-scorer.exe --version
+        dir *.exe
+      shell: cmd
