@@ -74,6 +74,13 @@ if(USE_SENTENCEPIECE)
   set_target_properties(spm_encode spm_decode spm_train spm_normalize spm_export_vocab
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND (CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.0 OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0))
+    foreach(t sentencepiece-static sentencepiece_train-static
+        spm_decode spm_encode spm_export_vocab spm_normalize spm_train)
+        set_property(TARGET ${t} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-class-memaccess")
+    endforeach(t)
+  endif()
+
   if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     foreach(t sentencepiece-static sentencepiece_train-static
         spm_decode spm_encode spm_export_vocab spm_normalize spm_train)
@@ -144,6 +151,12 @@ if(CUDA_FOUND)
     if(COMPILE_CUDA_SM70)
       set(GENCODE "${GENCODE} -gencode=arch=compute_70,code=sm_70")
     endif(COMPILE_CUDA_SM70)
+    if(COMPILE_CUDA_SM75)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_75,code=sm_75; -gencode=arch=compute_75,code=compute_75")
+    endif(COMPILE_CUDA_SM75)
+    if(COMPILE_CUDA_SM80)
+      set(GENCODE "${GENCODE} -gencode=arch=compute_80,code=sm_80; -gencode=arch=compute_80,code=compute_80")
+    endif(COMPILE_CUDA_SM80)
 
     # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
     ExternalProject_Add(nccl_install

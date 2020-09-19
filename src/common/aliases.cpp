@@ -144,6 +144,87 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
       config["valid-mini-batch"] = 8;
       config["normalize"] = 1.0;
     });
+
+    // Transformer base variant with "prenorm" (i.e. the layer normalization is performed as the first block-wise
+    // preprocessing step). This also requires to normalize the final output of a transformer stack to avoid the 
+    // activations to blow up. This blow up is particularly nasty with mixed precision training.
+    // See implementation and comments in tensor2tensor: 
+    // * https://github.com/tensorflow/tensor2tensor/blob/95d021477272c10af15cd62f25b595ad16ad514e/tensor2tensor/models/transformer.py#L1845
+    // * https://github.com/tensorflow/tensor2tensor/commit/f5c9b17e617ea9179b7d84d36b1e8162cb369f25#diff-4e58a582cf11ca649e76b4362d69e405R78
+    cli.alias("task", "transformer-base-prenorm", [](YAML::Node& config) {
+      // Model options
+      config["type"] = "transformer";
+      config["enc-depth"] = 6;
+      config["dec-depth"] = 6;
+      config["dim-emb"] = 512;
+      config["tied-embeddings-all"] = true;
+      config["transformer-dim-ffn"] = 2048;
+      config["transformer-heads"] = 8;
+      config["transformer-postprocess"] = "da";     // change from transformer-base is "dan" -> "da"
+      config["transformer-preprocess"] = "n";       // change from transformer-base is "" -> "n"
+      config["transformer-postprocess-top"] = "n";  // change from transformer-base is "" -> "n"
+      config["transformer-ffn-activation"] = "relu";
+      config["transformer-dropout"] = 0.1;
+
+      // Training specific options
+      config["learn-rate"] = 0.0003;
+      config["cost-type"] = "ce-mean-words";
+      config["lr-warmup"] = 16000;
+      config["lr-decay-inv-sqrt"] = 16000;
+      config["label-smoothing"] = 0.1;
+      config["clip-norm"] = 0;
+      config["sync-sgd"] = true;
+      config["exponential-smoothing"] = 1e-4;
+      config["max-length"] = 100;
+      config["mini-batch-fit"] = true;
+      config["mini-batch"] = 1000;
+      config["maxi-batch"] = 1000;
+      config["workspace"] = 9500;
+      config["optimizer-params"] = std::vector<float>({0.9f, 0.98f, 1e-09f});
+
+      // Validation specific options
+      config["beam-size"] = 8;
+      config["valid-mini-batch"] = 16;
+      config["normalize"] = 1.0;
+    });
+
+    // Transformer big variant with "prenorm". Same changes as above.
+    cli.alias("task", "transformer-big-prenorm", [](YAML::Node& config) {
+      // Model options
+      config["type"] = "transformer";
+      config["enc-depth"] = 6;
+      config["dec-depth"] = 6;
+      config["dim-emb"] = 1024;
+      config["tied-embeddings-all"] = true;
+      config["transformer-dim-ffn"] = 4096;
+      config["transformer-heads"] = 16;
+      config["transformer-postprocess"] = "da";     // change from transformer-big is "dan" -> "da"
+      config["transformer-preprocess"] = "n";       // change from transformer-big is "" -> "n"
+      config["transformer-postprocess-top"] = "n";  // change from transformer-big is "" -> "n"
+      config["transformer-ffn-activation"] = "relu";
+      config["transformer-dropout"] = 0.1;
+
+      // Training specific options
+      config["learn-rate"] = 0.0002;
+      config["cost-type"] = "ce-mean-words";
+      config["lr-warmup"] = 8000;
+      config["lr-decay-inv-sqrt"] = 8000;
+      config["label-smoothing"] = 0.1;
+      config["clip-norm"] = 0;
+      config["sync-sgd"] = true;
+      config["exponential-smoothing"] = 1e-4;
+      config["max-length"] = 100;
+      config["mini-batch-fit"] = true;
+      config["mini-batch"] = 1000;
+      config["maxi-batch"] = 1000;
+      config["workspace"] = 13000;
+      config["optimizer-params"] = std::vector<float>({0.9f, 0.998f, 1e-09f});
+
+      // Validation specific options
+      config["beam-size"] = 8;
+      config["valid-mini-batch"] = 8;
+      config["normalize"] = 1.0;
+    });
   }
 }
 

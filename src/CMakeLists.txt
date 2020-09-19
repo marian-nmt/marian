@@ -153,7 +153,7 @@ if(APPLE) # This is a dependency of pathie but I can't seem to link it into that
 endif()
 
 # Add external libs to the public interface of the library
-target_link_libraries(marian ${EXT_LIBS} ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(marian ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 set_target_properties(marian PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -176,8 +176,6 @@ if(CUDA_FOUND)
   target_compile_options(marian_cuda PRIVATE ${ALL_WARNINGS})
   # make sure all local dependencies are installed first before this is built
   add_dependencies(marian_cuda 3rd_party_installs)
-  # Add external libs to the public interface of the library
-  target_link_libraries(marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
   # Add the CUDA Marian dependency to the core Marian target
   target_link_libraries(marian marian_cuda)
