@@ -36,9 +36,11 @@ stages:
 
     strategy:
       matrix:
+        # Windows CPU-only build
         "CPU":
           cuda: false
           cuda_version: ""
+        # Windows CPU+GPU build
         "CUDA 10.2":
           cuda: true
           cuda_version: 10.2
@@ -96,13 +98,16 @@ stages:
           -DCMAKE_TOOLCHAIN_FILE="$(VCPKG_DIR)\scripts\buildsystems\vcpkg.cmake" ^
           -DVCPKG_TARGET_TRIPLET="x64-windows-static" ^
           ^
+          -DBOOST_ROOT="$(BOOST_ROOT)" ^
+          -DBOOST_INCLUDEDIR="$(BOOST_ROOT)/include" ^
+          -DBOOST_LIBRARYDIR="$(BOOST_ROOT)/lib" ^
           -DOPENSSL_USE_STATIC_LIBS="TRUE" ^
           -DOPENSSL_MSVC_STATIC_RT="TRUE" ^
           ^
           -DCOMPILE_CPU="TRUE" ^
           -DCOMPILE_CUDA="$(cuda)" ^
           -DCOMPILE_EXAMPLES="FALSE" ^
-          -DCOMPILE_SERVER="FALSE" ^
+          -DCOMPILE_SERVER="TRUE" ^
           -DCOMPILE_TESTS="TRUE" ^
           ^
           -DUSE_CUDNN="FALSE" ^
@@ -116,6 +121,9 @@ stages:
         # Set envvars so that CMake can find the installed packages
         MKLROOT: $(MKL_DIR)
         CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
+        # Boost is pre-installed on Azure/GitHub-hosted Windows runners
+        # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
+        BOOST_ROOT: $(BOOST_ROOT_1_72_0)
 
     - script: |
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
@@ -130,10 +138,12 @@ stages:
       workingDirectory: build
       condition: eq(variables.cuda, false)
 
-    - pwsh: |
+    # Note that versions from Marian executables will not be printed for CUDA builds
+    - script: |
         .\marian.exe --version
         .\marian-decoder.exe --version
         .\marian-scorer.exe --version
+        .\marian-server.exe --version
         .\spm_encode.exe --version
       displayName: Print versions
       workingDirectory: build
@@ -141,43 +151,73 @@ stages:
   ######################################################################
   - job: BuildUbuntu
     displayName: Ubuntu
+    timeoutInMinutes: 90
 
     strategy:
       matrix:
+        ################################################################
+        # Ubuntu CPU-only build
+        "CPU-only":
+          image: ubuntu-latest
+          boost: true
+          cpu: true
+          gpu: false
+          cuda: ""
+          gcc: 7
+          unit_tests: true
+          examples: false
+          static: true
+        # Ubuntu GPU-only build
+        "GPU-only":
+          image: ubuntu-latest
+          boost: true
+          cpu: false
+          gpu: true
+          cuda: 10.2
+          gcc: 7
+          unit_tests: false
+          examples: false
+          static: false
+        ################################################################
+        # Ubuntu 20.04 supports CUDA 11+
+        #
         # Disabled because FBGEMM + GCC 9+ do not compile on machines with
         # avx512_vnni, see https://github.com/marian-nmt/marian-dev/issues/709
         #
-        # Ubuntu 20.04 supports CUDA 11+
         #"20.04 CUDA 11.0 gcc-9":
           #image: ubuntu-20.04
           #boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
+          #cpu: true
+          #gpu: true
           #cuda: 11.0
           #gcc: 9
           #unit_tests: false # disable unit tests to minimize compilation time
           #examples: false   # disable examples to minimize compilation time
+          #static: false
+        ################################################################
         # Ubuntu 18.04 supports CUDA 10.1+
         "18.04 CUDA 10.2 gcc-8":
           image: ubuntu-18.04
           boost: true
+          cpu: true
+          gpu: true
           cuda: 10.2
           gcc: 8
           unit_tests: true
           examples: true
+          static: true
+        ################################################################
         # Ubuntu 16.04 supports CUDA 8+
-        "16.04 CUDA 10.2 gcc-7":
-          image: ubuntu-16.04
-          boost: true
-          cuda: 10.2
-          gcc: 7
-          unit_tests: true
-          examples: true
         "16.04 CUDA 9.2 gcc-7":
           image: ubuntu-16.04
           boost: true
+          cpu: true
+          gpu: true
           cuda: 9.2
           gcc: 7
-          unit_tests: false
-          examples: false
+          unit_tests: true
+          examples: true
+          static: false
 
     pool:
       vmImage: $(image)
@@ -198,10 +238,12 @@ stages:
         sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
         sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
       displayName: Install MKL
+      condition: eq(variables.cpu, true)
 
       # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
       displayName: Install CUDA
+      condition: eq(variables.gpu, true)
 
     # Boost is already installed on Azure-hosted runners in a non-standard location
     # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
@@ -210,10 +252,17 @@ stages:
         cd build
         CC=/usr/bin/gcc-$(gcc) CXX=/usr/bin/g++-$(gcc) CUDAHOSTCXX=/usr/bin/g++-$(gcc) \
         cmake .. \
-          -DCOMPILE_CPU=on -DCOMPILE_CUDA=on \
-          -DCOMPILE_EXAMPLES=$(examples) -DCOMPILE_SERVER=$(boost) -DCOMPILE_TESTS=$(unit_tests) \
-          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on \
-          -DBOOST_ROOT=$BOOST_ROOT_1_69_0 -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
+          -DCOMPILE_CPU=$(cpu) \
+          -DCOMPILE_CUDA=$(gpu) \
+          -DCOMPILE_EXAMPLES=$(examples) \
+          -DCOMPILE_SERVER=$(boost) \
+          -DCOMPILE_TESTS=$(unit_tests) \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
+          -DUSE_STATIC_LIBS=$(static) \
+          -DBOOST_ROOT=$BOOST_ROOT_1_69_0 \
+          -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_69_0/include \
+          -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_69_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
@@ -222,17 +271,64 @@ stages:
       displayName: Compile
       workingDirectory: build
 
-    # Unit tests are not run because Azure-hosted runners do not have GPUs
-    # TODO: add an option to CMake to have unit tests only on CPU
-    #- bash: make test
-    #  displayName: Run unit tests
-    #  workingDirectory: build
+    # Unit tests are run only for CPU-only builds because Azure-hosted runners do not have GPUs
+    # TODO: add an option to CMake to compile unit tests only for CPU
+    - bash: make test
+      displayName: Run unit tests
+      workingDirectory: build
+      condition: and(eq(variables.unit_tests, true), eq(variables.gpu, false))
 
     - bash: |
         ./marian --version
         ./marian-decoder --version
         ./marian-scorer --version
         ./spm_encode --version
+      displayName: Print versions
+      workingDirectory: build
+
+  ######################################################################
+  - job: BuildUbuntuMinimal
+    displayName: Ubuntu CPU+GPU gcc-5 cmake 3.5
+
+    pool:
+      vmImage: ubuntu-16.04
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    # The script simplifies installation of different versions of CUDA.
+    # Ubuntu 16.04 on Azure-hosted VMs have GCC 5.5 as gcc-5, which is not compatible with CUDA 9.
+    # Downgrading to GCC 5.4 (the default gcc on Ubuntu 16.04) would be more work...
+    - bash: ./scripts/ci/install_cuda_ubuntu.sh "10.0"
+      displayName: Install CUDA
+
+    # CMake 3.5.1 is the minimum version supported
+    - bash: |
+        wget -nv https://cmake.org/files/v3.5/cmake-3.5.1-Linux-x86_64.tar.gz
+        tar zxf cmake-3.5.1-Linux-x86_64.tar.gz
+        ./cmake-3.5.1-Linux-x86_64/bin/cmake --version
+      displayName: Download CMake
+
+    # GCC 5 is the minimum version supported
+    - bash: |
+        /usr/bin/gcc-5 --version
+        mkdir -p build
+        cd build
+        CC=/usr/bin/gcc-5 CXX=/usr/bin/g++-5 CUDAHOSTCXX=/usr/bin/g++-5 \
+        ../cmake-3.5.1-Linux-x86_64/bin/cmake .. \
+          -DCOMPILE_CPU=on \
+          -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0
+      displayName: Configure CMake
+
+    - bash: make -j3
+      displayName: Compile
+      workingDirectory: build
+
+    - bash: |
+        ./marian --version
+        ./marian-decoder --version
+        ./marian-scorer --version
       displayName: Print versions
       workingDirectory: build
 
@@ -250,17 +346,22 @@ stages:
     - bash: brew install openblas protobuf
       displayName: Install packages
 
-    # Openblas location is exported explicitly because openblas is keg-only,
-    # which means it was not symlinked into /usr/local/.
-    # CMake cannot find BLAS on Azure runners if Marian is being compiled
-    # statically, hence USE_STATIC_LIBS=off
+    # Openblas location is exported explicitly because openblas is keg-only, which means it was not symlinked into /usr/local/.
+    # CMake cannot find BLAS on Azure runners if Marian is being compiled statically, hence USE_STATIC_LIBS=off
     - bash: |
         export LDFLAGS="-L/usr/local/opt/openblas/lib"
         export CPPFLAGS="-I/usr/local/opt/openblas/include"
         mkdir -p build
         cd build
-        cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=off -DCOMPILE_EXAMPLES=on -DCOMPILE_SERVER=on -DCOMPILE_TESTS=on \
-          -DUSE_FBGEMM=on -DUSE_SENTENCEPIECE=on -DUSE_STATIC_LIBS=off
+        cmake .. \
+          -DCOMPILE_CPU=on \
+          -DCOMPILE_CUDA=off \
+          -DCOMPILE_EXAMPLES=on \
+          -DCOMPILE_SERVER=on \
+          -DCOMPILE_TESTS=on \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
+          -DUSE_STATIC_LIBS=off
       displayName: Configure CMake
 
     - bash: make -j2
