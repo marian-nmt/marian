@@ -23,6 +23,15 @@ if(USE_FBGEMM)
 
   # Do not compile cpuinfo executables due to a linker error, and they are not needed
   set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools")
+  # Do not build cpuinfo tests and benchmarks
+  set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Do not build cpuinfo unit tests")
+  set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Do not build cpuinfo mock tests")
+  set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Do not build cpuinfo benchmarks")
+  if(MSVC)
+    # Force static compilation of cpuinfo on Windows
+    SET(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "Type of cpuinfo library (shared, static, or default) to build")
+    SET(CPUINFO_RUNTIME_TYPE "static" CACHE STRING "Type of runtime library (shared, static, or default) to use")
+  endif(MSVC)
 
   set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "Disable fbgemm tests")
   set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "Disable fbgemm benchmark")
