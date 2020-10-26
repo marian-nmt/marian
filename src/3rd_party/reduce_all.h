@@ -129,15 +129,17 @@ __global__ void reduceSinglePass(Functor functor, AccType aggInit, AggFunctor ag
 
   cg::sync(cta);
 
-  cg::thread_block_tile<32> tile32 = cg::tiled_partition<32>(cta);
+  // leverage that blockSize is always pow of 2 so no special logic needed in reduction loop.
+  constexpr int partitionSize = blockSize > 32 ? 32 : blockSize;
+  cg::thread_block_tile<partitionSize> tile = cg::tiled_partition<partitionSize>(cta);
 
   if (cta.thread_rank() < 32) {
     // Fetch final intermediate sum from 2nd warp
     if (blockSize >= 64) 
       mySum = aggFunctor(mySum, sdata[tid + 32]);
     // reduce final warp using shuffle
-    for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
-      mySum = aggFunctor(mySum, tile32.shfl_down(mySum, offset));
+    for (int offset = tile.size() / 2; offset > 0; offset /= 2) {
+      mySum = aggFunctor(mySum, tile.shfl_down(mySum, offset));
     }
   }
 
