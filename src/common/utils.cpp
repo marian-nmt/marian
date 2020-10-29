@@ -415,6 +415,7 @@ double parseNumber(std::string param) {
   if(!param.empty() && param.back() >= 'A') {
     switch(param.back()) {
       case 'k': factor = 1.e3;  break;
+      case 'K': factor = 1.e3;  break; // not technically correct but often used for k
       case 'M': factor = 1.e6;  break;
       case 'G': factor = 1.e9;  break;
       case 'T': factor = 1.e12; break;

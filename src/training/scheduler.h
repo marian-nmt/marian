@@ -158,6 +158,7 @@ public:
     if(saveAndExitRequested()) // via SIGTERM
       return false;
 
+#if 1  // @TODO: to be removed once we deprecate after-epochs and after-batches   
     // stop if it reached the maximum number of epochs
     size_t stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && state_->epochs > stopAfterEpochs)
@@ -167,6 +168,19 @@ public:
     size_t stopAfterBatches = options_->get<size_t>("after-batches");
     if(stopAfterBatches > 0 && state_->batches >= stopAfterBatches)
       return false;
+#endif
+
+    // get list of stopping criteria e.g. "10e,300Ku,20Gt" (10 epochs, 300,000 updates, 20 billion target labels)
+    // and stop for whatever criterion hits first.
+    std::vector<std::string> stoppingCriteria = utils::split(options_->get<std::string>("after"), ",");
+    for(auto stoppingCriterionString : stoppingCriteria) {
+      SchedulingParameter stoppingCriterion = SchedulingParameter::parse(stoppingCriterionString);
+      if(stoppingCriterion.n > 0) { // is any stopping criterion defined?
+        if(stoppingCriterion.unit == SchedulingUnit::epochs    && state_->epochs      >  stoppingCriterion.n) return false;
+        if(stoppingCriterion.unit == SchedulingUnit::updates   && state_->batches     >= stoppingCriterion.n) return false;
+        if(stoppingCriterion.unit == SchedulingUnit::trgLabels && state_->labelsTotal >= stoppingCriterion.n) return false;
+      }
+    }
 
     // stop if the first validator did not improve for a given number of checks
     size_t stopAfterStalled = options_->get<size_t>("early-stopping");

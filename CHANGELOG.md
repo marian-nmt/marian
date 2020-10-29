@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Add --after option which is meant to replace --after-batches and --after-epochs and can take label based criteria
 - Add --transformer-postprocess-top option to enable correctly normalized prenorm behavior
 - Add --task transformer-base-prenorm and --task transformer-big-prenorm
 - Turing and Ampere GPU optimisation support, if the CUDA version supports it.
