@@ -176,9 +176,9 @@ else(MSVC)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0)
     # Clang-10.0.0 complains when CUDA is newer than 10.1
-    set(CLANG_IGNORE_UNKNOWN_CUDA "-Wno-unknown-cuda-version")
+    set(CLANG_IGNORE_UNKNOWN_CUDA "-Wno-unknown-warning-option -Wno-unknown-cuda-version")
   endif()
-  set(DISABLE_GLOBALLY "-Wno-unused-result -Wno-unknown-warning-option ${CLANG_IGNORE_UNKNOWN_CUDA}")
+  set(DISABLE_GLOBALLY "-Wno-unused-result ${CLANG_IGNORE_UNKNOWN_CUDA}")
 
   # These are used in src/CMakeLists.txt on a per-target basis
   list(APPEND ALL_WARNINGS -Wall; -Werror; -Wextra; -Wno-unused-result; -Wno-deprecated;

@@ -878,7 +878,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
   }
 }
 
-void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices) {
+void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices, float labelSmoothingAlpha = 0.f) {
   matchOrAbort<IndexType>(labelIndices->type());
 
   // Shape& outShape = out_->shape();
@@ -896,23 +896,34 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices) {
       max = std::max(max, sp[i]);
     }
 
-    float sum = 0.f;
+    float sumexp = 0.f;
     #pragma omp simd reduction(+ : sum)
     for(int i = 0; i < cols; ++i) {
-      sum += std::exp(sp[i] - max);
+      sumexp += std::exp(sp[i] - max);
     }
+
+    float mean = 0.f;
+    #pragma omp simd reduction(+ : sum)
+    for(int i = 0; i < cols; ++i) {
+      mean += sp[i] - max;
+    }
+    mean /= (float)cols;
 
     // Groundtruth label index
     IndexType i = labelIndices->data<IndexType>()[j];
     // This appears to be safe i.e. that i >= 0 && i < cols is known
-    out->data()[j] = std::log(sum) - sp[i] + max;    // -log(p_i) = - logsoftmax(x_i - max) = - (x_i - max) - log(sum_j exp(x_j - max))
+    float logsumexp = std::log(sumexp);
+    float ce = logsumexp - sp[i] + max; // -log(p_i) = - logsoftmax(x_i - max) = - (x_i - max) - log(sum_j exp(x_j - max))
+    float ls = logsumexp - mean; 
+    out->data()[j] = (1.f - labelSmoothingAlpha) * ce + labelSmoothingAlpha * ls;
   }
 }
 
 void CrossEntropyPickBackward(Tensor out,
                               Tensor adj,
                               Tensor in,
-                              Tensor labelIndices) {
+                              Tensor labelIndices,
+                              float labelSmoothingAlpha = 0.f) {
 
   matchOrAbort<IndexType>(labelIndices->type());
   Shape& outShape = out->shape();
@@ -930,16 +941,17 @@ void CrossEntropyPickBackward(Tensor out,
       max = std::max(max, sp[i]);
     }
 
-    float sum = 0.f;
+    float sumexp = 0.f;
     for(int i = 0; i < cols; ++i) {
-      sum += std::exp(sp[i] - max);
+      sumexp += std::exp(sp[i] - max);
     }
 
     // cross-entropy
     for(int i = 0; i < cols; ++i) {
       float sub = (float)(i == (int)labelIndices->data<IndexType>()[j]); // delta, true if label index and column index match
-      auto softmax = std::exp(sp[i] - max) / sum;
-      so[i] += adj->data()[j] * (softmax - sub);
+      float dce = std::exp(sp[i] - max) / sumexp - sub 
+                + labelSmoothingAlpha * (sub - 1.f / (float)cols);
+      so[i] += adj->data()[j] * dce;
     }
   }
 }

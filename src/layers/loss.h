@@ -347,26 +347,16 @@ protected:
     // logits may be factored; in that case, the getLoss() function computes one loss for each, and sums them up
     int inFactor = false;
     auto ce = logits.applyLossFunction(labels, [&](Expr logits, Expr indices) {
-      logits = atleast_3d(logits); // we always assuma a time and batch dimension exists.
-      // for bert training or classification the time dimension is lot.
+      logits = atleast_3d(logits); // we always assume a time and batch dimension exists.
+      // for bert training or classification the time dimension is lost.
       // Here safeguard against 2d classifier output, adds 1 on the left, non-op.
-      Expr ce = cast(cross_entropy(logits, indices), Type::float32);
+      
+      Expr ce = cross_entropy(logits, indices, inFactor ? 0.f : labelSmoothing_, Type::float32);
       if (inFactor && factorWeight_ != 1.0f) {
         LOG_ONCE(info, "scaling factor losses with weight {}", factorWeight_);
         ce = ce * factorWeight_;
       }
-      if (labelSmoothing_ > 0) {
-        // ce = -sum_i y^_i log y_i(h)
-        // with smoothing:
-        // ce' = -sum_i ((1-labelSmoothing_) y^_i + labelSmoothing_/N) log y_i(h)
-        //     = -(1-labelSmoothing_) sum_i y^_i log y_i(h) - labelSmoothing_ mean_i log y_i(h)
-        //     = (1-labelSmoothing_) ce - labelSmoothing_ mean_i log y_i(h)
-        auto logits32 = cast(logits, Type::float32);
-        auto ceqNeg = mean(logits32, /*axis=*/ -1) - logsumexp(logits32, /*axis=*/ -1);
-        ce = (1 - labelSmoothing_) * ce - labelSmoothing_ * ceqNeg;
-        //ce = ce - labelSmoothing_ * (ce + ceqNeg); // writing it this way saves one op :)
-        inFactor = true;
-      }
+      inFactor = true;
       return ce;
     });
 

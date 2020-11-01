@@ -158,9 +158,9 @@ void ExpressionGraph::forward(std::list<Expr>& forwardTape, bool finalPass) {
 
 void ExpressionGraph::backward(bool reset, float clipValue) {
   if(topNodes_.size() > 1) {
-    LOG(critical, "There are more ({}) than one top most nodes for backward pass:", topNodes_.size());
+    LOG(info, "There are more ({}) than one top most nodes for backward pass:", topNodes_.size());
     for(auto node : topNodes_) {
-      LOG(critical,
+      LOG(info,
           "\tType: {}, Shape: {}, Name: {}, Id: {}, Hash: {}",
           node->type(),
           node->shape(),

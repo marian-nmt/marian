@@ -264,7 +264,7 @@ Expr softmax(Expr a, Expr zeroOneMask, int axis = -1);
 
 Expr logsoftmax(Expr a);
 
-Expr cross_entropy(Expr a, Expr b);
+Expr cross_entropy(Expr a, Expr b, float labelSmoothingAlpha = 0.f, Type outputType = Type::float32);
 
 Expr unlikelihood(Expr a, Expr b);
 

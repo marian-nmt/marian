@@ -109,8 +109,8 @@ DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 DISPATCH2(LogSoftmax, marian::Tensor, marian::Tensor)
 DISPATCH3(LogSoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 
-DISPATCH3(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor)
-DISPATCH4(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor)
+DISPATCH4(CrossEntropyPick, marian::Tensor, marian::Tensor, marian::Tensor, float)
+DISPATCH5(CrossEntropyPickBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, float)
 
 DISPATCH3(TransposeND, marian::Tensor, marian::Tensor, const std::vector<int>&)
 DISPATCH3(TransposeNDGrad, marian::Tensor, marian::Tensor, const std::vector<int>&)
