@@ -398,6 +398,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
+  cli.add<std::string>("--logical-epoch",
+      "Redefine logical epoch counter as multiple of data epochs (e.g. 1e), updates (e.g. 100Ku) or labels (e.g. 1Gt)",
+      "1e");
 
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);
