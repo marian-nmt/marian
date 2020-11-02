@@ -1495,11 +1495,12 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 }
 
 template <typename T, typename AccType = float>
-__global__ void gCrossEntropyPick(T* out,
+__global__ void gCrossEntropyPick(AccType* out,
                                   const functional::Shape outShape,
                                   const T* in,
                                   const functional::Shape inShape,
-                                  const IndexType* pick) {
+                                  const IndexType* pick,
+                                  AccType labelSmoothingAlpha = AccType(0.f)) {
   int rows = inShape.elements() / inShape.back();
   int cols = inShape.back();
 
@@ -1535,13 +1536,15 @@ __global__ void gCrossEntropyPick(T* out,
       T max = _max[0];
       __syncthreads();
 
-      AccType* _sum = (AccType*)_sharedBytes;
-      _sum[threadIdx.x] = (AccType)0.0f;
+      AccType* _acc = (AccType*)_sharedBytes;
+      _acc[2 * threadIdx.x    ] = (AccType)0.0f;
+      _acc[2 * threadIdx.x + 1] = (AccType)0.0f;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          _sum[threadIdx.x] += functional::Ops<AccType>::exp(sp[id] - max);
+          _acc[2 * threadIdx.x    ] += functional::Ops<AccType>::exp(sp[id] - max);
+          _acc[2 * threadIdx.x + 1] += (AccType)(sp[id] - max);
         }
       }
       __syncthreads();
@@ -1549,18 +1552,26 @@ __global__ void gCrossEntropyPick(T* out,
       while(len != 1) {
         __syncthreads();
         int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        if(threadIdx.x < (len >> 1)) {
+          _acc[2 * threadIdx.x    ] += _acc[2 * (threadIdx.x + skip)    ];
+          _acc[2 * threadIdx.x + 1] += _acc[2 * (threadIdx.x + skip) + 1];
+        }
         len = (len + 1) >> 1;
       }
       __syncthreads();
+      auto sumexp = _acc[0];
 
-      // cross-entropy
-      auto sum = _sum[0];
+      // H(u, p) = 1/N * logsoftmax(h) = mean(h - max) - log(sum(exp(h - max)))
+      auto mean = _acc[1] / (AccType)cols; // mean(h - max)
+
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id == (int)pick[j])
-          out[j] = (T)functional::Ops<AccType>::log(sum) - sp[id] + max;
+        if(id == (int)pick[j]) {
+          auto logsumexp = functional::Ops<AccType>::log(sumexp);
+          auto ce = logsumexp - (AccType)sp[id] + (AccType)max; // cross-entropy    H(y^, p)
+          auto ls = logsumexp - mean;                           // label smoothing  H(u, p)
+          out[j] = (1.f - labelSmoothingAlpha) * ce + labelSmoothingAlpha * ls;  // (1 - alpha) * H(y^, p) + alpha * H(u, p)
+        }
       }
     }
     __syncthreads();
@@ -1571,7 +1582,7 @@ __global__ void gCrossEntropyPick(T* out,
 // For each vocabulary item v, the only non-zero element in a row in the sum is the item
 // that matches the label indexed by i (the picked element).
 // C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i]
-void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
+void CrossEntropyPick(Tensor out, Tensor in, Tensor indices, float labelSmoothingAlpha) {
   matchOrAbort<IndexType>(indices->type());
 
   cudaSetDevice(out->getDeviceId().no);
@@ -1581,27 +1592,28 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor indices) {
 
   int blocks = std::min(MAX_BLOCKS, (int)rows);
   int threads = std::min(MAX_THREADS, (int)cols);
-  int shared = sizeof(float) * threads; // Use float32 as accumulation type
+  int shared = sizeof(float) * threads * 2; // Use float32 as accumulation type
 
-  if(out->type() == Type::float32) {
+  if(out->type() == Type::float32 && in->type() == Type::float32) {
     gCrossEntropyPick<float, float><<<blocks, threads, shared>>>(
-      out->data<float>(), out->shape(), in->data<float>(), in->shape(), indices->data<IndexType>());
+      out->data<float>(), out->shape(), in->data<float>(), in->shape(), indices->data<IndexType>(), labelSmoothingAlpha);
 #if COMPILE_FP16
-  } else if(out->type() == Type::float16) {
+  } else if(out->type() == Type::float32 && in->type() == Type::float16) {
     gCrossEntropyPick<half, float><<<blocks, threads, shared>>>(
-      out->data<half>(), out->shape(), in->data<half>(), in->shape(), indices->data<IndexType>());
+      out->data<float>(), out->shape(), in->data<half>(), in->shape(), indices->data<IndexType>(), labelSmoothingAlpha);
 #endif
   } else {
-    ABORT("CrossEntropyPick not implemented for type {}", out->type());
+    ABORT("CrossEntropyPick not implemented for input type {} and output type{}", in->type(), out->type());
   }
 }
 
 template <typename T, typename AccType = float>
 __global__ void gCrossEntropyPickBackward(T* out,
                                           const functional::Shape outShape,
-                                          const T* adj,
+                                          const AccType* adj,
                                           const T* in,
-                                          const IndexType* pick) {
+                                          const IndexType* pick,
+                                          AccType labelSmoothingAlpha = AccType(0.f)) {
   int rows = outShape.elements() / outShape.back();
   int cols = outShape.back();
 
@@ -1662,8 +1674,9 @@ __global__ void gCrossEntropyPickBackward(T* out,
         int id = tid + threadIdx.x;
         if(id < cols) {
           AccType sub = (AccType)(id == (int)pick[j]);
-          auto softmax = functional::Ops<AccType>::exp(sp[id] - max) / _sum[0];
-          so[id] += (AccType)adj[j] * (softmax - sub);
+          AccType dce = functional::Ops<AccType>::exp(sp[id] - max) / _sum[0] - sub;
+          AccType dls = labelSmoothingAlpha * (sub - 1.f / (AccType)cols);
+          so[id] += (T)(adj[j] * (dce + dls));
         }
       }
     }
@@ -1671,7 +1684,7 @@ __global__ void gCrossEntropyPickBackward(T* out,
   }
 }
 
-void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) {
+void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices, float labelSmoothingAlpha) {
   matchOrAbort<IndexType>(indices->type());
 
   cudaSetDevice(out->getDeviceId().no);
@@ -1683,16 +1696,16 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor indices) 
   int threads = std::min(MAX_THREADS, (int)cols);
   int shared = sizeof(float) * threads; // use float as accumulation type
 
-  if(out->type() == Type::float32) {
+  if(out->type() == Type::float32 && adj->type() == Type::float32) {
     gCrossEntropyPickBackward<float, float><<<blocks, threads, shared>>>(
-      out->data<float>(), out->shape(), adj->data<float>(), a->data<float>(), indices->data<IndexType>());
+      out->data<float>(), out->shape(), adj->data<float>(), a->data<float>(), indices->data<IndexType>(), labelSmoothingAlpha);
 #if COMPILE_FP16
-  } else if(out->type() == Type::float16) {
+  } else if(out->type() == Type::float16 && adj->type() == Type::float32) {
     gCrossEntropyPickBackward<half, float><<<blocks, threads, shared>>>(
-      out->data<half>(), out->shape(), adj->data<half>(), a->data<half>(), indices->data<IndexType>());
+      out->data<half>(), out->shape(), adj->data<float>(), a->data<half>(), indices->data<IndexType>(), labelSmoothingAlpha);
 #endif
   } else {
-    ABORT("CrossEntropyPick not implemented for type {}", out->type());
+    ABORT("CrossEntropyPickBackward not implemented for type {} and adjoint type {}", out->type(), adj->type());
   }
 }
 

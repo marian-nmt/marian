@@ -347,7 +347,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   auto previous_group = cli.switchGroup("Training options");
   // clang-format off
   cli.add<std::string>("--cost-type", // @TODO: rename to loss-type
-      "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-mean");
+      "Optimization criterion: ce-mean, ce-mean-words, ce-sum, perplexity", "ce-sum");
   cli.add<std::string>("--multi-loss-type",
       "How to accumulate multi-objective losses: sum, scaled, mean", "sum");
   cli.add<bool>("--unlikelihood-loss",
@@ -375,22 +375,32 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       10000000);
 #endif
   // scheduling options
+
+  // @TODO: these should be re-defined as aliases for `--after` but the current frame work matches on value, so not doable.
   cli.add<size_t>("--after-epochs,-e",
-      "Finish after this many epochs, 0 is infinity");
+      "Finish after this many epochs, 0 is infinity (deprecated, '--after-epochs N' corresponds to '--after Ne')"); // @TODO: replace with alias
   cli.add<size_t>("--after-batches",
-      "Finish after this many batch updates, 0 is infinity");
+      "Finish after this many batch updates, 0 is infinity (deprecated, '--after-batches N' corresponds to '--after Nu')"); // @TODO: replace with alias
+
+  cli.add<std::string>("--after,-a",
+      "Finish after this many chosen training units, 0 is infinity (e.g. 100e = 100 epochs, 10Gt = 10 billion target labels, 100Ku = 100,000 updates",
+      "0e");
   cli.add<std::string/*SchedulerPeriod*/>("--disp-freq",
       "Display information every  arg  updates (append 't' for every  arg  target labels)",
       "1000u");
   cli.add<size_t>("--disp-first",
       "Display information for the first  arg  updates");
   cli.add<bool>("--disp-label-counts",
-      "Display label counts when logging loss progress");
+      "Display label counts when logging loss progress",
+      true);
 //   cli.add<int>("--disp-label-index",
 //       "Display label counts based on i-th input stream (-1 is last)", -1);
   cli.add<std::string/*SchedulerPeriod*/>("--save-freq",
       "Save model file every  arg  updates (append 't' for every  arg  target labels)",
       "10000u");
+  cli.add<std::string>("--logical-epoch",
+      "Redefine logical epoch counter as multiple of data epochs (e.g. 1e), updates (e.g. 100Ku) or labels (e.g. 1Gt)",
+      "1e");
 
   addSuboptionsInputLength(cli);
   addSuboptionsTSV(cli);
@@ -550,7 +560,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
-      "translation, bleu, bleu-detok. Multiple metrics can be specified",
+      "translation, bleu, bleu-detok (deprecated, same as bleu), bleu-segmented, chrf. "
+      "Multiple metrics can be specified",
       {"cross-entropy"});
   cli.add<bool>("--valid-reset-stalled",
      "Reset all stalled validation metrics when the training is restarted");
@@ -901,7 +912,7 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
 
 cli::mode ConfigParser::getMode() const { return mode_; }
 
-Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate){
+Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate) {
   cmdLine_ = escapeCmdLine(argc,argv);
 
   // parse command-line options and fill wrapped YAML config

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Add --logical-epoch that allows to redefine the displayed epoch counter as a multiple of n data epochs, updates or labels.
+- Add --metrics chrf for computing ChrF according to https://www.aclweb.org/anthology/W15-3049/ and SacreBLEU reference implementation
+- Add --after option which is meant to replace --after-batches and --after-epochs and can take label based criteria
 - Add --transformer-postprocess-top option to enable correctly normalized prenorm behavior
 - Add --task transformer-base-prenorm and --task transformer-big-prenorm
 - Turing and Ampere GPU optimisation support, if the CUDA version supports it.
@@ -28,6 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fix bug causing certain reductions into scalars to be 0 on the GPU backend. Removed unnecessary warp shuffle instructions.
+- Do not apply dropout in embeddings layers during inference with dropout-src/trg
 - Print "server is listening on port" message after it is accepting connections
 - Fix compilation without BLAS installed
 - Providing a single value to vector-like options using the equals sign, e.g. --models=model.npz
@@ -47,6 +51,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Improved handling for receiving SIGTERM during training. By default, SIGTERM triggers 'save (now) and exit'. Prior to this fix, batch pre-fetching did not check for this sigal, potentially delaying exit considerably. It now pays attention to that. Also, the default behaviour of save-and-exit can now be disabled on the command line with --sigterm exit-immediately.
 
 ### Changed
+- --metric bleu now always detokenizes SacreBLEU-style if a vocabulary knows how to, use bleu-segmented to compute BLEU on word ids. bleu-detok is now a synonym for bleu.
+- Move label-smoothing computation into Cross-entropy node
 - Move Simple-WebSocket-Server to submodule
 - Python scripts start with #!/usr/bin/env python3 instead of python
 - Changed compile flags -Ofast to -O3 and remove --ffinite-math

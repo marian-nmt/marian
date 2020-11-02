@@ -435,7 +435,8 @@ namespace marian {
     }
   }
 
-  Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {
+  Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options) 
+    : LayerBase(graph, options), inference_(opt<bool>("inference")) {
     std::string name = opt<std::string>("prefix");
     int dimVoc = opt<int>("dimVocab");
     int dimEmb = opt<int>("dimEmb");
@@ -516,10 +517,10 @@ namespace marian {
     //        - if it is required to be in a different range, the embeddings can still learn that, but more slowly
 
     auto batchEmbeddings = apply(subBatch->data(), {dimWidth, dimBatch, dimEmb});
-#if 0
+#if 1
     auto batchMask = graph->constant({dimWidth, dimBatch, 1},
                                      inits::fromVector(subBatch->mask()));
-#else
+#else // @TODO: this is dead code now, get rid of it
     // experimental: hide inline-fix source tokens from cross attention
     auto batchMask = graph->constant({dimWidth, dimBatch, 1},
                                      inits::fromVector(subBatch->crossMaskWithInlineFixSourceSuppressed()));
@@ -555,12 +556,13 @@ namespace marian {
   // standard encoder word embeddings
   /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer() const {
     auto options = New<Options>(
-        "dimVocab", opt<std::vector<int>>("dim-vocabs")[batchIndex_],
-        "dimEmb",   opt<int>("dim-emb"),
-        "dropout",  dropout_,
-        "prefix",   (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
-        "fixed",    embeddingFix_,
-        "vocab",    opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
+        "dimVocab",           opt<std::vector<int>>("dim-vocabs")[batchIndex_],
+        "dimEmb",             opt<int>("dim-emb"),
+        "dropout-embeddings", dropoutEmbeddings_,
+        "inference",          inference_,
+        "prefix",             (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "fixed",              embeddingFix_,
+        "vocab",              opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       options->set(
@@ -573,15 +575,16 @@ namespace marian {
   // ULR word embeddings
   /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer() const {
     return New<ULREmbedding>(graph_, New<Options>(
-        "dimSrcVoc",         opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
-        "dimTgtVoc",         opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
-        "dimUlrEmb",         opt<int>("ulr-dim-emb"),
-        "dimEmb",            opt<int>("dim-emb"),
-        "ulr-dropout",       opt<float>("ulr-dropout"),
-        "dropout",           dropout_,
-        "ulrTrainTransform", opt<bool>("ulr-trainable-transformation"),
-        "ulrQueryFile",      opt<std::string>("ulr-query-vectors"),
-        "ulrKeysFile",       opt<std::string>("ulr-keys-vectors")));
+        "dimSrcVoc",          opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
+        "dimTgtVoc",          opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
+        "dimUlrEmb",          opt<int>("ulr-dim-emb"),
+        "dimEmb",             opt<int>("dim-emb"),
+        "ulr-dropout",        opt<float>("ulr-dropout"),
+        "dropout-embeddings", dropoutEmbeddings_,
+        "inference",          inference_,
+        "ulrTrainTransform",  opt<bool>("ulr-trainable-transformation"),
+        "ulrQueryFile",       opt<std::string>("ulr-query-vectors"),
+        "ulrKeysFile",        opt<std::string>("ulr-keys-vectors")));
   }
 
   // get embedding layer for this encoder or decoder

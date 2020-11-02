@@ -23,6 +23,15 @@ if(USE_FBGEMM)
 
   # Do not compile cpuinfo executables due to a linker error, and they are not needed
   set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools")
+  # Do not build cpuinfo tests and benchmarks
+  set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Do not build cpuinfo unit tests")
+  set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Do not build cpuinfo mock tests")
+  set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Do not build cpuinfo benchmarks")
+  if(MSVC)
+    # Force static compilation of cpuinfo on Windows
+    SET(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "Type of cpuinfo library (shared, static, or default) to build")
+    SET(CPUINFO_RUNTIME_TYPE "static" CACHE STRING "Type of runtime library (shared, static, or default) to use")
+  endif(MSVC)
 
   set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "Disable fbgemm tests")
   set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "Disable fbgemm benchmark")
@@ -74,7 +83,7 @@ if(USE_SENTENCEPIECE)
   set_target_properties(spm_encode spm_decode spm_train spm_normalize spm_export_vocab
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
-  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND (CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.0 OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0))
     foreach(t sentencepiece-static sentencepiece_train-static
         spm_decode spm_encode spm_export_vocab spm_normalize spm_train)
         set_property(TARGET ${t} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-class-memaccess")

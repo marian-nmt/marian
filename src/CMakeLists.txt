@@ -176,8 +176,6 @@ if(CUDA_FOUND)
   target_compile_options(marian_cuda PRIVATE ${ALL_WARNINGS})
   # make sure all local dependencies are installed first before this is built
   add_dependencies(marian_cuda 3rd_party_installs)
-  # Add external libs to the public interface of the library
-  target_link_libraries(marian_cuda ${EXT_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
   # Add the CUDA Marian dependency to the core Marian target
   target_link_libraries(marian marian_cuda)

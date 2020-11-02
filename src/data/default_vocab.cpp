@@ -68,8 +68,7 @@ public:
   }
 
   std::string surfaceForm(const Words& sentence) const override {
-    sentence;
-    ABORT("surfaceForm() not supported by this vocabulary type");
+    return decode(sentence, /*ignoreEOS=*/true);
   }
 
   virtual std::string type() const override { return "DefaultVocab"; }

@@ -25,11 +25,8 @@ std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
     } else if(metric == "translation") {
       auto validator = New<TranslationValidator>(vocabs, config);
       validators.push_back(validator);
-    } else if(metric == "bleu") {
-      auto validator = New<BleuValidator>(vocabs, config, false);
-      validators.push_back(validator);
-    } else if(metric == "bleu-detok") {
-      auto validator = New<BleuValidator>(vocabs, config, true);
+    } else if(metric == "bleu" || metric == "bleu-detok" || metric == "bleu-segmented" || metric == "chrf") {
+      auto validator = New<SacreBleuValidator>(vocabs, config, metric);
       validators.push_back(validator);
     } else if(metric == "accuracy") {
       auto validator = New<AccuracyValidator>(vocabs, config);
@@ -41,7 +38,7 @@ std::vector<Ptr<ValidatorBase/*<data::Corpus>*/>> Validators(
       auto validator = New<BertAccuracyValidator>(vocabs, config, false);
       validators.push_back(validator);
     } else {
-      LOG_VALID(warn, "Unrecognized validation metric: {}", metric);
+      ABORT("Unknown validation metric: {}", metric);
     }
   }
 
@@ -441,25 +438,25 @@ float TranslationValidator::validate(const std::vector<Ptr<ExpressionGraph>>& gr
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
-BleuValidator::BleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, bool detok)
-    : Validator(vocabs, options, false),
-      detok_(detok),
+SacreBleuValidator::SacreBleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options, const std::string& metric)
+    : Validator(vocabs, options, /*lowerIsBetter=*/false),
+      metric_(metric),
+      computeChrF_(metric == "chrf"),
+      useWordIds_(metric == "bleu-segmented"),
       quiet_(options_->get<bool>("quiet-translation")) {
+
+  ABORT_IF(computeChrF_ && useWordIds_, "Cannot compute ChrF on word ids"); // should not really happen, but let's check.
+
+  if(computeChrF_) // according to SacreBLEU implementation this is the default for ChrF, 
+    order_ = 6;    // we compute stats over character ngrams up to length 6
+
   // @TODO: remove, only used for saving?
   builder_ = models::createModelFromOptions(options_, models::usage::translation);
-
-  // @TODO: replace bleu-detok by a separate parameter to enable (various forms of) detok
   auto vocab = vocabs_.back();
-  ABORT_IF(detok_ && vocab->type() != "SentencePieceVocab" && vocab->type() != "FactoredVocab",
-           "Detokenizing BLEU validator expects the target vocabulary to be SentencePieceVocab or "
-           "FactoredVocab. "
-           "Current vocabulary type is {}",
-           vocab->type());
-
   createBatchGenerator(/*isTranslating=*/true);
 }
 
-float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
+float SacreBleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
                               Ptr<const TrainingState> state) {
   using namespace data;
 
@@ -487,11 +484,11 @@ float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
   if(!quiet_)
     LOG(info, "Translating validation set...");
 
-  // 0: 1-grams matched, 1: 1-grams total,
+  // For BLEU
+  // 0: 1-grams matched, 1: 1-grams cand total, 2: 1-grams ref total (used in ChrF)
   // ...,
-  // 6: 4-grams matched, 7: 4-grams total,
-  // 8: reference length
-  std::vector<float> stats(9, 0.f);
+  // n: reference length (used in BLEU)
+  std::vector<float> stats(statsPerOrder * order_ + 1, 0.f);
 
   timer::Timer timer;
   {
@@ -537,7 +534,7 @@ float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
       for(auto history : histories) {
         auto result = history->top();
         const auto& words = std::get<0>(result);
-        updateStats(stats, words, batch, no, vocabs_.back()->getEosId());
+        updateStats(stats, words, batch, no);
 
         std::stringstream best1;
         std::stringstream bestn;
@@ -563,29 +560,40 @@ float BleuValidator::validate(const std::vector<Ptr<ExpressionGraph>>& graphs,
   for(auto graph : graphs)
     graph->setInference(false);
 
-  float val = calcBLEU(stats);
+  float val = computeChrF_ ? calcChrF(stats) : calcBLEU(stats);
   updateStalled(graphs, val);
 
   return val;
 }
 
-std::vector<std::string> BleuValidator::decode(const Words& words, bool addEOS) {
+std::vector<std::string> SacreBleuValidator::decode(const Words& words, bool addEOS) {
   auto vocab = vocabs_.back();
   auto tokenString = vocab->surfaceForm(words);  // detokenize to surface form
-  tokenString = tokenize(tokenString);           // tokenize according to SacreBLEU rules
-  tokenString
-      = tokenizeContinuousScript(tokenString);  // CJT scripts only: further break into characters
-  auto tokens = utils::splitAny(tokenString, " ");
+
+  auto vocabType = vocab->type();
+  if(vocabType == "FactoredVocab" || vocabType == "SentencePieceVocab") {
+    LOG_VALID_ONCE(info, "Decoding validation set with {} for scoring", vocabType);
+    tokenString = tokenize(tokenString); // tokenize according to SacreBLEU rules
+    if(!computeChrF_) // for ChrF, we break into characters below, so no need to do this here
+      tokenString = tokenizeContinuousScript(tokenString);  // CJT scripts only: further break into characters
+  } else {
+    LOG_VALID_ONCE(info, "{} keeps original segments for scoring", vocabType);
+  }
+
+  auto tokens = computeChrF_ ? splitIntoUnicodeChars(tokenString, /*removeWhiteSpace=*/true) // break into vector of unicode chars (as utf8 strings) for ChrF
+                             : utils::splitAny(tokenString, " ", /*keepEmpty=*/false);       // or just split according to whitespace for BLEU
+
   if(addEOS)
     tokens.push_back("</s>");
   return tokens;
 }
 
-void BleuValidator::updateStats(std::vector<float>& stats,
-                 const Words& cand,
-                 const Ptr<data::Batch> batch,
-                 size_t no,
-                 Word eos) {
+void SacreBleuValidator::updateStats(std::vector<float>& stats,
+                                     const Words& cand,
+                                     const Ptr<data::Batch> batch,
+                                     size_t no) {
+  auto vocab = vocabs_.back();
+
   auto corpusBatch = std::static_pointer_cast<data::CorpusBatch>(batch);
   auto subBatch = corpusBatch->back();
 
@@ -595,47 +603,76 @@ void BleuValidator::updateStats(std::vector<float>& stats,
   Words ref;  // fill ref
   for(size_t i = 0; i < width; ++i) {
     Word w = subBatch->data()[i * size + no];
-    if(w == eos)
+    if(w == vocab->getEosId())
       break;
+    if(w == vocab->getUnkId())
+      LOG_VALID_ONCE(info, "References contain unknown word, metric scores may be inaccurate");
     ref.push_back(w);
   }
 
-  bool detok = detok_;
-#if 1  // hack for now, to get this feature when running under Flo
-  // Problem is that Flo pieces that pass 'bleu' do not know whether vocab is factored,
-  // hence cannot select 'bleu-detok'.
-  // @TODO: We agreed that we will replace bleu-detok by bleu with an additional
-  // parameter to select the detokenization method, which will default to detok for
-  // FactoredSegmenter, and no-op for base vocab.
-  if(vocabs_.back()->type() == "FactoredVocab") {
-    if(!quiet_)
-      LOG_ONCE(info, "[valid] FactoredVocab implies using detokenized BLEU");
-    detok = true;  // always use bleu-detok
-  }
-#endif
-  if(detok) {  // log the first detokenized string
-    LOG_ONCE(info, "[valid] First sentence's tokens after detokenization, as scored:");
-    LOG_ONCE(info, "[valid]  Hyp: {}", utils::join(decode(cand, /*addEOS=*/true)));
-    LOG_ONCE(info, "[valid]  Ref: {}", utils::join(decode(ref)));
-  }
-  if(detok)
-    updateStats(stats, decode(cand, /*addEOS=*/true), decode(ref));
-  else
+  LOG_VALID_ONCE(info, "[valid] First sentence's tokens as scored:");
+  LOG_VALID_ONCE(info, "[valid]   Hyp: {}", utils::join(decode(cand, /*addEOS=*/false)));
+  LOG_VALID_ONCE(info, "[valid]   Ref: {}", utils::join(decode(ref,  /*addEOS=*/false)));
+  
+  if(useWordIds_)
     updateStats(stats, cand, ref);
+  else
+    updateStats(stats, decode(cand, /*addEOS=*/false), decode(ref, /*addEOS=*/false));
+  
 }
 
-float BleuValidator::calcBLEU(const std::vector<float>& stats) {
+// Re-implementation of BLEU metric from SacreBLEU
+float SacreBleuValidator::calcBLEU(const std::vector<float>& stats) {
   float logbleu = 0;
-  for(int i = 0; i < 8; i += 2) {
-    if(stats[i] == 0.f)
+  for(int i = 0; i < order_; ++i) {
+    float commonNgrams     = stats[statsPerOrder * i + 0];
+    float hypothesesNgrams = stats[statsPerOrder * i + 1];
+    
+    if(commonNgrams == 0.f)
       return 0.f;
-    logbleu += std::log(stats[i] / stats[i + 1]);
+    logbleu += std::log(commonNgrams) - std::log(hypothesesNgrams);
   }
 
-  logbleu /= 4.f;
+  logbleu /= order_;
 
-  float brev_penalty = 1.f - std::max(stats[8] / stats[1], 1.f);
-  return std::exp(logbleu + brev_penalty) * 100;
+  float refLen = stats[statsPerOrder * order_];
+  float hypUnigrams = stats[1];
+  float brev_penalty = 1.f - std::max(refLen / hypUnigrams, 1.f);
+  return std::exp(logbleu + brev_penalty) * 100.f;
+}
+
+// Re-implementation of ChrF metric from SacreBLEU, using standard parameters
+float SacreBleuValidator::calcChrF(const std::vector<float>& stats) {
+  float beta = 2.f;
+
+  float avgPrecision    = 0.f;
+  float avgRecall       = 0.f;
+  size_t effectiveOrder = 0;
+
+  for(size_t i = 0; i < order_; ++i) {
+    float commonNgrams     = stats[statsPerOrder * i + 0];
+    float hypothesesNgrams = stats[statsPerOrder * i + 1];
+    float referencesNgrams = stats[statsPerOrder * i + 2];
+    
+    if(hypothesesNgrams > 0 && referencesNgrams > 0) {
+        avgPrecision += commonNgrams / hypothesesNgrams;
+        avgRecall    += commonNgrams / referencesNgrams;
+        effectiveOrder++;
+    }
+  }
+
+  if(effectiveOrder == 0)
+      return 0.f;
+
+  avgPrecision /= effectiveOrder;
+  avgRecall    /= effectiveOrder;
+  
+  if(avgPrecision + avgRecall == 0.f)
+    return 0.f;
+  
+  auto betaSquare = beta * beta;
+  auto score = (1.f + betaSquare) * (avgPrecision * avgRecall) / ((betaSquare * avgPrecision) + avgRecall);
+  return score * 100.f; // we multiply by 100 which is usually not done for ChrF, but this makes it more comparable to BLEU
 }
 
 }  // namespace marian

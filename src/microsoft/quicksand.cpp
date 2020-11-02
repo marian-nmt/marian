@@ -30,6 +30,7 @@ template void set(Ptr<Options> options, const std::string& key, const int&);
 template void set(Ptr<Options> options, const std::string& key, const std::string&);
 template void set(Ptr<Options> options, const std::string& key, const bool&);
 template void set(Ptr<Options> options, const std::string& key, const std::vector<std::string>&);
+template void set(Ptr<Options> options, const std::string& key, const std::vector<int>&);
 template void set(Ptr<Options> options, const std::string& key, const float&);
 template void set(Ptr<Options> options, const std::string& key, const double&);
 

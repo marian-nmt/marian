@@ -1072,9 +1072,14 @@ private:
 // For each vocabulary item v, the only non-zero element in a row in the sum is the item
 // that matches the label indexed by i (the picked element).
 // C = sum_{v in V}(-logsoftmax(A) * delta(v, i) = -logsoftmax(A)[i]
-struct CrossEntropyNodeOp : public NaryNodeOp {
-  CrossEntropyNodeOp(Expr a, Expr indices)
-    : NaryNodeOp({a, indices}, newShape(a), a->value_type()) {
+class CrossEntropyNodeOp : public NaryNodeOp {
+private:
+  float labelSmoothingAlpha_;
+
+public:
+  CrossEntropyNodeOp(Expr a, Expr indices, float labelSmoothingAlpha, Type outputType = Type::float32)
+    : NaryNodeOp({a, indices}, newShape(a), outputType),
+      labelSmoothingAlpha_(labelSmoothingAlpha) {
     matchOrAbort<IndexType>(indices->value_type());
     int rows   = a->shape().elements() / a->shape()[-1];
     int labels = indices->shape().elements();
@@ -1088,12 +1093,29 @@ struct CrossEntropyNodeOp : public NaryNodeOp {
   }
 
   NodeOps forwardOps() override {
-    return {NodeOp(CrossEntropyPick(val_, child(0)->val(), child(1)->val()))};
+    return {NodeOp(CrossEntropyPick(val_, child(0)->val(), child(1)->val(), labelSmoothingAlpha_))};
   }
 
   NodeOps backwardOps() override {
     return {NodeOp(CrossEntropyPickBackward(
-        child(0)->grad(), adj_, child(0)->val(), child(1)->val()))};
+        child(0)->grad(), adj_, child(0)->val(), child(1)->val(), labelSmoothingAlpha_))};
+  }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, labelSmoothingAlpha_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<CrossEntropyNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(labelSmoothingAlpha_ != cnode->labelSmoothingAlpha_)
+      return false;
+    return true;
   }
 
   const std::string type() override { return "x-ent"; }

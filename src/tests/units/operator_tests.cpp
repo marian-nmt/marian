@@ -931,6 +931,49 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     gval4->val()->get(values);
     CHECK( values == vval4 );
   }
+
+  SECTION("cross entropy with label smoothing vs logsoftmax with gather") {
+    graph->clear();
+    values.clear();
+    values2.clear();
+    
+    std::vector<T> logitsVec = {
+      -0.1, -1.2, -0.4,
+       1.2,  2.3, -3.4,
+      -2.2,  1.0, -1.2
+    };
+    std::vector<IndexType> yhatVec = { 0, 1, 2 };
+  
+    auto logits   = graph->param("logits",   {3, 3}, inits::fromVector(logitsVec));
+    auto logitsGa = graph->param("logitsGa", {3, 3}, inits::fromVector(logitsVec));
+    auto yhat     = graph->indices(yhatVec); // [3]
+    auto yhatGa   = reshape(yhat, {3, 1});   // [3, 1]
+
+    float lsAlpha = 0.1;
+    auto ceOp = cross_entropy(logits, yhat, /*labelSmoothing=*/lsAlpha);
+
+    auto ceGa = -gather(logsoftmax(logitsGa), -1, yhatGa);
+         ceGa = (1.f - lsAlpha) * ceGa - lsAlpha * mean(logsoftmax(logitsGa), /*axis=*/-1);
+
+    auto top = sum(ceOp) + sum(ceGa);
+
+    graph->forward();
+    graph->backward();
+
+    CHECK(ceOp->shape() == ceGa->shape());
+
+    // compare forward values
+    ceOp->val()->get(values);
+    ceGa->val()->get(values2);
+    CHECK( std::equal(values.begin(), values.end(),
+                      values2.begin(), floatApprox) );
+
+    // compare parameter gradients
+    logits->grad()->get(values);
+    logitsGa->grad()->get(values2);
+    CHECK( std::equal(values.begin(), values.end(),
+                      values2.begin(), floatApprox) );
+  }
 }
 
 #ifdef CUDA_FOUND
