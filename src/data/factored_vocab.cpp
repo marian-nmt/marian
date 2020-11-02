@@ -214,7 +214,8 @@ namespace marian {
   // </s> and <unk> must exist in the vocabulary
   eosId_ = Word::fromWordIndex(vocab_[DEFAULT_EOS_STR]);
   unkId_ = Word::fromWordIndex(vocab_[DEFAULT_UNK_STR]);
-  //LOG(info, "eos: {}; unk: {}", word2string(eosId_), word2string(unkId_));
+  
+  // LOG(info, "eos: {}; unk: {}, <s>: {}", word2string(eosId_), word2string(unkId_), vocab_["<s>"]);
 
   return size();
 }

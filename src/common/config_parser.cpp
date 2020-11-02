@@ -557,7 +557,8 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "10000u");
   cli.add<std::vector<std::string>>("--valid-metrics",
       "Metric to use during validation: cross-entropy, ce-mean-words, perplexity, valid-script, "
-      "translation, bleu, bleu-detok. Multiple metrics can be specified",
+      "translation, bleu, bleu-detok (deprecated, same as bleu), bleu-segmented, chrf. "
+      "Multiple metrics can be specified",
       {"cross-entropy"});
   cli.add<bool>("--valid-reset-stalled",
      "Reset all stalled validation metrics when the training is restarted");

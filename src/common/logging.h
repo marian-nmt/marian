@@ -69,6 +69,16 @@ namespace marian {
  */
 #define LOG_VALID(level, ...) checkedLog("valid", #level, __VA_ARGS__)
 
+// variant that prints the log message only upon the first time the call site is executed
+#define LOG_VALID_ONCE(level, ...) do { \
+  static bool logged = false;     \
+  if (!logged)                    \
+  {                               \
+    logged = true;                \
+    LOG_VALID(level, __VA_ARGS__);      \
+  }                               \
+} while(0)
+
 #ifdef __GNUC__
 #define FUNCTION_NAME __PRETTY_FUNCTION__
 #else
