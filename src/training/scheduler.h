@@ -17,6 +17,7 @@ private:
 
   bool first_{true};        // true if this is the first update after renewing the training
   SchedulingParameter logicalEpoch_;
+  size_t logicalEpochWidth_{0};
 
   timer::Timer timer_;
   timer::Timer heartBeatTimer_;
@@ -25,29 +26,6 @@ private:
   // (regardless if it's the 1st or nth epoch and if it's a new or continued training),
   // which indicates the end of the training data stream from STDIN
   bool endOfStdin_{false};  // true at the end of the epoch if training from STDIN;
-
-  // Here we calculate the logical epoch as defined by the user, by default this will be just a traditional data epoch.
-  // We understand a data epoch as a complete pass throught the training data as far as that information is available.
-  // By contrast, a logical epoch is defined somewhat indepdently of the number of data passes as by the number of seen updates or labels
-  // or as a multitude of data epochs.
-  float calculateLogicalEpoch() {
-    if(logicalEpoch_.unit == SchedulingUnit::epochs)
-      return (float)state_->epochs / (float)logicalEpoch_.n;      // logical epoch as multiple of n data epochs
-    else if(logicalEpoch_.unit == SchedulingUnit::trgLabels)
-      return (float)state_->labelsTotal / (float)logicalEpoch_.n; // logical epoch as multiple of n labels
-    else if(logicalEpoch_.unit == SchedulingUnit::updates)
-      return (float)state_->batches / (float)logicalEpoch_.n;     // logical epoch as multiple of n gradient updates (not actually batches @TODO: change name)
-    else
-      ABORT("Unknown scheduling unit occurred in logical epoch"); // shouldn't really happen unless we add a new unit in the corresponding enum
-  }
-
-  // Formatting for logical epochs
-  std::string formatLogicalEpoch() {
-    if(logicalEpoch_.unit == SchedulingUnit::epochs && logicalEpoch_.n == 1)
-      return fmt::format("{}", calculateLogicalEpoch());     // for a data epoch, output is an integer and looks like before this feature was introduced
-    else
-      return fmt::format("{:.4f}", calculateLogicalEpoch()); // all other outputs can be fractional, hence floating point format
-  }
 
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -134,7 +112,51 @@ private:
     return ss.str();
   }
 
+  // Here we calculate the logical epoch as defined by the user, by default this will be just a traditional data epoch.
+  // We understand a data epoch as a complete pass throught the training data as far as that information is available.
+  // By contrast, a logical epoch is defined somewhat indepdently of the number of data passes as by the number of seen updates or labels
+  // or as a multitude of data epochs.
+  float calculateLogicalEpoch() {
+    if(logicalEpoch_.unit == SchedulingUnit::epochs)
+      return (float)state_->epochs / (float)logicalEpoch_.n;      // logical epoch as multiple of n data epochs
+    else if(logicalEpoch_.unit == SchedulingUnit::trgLabels)
+      return (float)state_->labelsTotal / (float)logicalEpoch_.n; // logical epoch as multiple of n labels
+    else if(logicalEpoch_.unit == SchedulingUnit::updates)
+      return (float)state_->batches / (float)logicalEpoch_.n;     // logical epoch as multiple of n gradient updates (not actually batches @TODO: change name)
+    else
+      ABORT("Unknown scheduling unit occurred in logical epoch"); // shouldn't really happen unless we add a new unit in the corresponding enum
+  }
+
+  // Formatting for logical epochs
+  std::string formatLogicalEpoch() {
+    return fmt::format("{:." + std::to_string(logicalEpochWidth_) + "f}", calculateLogicalEpoch());
+  }
+
 public:
+  Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
+      : options_(options), state_(state) {
+
+    // parse logical-epoch parameters
+    auto logicalEpochStr = options->get<std::vector<std::string>>("logical-epoch", {"1e", "0"});
+    ABORT_IF(logicalEpochStr.empty(), "Logical epoch information is missing?");
+
+    logicalEpoch_ = SchedulingParameter::parse(logicalEpochStr[0]);
+
+    // here we deduce the floating point width to be used in formatLogicalEpoch()
+    if(logicalEpochStr.size() > 1) { // if the width is given, just use that
+      logicalEpochWidth_ = std::stoul(logicalEpochStr[1]);
+    } else { // the width is not given so we deduce a suitable display width
+      if(logicalEpoch_.unit == SchedulingUnit::epochs && logicalEpoch_.n == 1)
+        logicalEpochWidth_ = 0; // for a data epoch, output is an integer and looks like before this feature was introduced
+      else
+        logicalEpochWidth_ = 3; // all other outputs can be fractional, hence floating point format. We choose
+                                // 3 as a default which corresponds to a multiplier of 1000 (3 orders of magnitude).
+    }
+
+    ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
+    updateLearningRate(*state);
+  }
+
   // test if any parameters specify dynamic MB scaling
   bool isDynamicMBSizeScaling() const {
     auto mbWarmup = SchedulingParameter::parse(options_->get<std::string>("mini-batch-warmup"));
@@ -170,13 +192,6 @@ public:
       ratio /= lrFactor;
     }
     return ratio;
-  }
-
-  Scheduler(Ptr<Options> options, Ptr<TrainingState> state)
-      : options_(options), state_(state), 
-        logicalEpoch_(SchedulingParameter::parse(options->get<std::string>("logical-epoch", "1e"))) {
-    ABORT_IF(state_->factor != 1, "state.factor unexpectedly not 1 at this point??");
-    updateLearningRate(*state);
   }
 
   bool keepGoing() {
