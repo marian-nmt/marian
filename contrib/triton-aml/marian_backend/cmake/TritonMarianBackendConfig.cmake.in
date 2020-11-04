@@ -1,0 +1,13 @@
+include(CMakeFindDependencyMacro)
+
+get_filename_component(
+  TRITONMARIANBACKEND_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH
+)
+
+list(APPEND CMAKE_MODULE_PATH ${TRITONMARIANBACKEND_CMAKE_DIR})
+
+if(NOT TARGET TritonMarianBackend::triton-marian-backend)
+  include("${TRITONMARIANBACKEND_CMAKE_DIR}/TritonMarianBackendTargets.cmake")
+endif()
+
+set(TRITONMARIANBACKEND_LIBRARIES TritonMarianBackend::triton-marian-backend)
