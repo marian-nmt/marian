@@ -540,6 +540,9 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "Overlap model computations with MPI communication",
      true);
 
+  // model quantization training
+  addSuboptionsQuantization(cli);
+
   // add ULR settings
   addSuboptionsULR(cli);
 
@@ -906,6 +909,22 @@ void ConfigParser::addSuboptionsULR(cli::CLIWrapper& cli) {
   cli.add<float>("--ulr-softmax-temperature",
       "ULR softmax temperature to control randomness of predictions. Deafult is 1.0: no temperature",
       1.0f);
+  // clang-format on
+}
+
+void ConfigParser::addSuboptionsQuantization(cli::CLIWrapper& cli) {
+  // clang-format off
+  // model quantization training
+  cli.add<size_t>("--quantize-bits",
+     "Number of bits to compress model to. Set to 0 to disable",
+      0);
+  cli.add<size_t>("--quantize-optimization-steps",
+     "Adjust quantization scaling factor for N steps",
+     0);
+  cli.add<bool>("--quantize-log-based",
+     "Uses log-based quantization");
+  cli.add<bool>("--quantize-biases",
+     "Apply quantization to biases");
   // clang-format on
 }
 

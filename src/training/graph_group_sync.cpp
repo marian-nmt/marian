@@ -297,6 +297,11 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       return nullptr; // null if we reached beyond the end
   };
 
+  // Helper to quantize the model
+  auto quantizeModel = [&](size_t idx, size_t /*begin*/, size_t /*end*/) {
+    quantizers_[idx]->quantize(graphs_[idx]);
+  };
+
   // Upon very first execution, reset everything
   if(first_) {
     LOG(info, "[training] Batches are processed as {} process(es) x {} devices/process",
@@ -304,6 +309,14 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
     initialize(subBatches.front());
     if(mvAvg_ && paramsAvg_.empty())
       initializeAvg();
+ 
+    // initialize model quantization
+    if (options_->get<size_t>("quantize-bits") > 0) {
+      for (int idx = 0; idx < graphs_.size(); idx++)
+	quantizers_.push_back(New<ModelQuantizer>(options_));
+      comm_->foreach(quantizeModel);
+    }
+
     first_ = false;
   }
 
@@ -357,6 +370,11 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
     comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices and MPI nodes into shards
     comm_->foreach(update);              // per-shard model-update
     comm_->allGatherParams();            // distribute param value shards back
+  
+    // Re-add the error residual from previous quantization,
+    // then re-quantize the model back and update the error residual
+    if (options_->get<size_t>("quantize-bits") > 0)
+      comm_->foreach(quantizeModel);
   }
   else
     LOG(info, "[training] skipping {}-th update due to loss being {}", scheduler_->numberOfBatches(), localLoss.loss);

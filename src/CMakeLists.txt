@@ -76,6 +76,7 @@ set(MARIAN_SOURCES
   rnn/cells.cpp
   rnn/attention.cpp
 
+  optimizers/quantizer.cpp
   optimizers/clippers.cpp
   optimizers/optimizers.cpp
 

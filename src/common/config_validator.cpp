@@ -147,6 +147,12 @@ void ConfigValidator::validateOptionsTraining() const {
                                                || get<std::string>("ulr-keys-vectors") == "")),
            "ULR enablign requires query and keys vectors specified with --ulr-query-vectors and "
            "--ulr-keys-vectors option");
+
+  // validate model quantization
+  size_t bits = get<size_t>("quantize-bits");
+  ABORT_IF(bits > 32, "Invalid quantization bits. Must be from 0 to 32 bits");
+
+  ABORT_IF(bits > 0 && !get<bool>("sync-sgd"), "Model quantization only works with synchronous training (--sync-sgd)");
 }
 
 void ConfigValidator::validateModelExtension(cli::mode mode) const {
