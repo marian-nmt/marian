@@ -27,7 +27,7 @@ public:
   Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     auto embedder = std::dynamic_pointer_cast<EncoderPooler>(model_);
     ABORT_IF(!embedder, "Could not cast to EncoderPooler");
-    return embedder->apply(graph, batch, /*clearGraph=*/true);
+    return embedder->apply(graph, batch, /*clearGraph=*/true)[0];
   }
 };
 

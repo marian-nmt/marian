@@ -458,7 +458,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "epoch+stalled");
   cli.add<std::vector<size_t>>("--lr-decay-start",
      "The first number of (epoch, batches, stalled) validations to start learning rate decaying (tuple)",
-     {10,1});
+     {10, 1});
   cli.add<size_t>("--lr-decay-freq",
      "Learning rate decaying frequency for batches, requires --lr-decay-strategy to be batches",
      50000);
@@ -533,6 +533,11 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
     ->implicit_val("7.f 2000 2.f 0.05f 10 1.f");
   cli.add<bool>("--normalize-gradient",
       "Normalize gradient by multiplying with no. devices / total labels");
+
+  cli.add<std::vector<std::string>>("--train-embedder-rank",
+      "Override model configuration and train a embedding similarity ranker with the model encoder, "
+      "parameters encode margin and an optional normalization factor")
+    ->implicit_val("0.3f 0.0f");
 
   // multi-node training
   cli.add<bool>("--multi-node",

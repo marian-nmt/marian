@@ -37,7 +37,7 @@ public:
   Expr build(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> batch) {
     auto embedder = std::dynamic_pointer_cast<EncoderPooler>(model_);
     ABORT_IF(!embedder, "Could not cast to EncoderPooler");
-    return embedder->apply(graph, batch, /*clearGraph=*/true);
+    return embedder->apply(graph, batch, /*clearGraph=*/true)[0];
   }
 };
 
@@ -56,7 +56,8 @@ public:
   Embed(Ptr<Options> options) : options_(options) {
     
     options_ = options_->with("inference", true, 
-                              "shuffle", "none");
+                              "shuffle", "none",
+                              "input-types", std::vector<std::string>({"sequence"}));
 
     // if a similarity is computed then double the input types and vocabs for
     // the two encoders that are used in the model.
@@ -68,7 +69,8 @@ public:
       vDimVocabs.push_back(vDimVocabs.back());
 
       options_ = options_->with("vocabs",      vVocabs,
-                                "dim-vocabs",  vDimVocabs);
+                                "dim-vocabs",  vDimVocabs,
+                                "input-types", std::vector<std::string>(vVocabs.size(), "sequence"));
     }
 
     corpus_ = New<Corpus>(options_);

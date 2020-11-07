@@ -128,15 +128,24 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
   Ptr<ExpressionGraph> graph = nullptr; // graph unknown at this stage
   // clang-format off
 
-  if(use == usage::embedding) { // hijacking an EncoderDecoder model for embedding only
-    int dimVocab = options->get<std::vector<int>>("dim-vocabs")[0];
+  bool trainEmbedderRank = options->hasAndNotEmpty("train-embedder-rank");
+  if(use == usage::embedding || trainEmbedderRank) { // hijacking an EncoderDecoder model for embedding only
+
+    auto dimVocabs = options->get<std::vector<int>>("dim-vocabs");
+    size_t fields = trainEmbedderRank ? dimVocabs.size() : 0;
+    int dimVocab = dimVocabs[0];
     
     Ptr<Options> newOptions;
-    if(options->get<bool>("compute-similarity")) {
+    if(options->get<bool>("compute-similarity", false)) {
       newOptions = options->with("usage", use,
                                  "original-type", type,
                                  "input-types", std::vector<std::string>({"sequence", "sequence"}),
                                  "dim-vocabs", std::vector<int>(2, dimVocab));
+    } else if(trainEmbedderRank) {
+       newOptions = options->with("usage", use,
+                                  "original-type", type,
+                                  "input-types", std::vector<std::string>(fields, "sequence"),
+                                  "dim-vocabs", std::vector<int>(fields, dimVocab));
     } else {
       newOptions = options->with("usage", use,
                                  "original-type", type,
@@ -145,9 +154,14 @@ Ptr<IModel> createBaseModelByType(std::string type, usage use, Ptr<Options> opti
     }
     
     auto res = New<EncoderPooler>(newOptions);      
-    if(options->get<bool>("compute-similarity")) {
+    if(options->get<bool>("compute-similarity", false)) {
       res->push_back(models::encoder(newOptions->with("index", 0)).construct(graph));
       res->push_back(models::encoder(newOptions->with("index", 1)).construct(graph));
+      res->push_back(New<SimPooler>(graph, newOptions->with("type", "sim-pooler")));
+    } else if(trainEmbedderRank) {
+      LOG(info, "Using {} input fields for embedder ranking training", fields);
+      for(int i = 0; i < fields; ++i)
+        res->push_back(models::encoder(newOptions->with("index", i)).construct(graph));
       res->push_back(New<SimPooler>(graph, newOptions->with("type", "sim-pooler")));
     } else {
       res->push_back(models::encoder(newOptions->with("index", 0)).construct(graph));
@@ -400,6 +414,8 @@ Ptr<ICriterionFunction> createCriterionFunctionFromOptions(Ptr<Options> options,
     return New<Trainer>(baseModel, New<MNISTCrossEntropyCost>());
 #endif
 #endif
+  else if (std::dynamic_pointer_cast<EncoderPooler>(baseModel))
+    return New<Trainer>(baseModel, New<EncoderPoolerRankCost>(options));
   else
     ABORT("Criterion function unknown for model type: {}", type);
 }
