@@ -90,6 +90,8 @@ void ModelQuantizer::quantize(Ptr<ExpressionGraph> graph) {
     allocator->reserveExact(graph->params()->vals()->memory()->size());
     allocator->allocate(errorResidual_, {1, numElements});
 
+    errorResidual_->set(0);
+
     allocators_.push_back(allocator);
     isFirstError_ = true;
   }
@@ -140,7 +142,6 @@ void ModelQuantizer::quantizeImpl(Tensor t) {
     allocators_.push_back(allocator);
   }
   
-  Tensor q = delta_->subtensor(0, t->size());  // to store the quantized t
   Tensor tflat = t->subtensor(0, t->size());   // flatten t for reduce
 
   float S = 0.0f; // scaling factor S
@@ -153,6 +154,8 @@ void ModelQuantizer::quantizeImpl(Tensor t) {
 
   // optimize the scaling factor S
   for(int i = 0; i < optSteps_; i++) {
+    Tensor q = delta_->subtensor(0, t->size());  // to store the quantized t
+    
     // let t be the original tensor, and q be the quantized tensor, and q = S*a where S is the
     // scaling factor. we want to optimize S to minimize MSE(S*a - t) therefore, S =
     // sum(a*t)/sum(a*a) see https://www.aclweb.org/anthology/2020.ngt-1.4.pdf for more details.
