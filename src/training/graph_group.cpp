@@ -74,7 +74,7 @@ Ptr<data::BatchStats> GraphGroup::collectStats(Ptr<ExpressionGraph> graph,
       } else {
         end = current - 1;
       }
-    } while(end - start > step); // @TODO: better replace with `end >= start` to remove the step here
+    } while(end >= start);
 
     maxBatch = start;
   }
