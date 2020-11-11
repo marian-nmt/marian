@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Updated SentencePiece repository to version 8336bbd0c1cfba02a879afe625bf1ddaf7cd93c5 from https://github.com/google/sentencepiece. 
 - Enabled compilation of SentencePiece by default since no dependency on protobuf anymore. 
 - Changed default value of --sentencepiece-max-lines from 10000000 to 2000000 since apparently the new version doesn't sample automatically anymore (Not quite clear how that affects quality of the vocabulary).
+- Change mini-batch-fit search stopping criterion to stop at ideal binary search threshold.
 - --metric bleu now always detokenizes SacreBLEU-style if a vocabulary knows how to, use bleu-segmented to compute BLEU on word ids. bleu-detok is now a synonym for bleu.
 - Move label-smoothing computation into Cross-entropy node
 - Move Simple-WebSocket-Server to submodule
