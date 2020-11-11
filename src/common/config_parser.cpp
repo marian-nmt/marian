@@ -372,7 +372,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<size_t>("--sentencepiece-max-lines",
       "Maximum lines to train SentencePiece vocabulary, selected with sampling from all data. "
       "When set to 0 all lines are going to be used.",
-      10000000);
+      2000000);
 #endif
   // scheduling options
 
