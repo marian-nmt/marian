@@ -135,8 +135,8 @@ void ModelQuantizer::quantizeImpl(Tensor t) {
 
   // init additional tensor for scaling optimization
   if(!delta_ && optSteps_ > 0) {
-    int msize = (int) t->size();
-    auto allocator = New<TensorAllocator>(t->getBackend());
+    int msize = (int) errorResidual_->size();
+    auto allocator = New<TensorAllocator>(errorResidual_->getBackend());
     allocator->reserveExact(msize * sizeof(float));
     allocator->allocate(delta_, {1, msize});
     allocators_.push_back(allocator);
