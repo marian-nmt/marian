@@ -118,4 +118,4 @@ if (!$?) {
 $CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v$($CUDA_MAJOR).$($CUDA_MINOR)"
 # Set environmental variables in this session
 $env:CUDA_PATH = "$($CUDA_PATH)"
-Write-Output "CUDA_PATH $($CUDA_PATH)"
+Write-Output "CUDA_PATH= $($CUDA_PATH)"
