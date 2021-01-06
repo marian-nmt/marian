@@ -153,35 +153,33 @@ private:
   // Build Scalar node via controlled failure to convert from a YAML::Node object.
   void makeScalar(const YAML::Node& v) {
     elements_ = 0;
-    try {
-      // Cast node to text first, that works for any scalar node and test that it does not contain single characters
-      // that according to YAML could be boolean values. Unfortunately, we do not have any type information at this point. 
-      // This means we are disabling support for boolean values in YAML that are expressed with these characters. 
-      auto asText = v.as<std::string>();
-      if(asText.size() == 1 && asText.find_first_of("nyNYtfTF") == 0) // @TODO: should we disallow other strings too?
-        throw YAML::BadConversion(YAML::Mark()); // get's picked up by next catch block
 
-      value_ = v.as<bool>();
+    // Placeholders for decode
+    bool asBool;
+    int64_t asInt;
+    double asDouble;
+
+    // Text boolean values should be treated as a string
+    auto asString  = v.as<std::string>();
+    bool isTextBool = asString.size() == 1 && asString.find_first_of("nyNYtfTF") == 0;
+
+    if(YAML::convert<bool>::decode(v, asBool) && !isTextBool) {
+      value_ = asBool;
       type_ = NodeType::Bool;
-    } catch(const YAML::BadConversion& /*e*/) {
-      try {
-        value_ = v.as<int64_t>();
-        type_ = NodeType::Int64;
-      } catch(const YAML::BadConversion& /*e*/) {
-        try {
-          value_ = v.as<double>();
-          type_ = NodeType::Float64;
-        } catch(const YAML::BadConversion& /*e*/) {
-          try { 
-            value_ = v.as<std::string>();
-            type_ = NodeType::String;
-          } catch (const YAML::BadConversion& /*e*/) {
-            ABORT("Cannot convert YAML node {}", v);
-          }
-        }
-      }
     }
-    
+    else if(YAML::convert<int64_t>::decode(v, asInt)) {
+      value_ = asInt;
+      type_ = NodeType::Int64;
+    }
+    else if(YAML::convert<double>::decode(v, asDouble)) {
+      value_ = asDouble;
+      type_ = NodeType::Float64;
+    }
+    else {
+      value_ = asString;
+      type_ = NodeType::String;
+    }
+
     ABORT_IF(ph_, "ph_ should be undefined");
     ABORT_IF(!array_.empty(), "array_ should be empty");
   }
