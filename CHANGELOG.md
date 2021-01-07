@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
 - Added a few missing header files in shortlist.h and beam_search.h.
 - Improved handling for receiving SIGTERM during training. By default, SIGTERM triggers 'save (now) and exit'. Prior to this fix, batch pre-fetching did not check for this sigal, potentially delaying exit considerably. It now pays attention to that. Also, the default behaviour of save-and-exit can now be disabled on the command line with --sigterm exit-immediately.
+- Fix the runtime failures for FASTOPT on 32-bit builds (wasm just happens to be 32-bit) because it uses hashing with an inconsistent mix of uint64_t and size_t.
 
 ### Changed
 - Updated SentencePiece repository to version 8336bbd0c1cfba02a879afe625bf1ddaf7cd93c5 from https://github.com/google/sentencepiece.
