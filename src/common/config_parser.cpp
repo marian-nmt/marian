@@ -134,8 +134,6 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
     "Suppress logging for translation");
   cli.add<size_t>("--seed",
     "Seed for all random number generators. 0 means initialize randomly");
-  cli.add<float>("--clip-gemm",
-    "If not 0 clip GEMM input values to +/- arg");
   cli.add<bool>("--interpolate-env-vars",
     "allow the use of environment variables in paths, of the form ${VAR_NAME}");
   cli.add<bool>("--relative-paths",
@@ -671,15 +669,13 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
 
-  cli.add<bool>("--optimize",
-      "Optimize speed aggressively sacrificing memory or precision");
-  cli.add<bool>("--skip-cost",
-      "Ignore model cost during translation, not recommended for beam-size > 1");
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
       {"float32"});
+  cli.add<bool>("--skip-cost",
+    "Ignore model cost during translation, not recommended for beam-size > 1");
 
   cli.add<std::vector<std::string>>("--shortlist",
      "Use softmax shortlist: path first best prune");
@@ -737,8 +733,6 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
 
-  cli.add<bool>("--optimize",
-      "Optimize speed aggressively sacrificing memory or precision");
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
@@ -776,12 +770,10 @@ void ConfigParser::addOptionsEmbedding(cli::CLIWrapper& cli) {
   addSuboptionsDevices(cli);
   addSuboptionsBatching(cli);
 
-  cli.add<bool>("--optimize",
-      "Optimize speed aggressively sacrificing memory or precision");
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision inference with float16, corresponds to: --precision float16");
   cli.add<std::vector<std::string>>("--precision",
-      "Mixed precision for inference, set parameter type in expression graph",
+      "Mixed precision for inference, set parameter type in expression graph. Supported values: float32, float16",
       {"float32"});
 
   cli.switchGroup(previous_group);
@@ -933,7 +925,6 @@ void ConfigParser::addSuboptionsQuantization(cli::CLIWrapper& cli) {
      "Apply quantization to biases");
   // clang-format on
 }
-
 
 cli::mode ConfigParser::getMode() const { return mode_; }
 

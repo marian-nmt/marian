@@ -7,8 +7,17 @@
 #include "tensors/tensor.h"
 #include "tensors/tensor_allocator.h"
 
+#if MKL_FOUND
+#include <mkl.h>
+#else
+#if BLAS_FOUND
+#include <cblas.h>
+#endif
+#endif
+
+#include "integer_common.h"
 #include "prod_blas.h"
-#include "sharp/int_gemm.h"
+
 
 namespace marian {
 
@@ -187,7 +196,7 @@ void ProdWithBias(marian::Tensor C,
                   float beta,
                   float scalar) {
   cpu::Prod(C, A, B, transA, transB, beta, scalar);
-  cpu::int16::AddBias(C, bias);
+  cpu::integer::AddBias(C, bias);
 }
 
 void CSRProd(marian::Tensor C,

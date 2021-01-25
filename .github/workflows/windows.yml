@@ -36,24 +36,22 @@ jobs:
       run: |
         # Wget retries downloading files and is faster than Invoke-WebRequest
         C:\msys64\usr\bin\wget.exe -nv ${{ env.MKL_URL }} -O mkl.zip
-        Expand-Archive -Force mkl.zip ${{ github.workspace }}/mkl
-        # Set the MKLROOT environment variable so that CMake can find MKL.
-        # GITHUB_WORKSPACE is an environment variable available on all
-        # GitHub-hosted runners
-        echo "::set-env name=MKLROOT::$env:GITHUB_WORKSPACE/mkl"
+        Expand-Archive -Force mkl.zip ${{ github.workspace }}\mkl
+        # Set MKLROOT environment variable so that CMake can find MKL
+        echo "MKLROOT=${{ github.workspace }}\mkl" | Out-File -FilePath $env:GITHUB_ENV  -Encoding utf8 -Append
       shell: powershell
 
     - name: Install CUDA
       run: |
         .\scripts\ci\install_cuda_windows.ps1 "10.2"
-        # Set path to CUDA for subsequent steps so that CMake can find it
-        echo "::set-env name=CUDA_PATH::$env:CUDA_PATH"
-        echo "::add-path::$env:CUDA_PATH/bin"
+        # Set CUDA_PATH environment variable so that CMake can find CUDA
+        echo "CUDA_PATH=$env:CUDA_PATH" | Out-File -FilePath $env:GITHUB_ENV  -Encoding utf8 -Append
+        echo "$env:CUDA_PATH/bin"       | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       shell: powershell
       if: matrix.gpu == true
 
     - name: Prepare vcpkg
-      uses: lukka/run-vcpkg@v2
+      uses: lukka/run-vcpkg@v4
       with:
         vcpkgArguments: protobuf
         vcpkgGitCommitId: 6185aa76504a5025f36754324abf307cc776f3da
@@ -62,7 +60,7 @@ jobs:
 
     # Windows CUDA builds use USE_NCCL=off due to compilation errors.
     - name: Build Debug
-      uses: lukka/run-cmake@v2
+      uses: lukka/run-cmake@v3
       with:
         buildDirectory: ${{ github.workspace }}/build/Debug
         cmakeAppendedArgs: '-G Ninja
@@ -91,7 +89,7 @@ jobs:
     # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
     # (not used yet)
     - name: Build Release
-      uses: lukka/run-cmake@v2
+      uses: lukka/run-cmake@v3
       with:
         buildDirectory: ${{ github.workspace }}/build/
         cmakeAppendedArgs: '-G Ninja

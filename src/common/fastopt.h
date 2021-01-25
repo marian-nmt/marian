@@ -38,9 +38,10 @@ inline constexpr uint64_t crc(const char* const str) noexcept {
 /*****************************************************************************/
 
 // PerfectHash constructs a perfect hash for a set K of n numeric keys. The size of 
-// the hash is m > n (not much larger) and n << max(K) (much smaller). If I am not wrong m 
-// is the next power of 2 larger than n? We then build an array of size m with n fields defined.
-// m - n fields stay undefined (a bit of waste).
+// the hash is m > n (not much larger) and n << max(K) (much smaller). The output array size is
+// determined by PHF::init in "src/3rd_party/phf/phf.h". m - n fields stay undefined (a bit of waste).
+
+// Wrapper class for the 3rd-party library in "src/3rd_party/phf"
 class PerfectHash {
 private:
   phf phf_;
@@ -62,10 +63,12 @@ public:
     PHF::destroy(&phf_);
   }
 
+  // subscript operator [] overloading: if the key is uint64_t, return the hash code directly
   uint32_t operator[](const uint64_t& key) const {
     return PHF::hash<uint64_t>(const_cast<phf*>(&phf_), key);
   }
 
+  // If the key is a string, return the hash code for the string's CRC code
   uint32_t operator[](const char* const keyStr) const {
     return (*this)[crc::crc(keyStr)];
   }
@@ -109,6 +112,9 @@ private:
 
 public:
   // Node types for FastOpt, seem to be enough to cover YAML:NodeType
+  // Multi-element types include "Sequence" and "Map"
+  // "Sequence" is implemented with STL vectors
+  // "Map" is implemented with a 3rd-party PHF library (see the PerfectHash class)
   enum struct NodeType {
     Null, Bool, Int64, Float64, String, Sequence, Map
   };
@@ -126,6 +132,7 @@ private:
   size_t elements_{0};      // Number of elements if isMap or isSequence is true, 0 otherwise.
 
   // Used to find elements if isSequence() is true.
+  // Retrieve the entry using array indexing.
   inline const std::unique_ptr<const FastOpt>& arrayLookup(size_t keyId) const {
     if(keyId < array_.size())
       return array_[keyId];
@@ -134,13 +141,15 @@ private:
   }
 
   // Used to find elements if isMap() is true.
-  inline const std::unique_ptr<const FastOpt>& phLookup(size_t keyId) const {
+  // Retrieve the entry from the hash table.
+  inline const std::unique_ptr<const FastOpt>& phLookup(uint64_t keyId) const {
     if(ph_)
       return array_[(*ph_)[keyId]];
     else
       return uniqueNullPtr;
   }
 
+  // Builders for different types of nodes.
   // Build Null node.
   void makeNull() {
     elements_ = 0;
@@ -153,35 +162,33 @@ private:
   // Build Scalar node via controlled failure to convert from a YAML::Node object.
   void makeScalar(const YAML::Node& v) {
     elements_ = 0;
-    try {
-      // Cast node to text first, that works for any scalar node and test that it does not contain single characters
-      // that according to YAML could be boolean values. Unfortunately, we do not have any type information at this point. 
-      // This means we are disabling support for boolean values in YAML that are expressed with these characters. 
-      auto asText = v.as<std::string>();
-      if(asText.size() == 1 && asText.find_first_of("nyNYtfTF") == 0) // @TODO: should we disallow other strings too?
-        throw YAML::BadConversion(YAML::Mark()); // get's picked up by next catch block
 
-      value_ = v.as<bool>();
+    // Placeholders for decode
+    bool asBool;
+    int64_t asInt;
+    double asDouble;
+
+    // Text boolean values should be treated as a string
+    auto asString  = v.as<std::string>();
+    bool isTextBool = asString.size() == 1 && asString.find_first_of("nyNYtfTF") == 0;
+
+    if(YAML::convert<bool>::decode(v, asBool) && !isTextBool) {
+      value_ = asBool;
       type_ = NodeType::Bool;
-    } catch(const YAML::BadConversion& /*e*/) {
-      try {
-        value_ = v.as<int64_t>();
-        type_ = NodeType::Int64;
-      } catch(const YAML::BadConversion& /*e*/) {
-        try {
-          value_ = v.as<double>();
-          type_ = NodeType::Float64;
-        } catch(const YAML::BadConversion& /*e*/) {
-          try { 
-            value_ = v.as<std::string>();
-            type_ = NodeType::String;
-          } catch (const YAML::BadConversion& /*e*/) {
-            ABORT("Cannot convert YAML node {}", v);
-          }
-        }
-      }
     }
-    
+    else if(YAML::convert<int64_t>::decode(v, asInt)) {
+      value_ = asInt;
+      type_ = NodeType::Int64;
+    }
+    else if(YAML::convert<double>::decode(v, asDouble)) {
+      value_ = asDouble;
+      type_ = NodeType::Float64;
+    }
+    else {
+      value_ = asString;
+      type_ = NodeType::String;
+    }
+
     ABORT_IF(ph_, "ph_ should be undefined");
     ABORT_IF(!array_.empty(), "array_ should be empty");
   }
@@ -223,7 +230,7 @@ private:
     type_ = NodeType::Map;
   }
 
-  // Build a Map node, uses std::string as key, which gets hashed to size_t and used in the function above.
+  // Build a Map node, uses std::string as key, which gets hashed to uint64_t and used in the function above.
   void makeMap(const std::map<std::string, YAML::Node>& m) {
     std::map<uint64_t, YAML::Node> mi;
     for(const auto& it : m) {
@@ -265,13 +272,14 @@ private:
 
 public:
   // Constructor to recursively create a FastOpt object from a YAML::Node following the yaml structure.
-  FastOpt(const YAML::Node& node) 
+  FastOpt(const YAML::Node& node)
   { construct(node); }
 
-  FastOpt(const YAML::Node& node, uint64_t fingerprint) 
+  FastOpt(const YAML::Node& node, uint64_t fingerprint)
      : fingerprint_{fingerprint}
   { construct(node); }
 
+  // Predicates for node types
   bool isSequence() const {
     return type_ == NodeType::Sequence;
   }
@@ -281,20 +289,20 @@ public:
   }
 
   bool isScalar() const {
-    return type_ == NodeType::Bool 
-      || type_ == NodeType::Float64 
-      || type_ == NodeType::Int64 
+    return type_ == NodeType::Bool
+      || type_ == NodeType::Float64
+      || type_ == NodeType::Int64
       || type_ == NodeType::String;
   }
 
   bool isNull() const {
     return type_ == NodeType::Null;
-  }  
+  }
 
   bool isInt() const {
     return type_ == NodeType::Int64;
-  }  
-  
+  }
+
   bool isBool() const {
     return type_ == NodeType::Bool;
   }
@@ -320,11 +328,11 @@ public:
     std::swap(array_, other.array_);
     std::swap(type_, other.type_);
     std::swap(elements_, other.elements_);
-    // leave fingerprint alone as it needed by parent node. 
+    // leave fingerprint alone as it needed by parent node.
   }
 
-  // Is the hashed key in a map? 
-  bool has(size_t keyId) const {
+  // Is the hashed key in a map?
+  bool has(uint64_t keyId) const {
     if(isMap() && elements_ > 0) {
       const auto& ptr = phLookup(keyId);
       return ptr ? ptr->fingerprint_ == keyId : false;
@@ -348,27 +356,27 @@ public:
   }
 
   // access sequence or map element
-  const FastOpt& operator[](size_t keyId) const {
+  const FastOpt& operator[](uint64_t keyId) const {
     if(isSequence()) {
-      const auto& ptr = arrayLookup(keyId);
+      const auto& ptr = arrayLookup((size_t)keyId);
       ABORT_IF(!ptr, "Unseen key {}" , keyId);
       return *ptr;
     } else if(isMap()) {
       const auto& ptr = phLookup(keyId);
       ABORT_IF(!ptr || ptr->fingerprint_ != keyId, "Unseen key {}", keyId);
-      return *ptr; 
+      return *ptr;
     } else {
       ABORT("Not a sequence or map node");
     }
   }
 
+  // operator [] overloading for non-uint64_t keys
   const FastOpt& operator[](int key) const {
-    return operator[]((size_t)key);
+    return operator[]((uint64_t)key);
   }
 
   const FastOpt& operator[](const char* const key) const {
-    // MacOS requires explicit cast to size_t before we can use it.
-    return operator[]((size_t)crc::crc(key));
+    return operator[](crc::crc(key));
   }
 
   const FastOpt& operator[](const std::string& key) const {

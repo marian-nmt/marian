@@ -12,7 +12,6 @@ SyncGraphGroup::SyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
     graph->setDevice(device);
     graph->setCheckpointing(options_->get<bool>("gradient-checkpointing"));
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-    graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
 
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));

@@ -14,6 +14,9 @@
 	path = src/3rd_party/fbgemm
 	url = https://github.com/marian-nmt/FBGEMM
 	branch = master
+[submodule "src/3rd_party/intgemm"]
+	path = src/3rd_party/intgemm
+	url = https://github.com/marian-nmt/intgemm/
 [submodule "src/3rd_party/simple-websocket-server"]
 	path = src/3rd_party/simple-websocket-server
 	url = https://github.com/marian-nmt/Simple-WebSocket-Server

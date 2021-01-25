@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Added `intgemm8(ssse3|avx|avx512)?`, `intgemm16(sse2|avx|avx512)?` types to marian-conv with uses intgemm backend. Types intgemm8 and intgemm16 are hardware-agnostic, the other ones hardware-specific.
+- Shortlist is now always multiple-of-eight.
+- Added intgemm 8/16bit integer binary architecture agnostic format.
 - Add --train-embedder-rank for fine-tuning any encoder(-decoder) model for multi-lingual similarity via softmax-margin loss
 - Add --logical-epoch that allows to redefine the displayed epoch counter as a multiple of n data epochs, updates or labels. Also allows to define width of fractional part with second argument.
 - Add --metrics chrf for computing ChrF according to https://www.aclweb.org/anthology/W15-3049/ and SacreBLEU reference implementation
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   and translation with options --tsv and --tsv-fields n.
 - Internal optional parameter in n-best list generation that skips empty hypotheses.
 - Quantized training (fixed point or log-based quantization) with --quantize-bits N command
+- Support for using Apple Accelerate as the BLAS library
 
 ### Fixed
 - Segfault of spm_train when compiled with -DUSE_STATIC_LIBS=ON seems to have gone away with update to newer SentencePiece version.
@@ -52,10 +56,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added default "none" for option shuffle in BatchGenerator, so that it works in executables where shuffle is not an option.
 - Added a few missing header files in shortlist.h and beam_search.h.
 - Improved handling for receiving SIGTERM during training. By default, SIGTERM triggers 'save (now) and exit'. Prior to this fix, batch pre-fetching did not check for this sigal, potentially delaying exit considerably. It now pays attention to that. Also, the default behaviour of save-and-exit can now be disabled on the command line with --sigterm exit-immediately.
+- Fix the runtime failures for FASTOPT on 32-bit builds (wasm just happens to be 32-bit) because it uses hashing with an inconsistent mix of uint64_t and size_t.
 
 ### Changed
-- Updated SentencePiece repository to version 8336bbd0c1cfba02a879afe625bf1ddaf7cd93c5 from https://github.com/google/sentencepiece. 
-- Enabled compilation of SentencePiece by default since no dependency on protobuf anymore. 
+- Remove `--clip-gemm` which is obsolete and was never used anyway
+- Removed `--optimize` switch, instead we now determine compute type based on binary model.
+- Updated SentencePiece repository to version 8336bbd0c1cfba02a879afe625bf1ddaf7cd93c5 from https://github.com/google/sentencepiece.
+- Enabled compilation of SentencePiece by default since no dependency on protobuf anymore.
 - Changed default value of --sentencepiece-max-lines from 10000000 to 2000000 since apparently the new version doesn't sample automatically anymore (Not quite clear how that affects quality of the vocabulary).
 - Change mini-batch-fit search stopping criterion to stop at ideal binary search threshold.
 - --metric bleu now always detokenizes SacreBLEU-style if a vocabulary knows how to, use bleu-segmented to compute BLEU on word ids. bleu-detok is now a synonym for bleu.
@@ -65,6 +72,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Changed compile flags -Ofast to -O3 and remove --ffinite-math
 - Moved old graph groups to depracated folder
 - Make cublas and cusparse handle inits lazy to save memory when unused
+- Replaced exception-based implementation for type determination in FastOpt::makeScalar
 
 ## [1.9.0] - 2020-03-10
 

@@ -19,7 +19,6 @@ AsyncGraphGroup::AsyncGraphGroup(Ptr<Options> config, Ptr<IMPIWrapper> mpi)
     auto graph = New<ExpressionGraph>();
     graph->setDevice(device);
     graph->setCheckpointing(options_->get<bool>("gradient-checkpointing"));
-    graph->getBackend()->setClip(options_->get<float>("clip-gemm"));
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
     graphs_.push_back(graph);
     shardOpt_.push_back(Optimizer(options_));

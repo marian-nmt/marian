@@ -5,6 +5,8 @@ include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
 include_directories(3rd_party/fbgemm/include)
+include_directories(3rd_party/intgemm)
+include_directories(${CMAKE_BINARY_DIR}/src/3rd_party/intgemm) # running cmake on the intgemm submodule triggers config file generation in this directory.
 include_directories(${CMAKE_BINARY_DIR}/local/include)
 
 set(MARIAN_SOURCES
@@ -41,6 +43,7 @@ set(MARIAN_SOURCES
 
   3rd_party/cnpy/cnpy.cpp
   3rd_party/ExceptionWithCallStack.cpp
+
   3rd_party/onnx/protobuf/onnx-ml.pb-wrapper.cpp
 
   3rd_party/phf/phf.cc
@@ -52,10 +55,7 @@ set(MARIAN_SOURCES
   tensors/cpu/prod.cpp
   tensors/cpu/topk.cpp
   tensors/cpu/tensor_operators.cpp
-
-  tensors/cpu/sharp/int_gemm.cpp
-  tensors/cpu/sharp/avx_gemm.cpp
-  tensors/cpu/sharp/sse_gemm.cpp
+  tensors/cpu/integer_common.cpp
   tensors/cpu/fbgemm/packed_gemm.cpp
 
   graph/expression_graph.cpp
