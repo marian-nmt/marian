@@ -93,8 +93,8 @@ if(MSVC)
   # Or maybe use these?
   set(INTRINSICS "/arch:AVX2")
   # set(INTRINSICS "/arch:AVX512")
-
-  set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS ${DISABLE_GLOBALLY}")
+  # /bigobj is necessary for expression_operators.cpp. See https://stackoverflow.com/questions/15110580/penalty-of-the-msvs-compiler-flag-bigobj
+  set(CMAKE_CXX_FLAGS           "/EHsc /DWIN32 /D_WINDOWS /DUNICODE /D_UNICODE /D_CRT_NONSTDC_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS /bigobj ${DISABLE_GLOBALLY}")
   set(CMAKE_CXX_FLAGS_RELEASE   "${CMAKE_CXX_FLAGS} /MT /O2 ${INTRINSICS} /Zi /MP /GL /DNDEBUG")
   set(CMAKE_CXX_FLAGS_DEBUG     "${CMAKE_CXX_FLAGS} /MTd /Od /Ob0 ${INTRINSICS} /RTC1 /Zi /D_DEBUG")
 
@@ -438,6 +438,7 @@ endif(USE_MPI)
 ###############################################################################
 # Find BLAS library
 if(COMPILE_CPU)
+  set(EXT_LIBS ${EXT_LIBS} intgemm) # Enable intgemm when compiling CPU
   if(USE_APPLE_ACCELERATE)
     if(NOT APPLE)
       message(FATAL_ERROR "FATAL ERROR: Apple Accelerate only works on macOS.")

@@ -66,16 +66,6 @@ public:
 
   CudaCompute getCudaComputeCapability() { return compute_; }
 
-  // for CPU, sets to use optimized code for inference.
-  // for GPU, this is invalid. for gpu, isOptimized() function always returns false.
-  void setOptimized(bool optimize) override {
-    LOG_ONCE(info, "setOptimized() not supported for GPU_{}", optimize);
-  }
-  
-  bool isOptimized() override {
-    return false;
-  }
-
 private:
   cublasHandle_t cublasHandle_{0};     // make sure it's 0, so it can be initalized lazily
   cusparseHandle_t cusparseHandle_{0}; // as above
