@@ -416,7 +416,7 @@ Word FactoredVocab::string2word(const std::string& w) const {
     WordIndex u;
     bool found = factorVocab_.tryFind(i == 0 ? parts[i] : sep + parts[i], u);
     if (!found) {
-      static int logs = 100;
+      static int logs = 5;
       if (logs > 0) {
         logs--;
         LOG(info, "WARNING: Unknown factor '{}' in '{}'; mapping to '{}'", parts[i], w, word2string(getUnkId()));

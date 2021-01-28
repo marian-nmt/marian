@@ -96,33 +96,36 @@ void IsNaN(const Tensor in, Ptr<Allocator> allocator, bool& isNaN, bool& isInf) 
   cudaStreamSynchronize(0);
 }
 
-template <typename To, typename From>
+template <bool add, typename To, typename From>
 __global__ void gCopyCastTo(To* out, const From* in, int length) {
   for(int bid = 0; bid < length; bid += blockDim.x * gridDim.x) {
     int index = bid + blockDim.x * blockIdx.x + threadIdx.x;
     if(index < length) {
-      out[index] = in[index];
+      if(add)
+        out[index] += (To)in[index];
+      else 
+        out[index]  = (To)in[index];
     }
   }
 }
 
-template <typename To, typename From>
+template <bool add, typename To, typename From>
 void CopyCastTo(To* out, const From* in, int length) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
-  gCopyCastTo<<<blocks, threads>>>(out, in, length);
+  gCopyCastTo<add><<<blocks, threads>>>(out, in, length);
 }
 
-template <typename T>
+template <bool add, typename T>
 void CopyCastFrom(Tensor out, const T* in, int length) {
   if(out->type() == Type::float32) {
-    CopyCastTo(out->data<float>(), in, length);
+    CopyCastTo<add>(out->data<float>(), in, length);
 #if COMPILE_FP16
   } else if(out->type() == Type::float16) {
-    CopyCastTo(out->data<half>(), in, length);
+    CopyCastTo<add>(out->data<half>(), in, length);
 #endif
   } else if(out->type() == Type::float64) {
-    CopyCastTo(out->data<double>(), in, length);
+    CopyCastTo<add>(out->data<double>(), in, length);
   } else {
     ABORT("CopyCastTo to type {} not implemented", out->type());
   }
@@ -132,15 +135,33 @@ void CopyCast(Tensor out, const Tensor in) {
   cudaSetDevice(out->getDeviceId().no);
 
   if(in->type() == Type::float32) {
-    CopyCastFrom(out, in->data<float>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<float>(), (int)in->size());
 #if COMPILE_FP16
   } else if(in->type() == Type::float16) {
-    CopyCastFrom(out, in->data<half>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<half>(), (int)in->size());
 #endif
   } else if(in->type() == Type::float64) {
-    CopyCastFrom(out, in->data<double>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<double>(), (int)in->size());
   } else if(in->type() == Type::uint32) {
-    CopyCastFrom(out, in->data<uint32_t>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<uint32_t>(), (int)in->size());
+  } else {
+    ABORT("CopyCastFrom from type {} not implemented", in->type());
+  }
+}
+
+void AddCast(Tensor out, const Tensor in) {
+  cudaSetDevice(out->getDeviceId().no);
+
+  if(in->type() == Type::float32) {
+    CopyCastFrom</*add=*/true>(out, in->data<float>(), (int)in->size());
+#if COMPILE_FP16
+  } else if(in->type() == Type::float16) {
+    CopyCastFrom</*add=*/true>(out, in->data<half>(), (int)in->size());
+#endif
+  } else if(in->type() == Type::float64) {
+    CopyCastFrom</*add=*/true>(out, in->data<double>(), (int)in->size());
+  } else if(in->type() == Type::uint32) {
+    CopyCastFrom</*add=*/true>(out, in->data<uint32_t>(), (int)in->size());
   } else {
     ABORT("CopyCastFrom from type {} not implemented", in->type());
   }
@@ -1559,17 +1580,17 @@ __global__ void gCrossEntropyPick(AccType* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      auto sumexp = _acc[0];
+      AccType sumexp = _acc[0];
 
       // H(u, p) = 1/N * logsoftmax(h) = mean(h - max) - log(sum(exp(h - max)))
-      auto mean = _acc[1] / (AccType)cols; // mean(h - max)
+      AccType mean = _acc[1] / (AccType)cols; // mean(h - max)
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id == (int)pick[j]) {
-          auto logsumexp = functional::Ops<AccType>::log(sumexp);
-          auto ce = logsumexp - (AccType)sp[id] + (AccType)max; // cross-entropy    H(y^, p)
-          auto ls = logsumexp - mean;                           // label smoothing  H(u, p)
+          AccType logsumexp = functional::Ops<AccType>::log(sumexp);
+          AccType ce = logsumexp - (AccType)sp[id] + (AccType)max; // cross-entropy    H(y^, p)
+          AccType ls = logsumexp - mean;                           // label smoothing  H(u, p)
           out[j] = (1.f - labelSmoothingAlpha) * ce + labelSmoothingAlpha * ls;  // (1 - alpha) * H(y^, p) + alpha * H(u, p)
         }
       }
@@ -2112,11 +2133,14 @@ __global__ void gLayerNormalizationGrad(T* gradX,
 
           AccType gradXv = gammav * gradLv;
 
-          // Keep LN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. @TODO: to be fixed and removed.
+          // Keep LN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. This wil also clip inf. 
+          // @TODO: to be fixed and removed.
           AccType sign = functional::Ops<AccType>::sgn(gradXv);
-          AccType cutoff = (AccType)1000.f; // @TODO: expose this somehow as an option?
-                                            // or better: make obsolete.
-          gradXv = functional::Ops<AccType>::abs(gradXv) > cutoff ? sign * cutoff : gradXv;
+          AccType cutoff = (AccType)1000.f; // @TODO: expose this somehow as an option? or better: make obsolete.
+          gradXv = functional::Ops<AccType>::abs(gradXv) > cutoff ? sign * cutoff : gradXv; // if gradXv is NaN the value return is NaN too because NaN > value is false.
+
+          // @TODO: frankly, this is embarrasing and should rather be removed or optional? It does help for low precision computation though. Maybe turn into option?
+          gradXv = isnan(gradXv) ? 0.f : gradXv; // turn NaN into 0.
 
           T* gradXRow      = gradX     + j * cols;
           gradXRow[id]    += (T)(gradXv);
@@ -2191,11 +2215,14 @@ void LayerNormalizationGrad(Ptr<Allocator> allocator,
   }
 
   // We use this go get rid of the atomicAdd and perform a reduce of the gradients afterwards.
-  // This is much faster for fp16 which seems to have a broken atomicAdd implementation
-  gpu::Prod(gradGamma, tempOnes, tempGradGamma, false, false, 1, 1); // beta set to one to add
+  // This is much faster for fp16 which seems to have a broken atomicAdd implementation.
+  // We reduce bias gradients with a matrix multiply, but use a 32-bit compute type. 
+  // This preserves precision with larger batches where all batch entries reduce into a single vector.
+  // See also AffineNodeOp where we do the same for biases
+  gpu::Prod(gradGamma, tempOnes, tempGradGamma, false, false, 1, 1, Type::float32); // beta set to one to add
 
   if(gradBeta) // dC/dbeta = adj - inverse broadcasting (reduction)
-    gpu::Prod(gradBeta, tempOnes, adj, false, false, 1, 1); // beta set to one to add
+    gpu::Prod(gradBeta, tempOnes, adj, false, false, 1, 1, Type::float32); // beta set to one to add
 
   allocator->free(tempGradGammaMemory);
   allocator->free(tempOnesMemory);

@@ -79,6 +79,7 @@ set(MARIAN_SOURCES
   optimizers/quantizer.cpp
   optimizers/clippers.cpp
   optimizers/optimizers.cpp
+  optimizers/exponential_smoothing.cpp
 
   models/model_factory.cpp
   models/encoder_decoder.cpp
@@ -164,6 +165,7 @@ if(CUDA_FOUND)
     tensors/gpu/device.cu
     tensors/gpu/algorithm.cu
     tensors/gpu/prod.cpp
+    tensors/gpu/prod_sparse.cpp
     tensors/gpu/topk.cu
     tensors/gpu/element.cu
     tensors/gpu/add.cu

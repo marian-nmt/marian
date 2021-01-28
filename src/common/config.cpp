@@ -280,8 +280,7 @@ std::vector<DeviceId> Config::getDevices(Ptr<Options> options,
     size_t numPerMPIProcessDeviceNos = deviceNos.size() / numDevices;
     // @TODO: improve logging message as devices[] and numDevices are not informative for the user
     ABORT_IF(numDevices * numPerMPIProcessDeviceNos != deviceNos.size(),
-             "devices[] size must be equal to or a multiple of numDevices");  // (check that it is a
-                                                                              // multiple)
+             "devices[] size must be equal to or a multiple of numDevices");  // (check that it is a multiple)
 
     // if multiple concatenated lists are given, slice out the one for myMPIRank
     if(numPerMPIProcessDeviceNos != 1) {

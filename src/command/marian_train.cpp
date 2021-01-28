@@ -14,22 +14,12 @@ int main(int argc, char** argv) {
 
   auto options = parseOptions(argc, argv, cli::mode::training);
 
-  // selects MultiNodeGraphGroup family
-  //
-  // Note: --sync-sgd without --multi-node also supports MPI now, using the SyncGraphGroup.  This
-  // means we have two redundant implementations of multi-node sync-sgd.  Note that the
-  // MultiNodeGraphGroup family is out of date.  Therefore, the goal is to remove
-  // MultiNodeGraphGroupSync.
-  if(options->get<bool>("multi-node")) {
-    LOG(warn, "[experimental] Using old multi-node training implementations that are not up-to-date");
-    ABORT("Old multi-node training code disabled");
-  }
   // --sync-sgd always selects SyncGraphGroup
   //
   // If given, then this implementation is used for all combinations of (single, multiple) MPI
   // processes x (single, multiple) GPUs per MPI process.  This variant is presently up-to-date and
   // best supported.
-  else if (options->get<bool>("sync-sgd")) {
+  if(options->get<bool>("sync-sgd")) { // @TODO: make default
     LOG(info, "Using synchronous SGD");
     New<Train<SyncGraphGroup>>(options)->run();
   }
@@ -37,7 +27,8 @@ int main(int argc, char** argv) {
     auto devices = Config::getDevices(options);
     if(devices.size() == 1) {
       LOG(info, "[training] Using single-device training");
-      New<Train<SingletonGraph>>(options)->run();
+      New<Train<SyncGraphGroup>>(options)->run();
+      // New<Train<SingletonGraph>>(options)->run(); // kept for reference
     } else {
       LOG(info, "Using asynchronous training");
       New<Train<AsyncGraphGroup>>(options)->run();

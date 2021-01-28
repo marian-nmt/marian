@@ -30,6 +30,16 @@ char cnpy::map_type(const std::type_info& t)
     if(t == typeid(long) ) return 'i';
     if(t == typeid(long long) ) return 'i';
 
+    if(t == typeid(int8_t) ) return 'i';
+    if(t == typeid(int16_t) ) return 'i';
+    if(t == typeid(int32_t) ) return 'i';
+    if(t == typeid(int64_t) ) return 'i';
+
+    if(t == typeid(uint8_t) ) return 'u';
+    if(t == typeid(uint16_t) ) return 'u';
+    if(t == typeid(uint32_t) ) return 'u';
+    if(t == typeid(uint64_t) ) return 'u';
+
     if(t == typeid(unsigned char) ) return 'u';
     if(t == typeid(unsigned short) ) return 'u';
     if(t == typeid(unsigned long) ) return 'u';
@@ -60,7 +70,7 @@ template<> std::vector<char>& cnpy::operator+=(std::vector<char>& lhs, const cha
     return lhs;
 }
 
-void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order) {
+void cnpy::parse_npy_header(FILE* fp, char& type, unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order) {
     char buffer[256];
     size_t res = fread(buffer,sizeof(char),11,fp);
     if(res != 11)
@@ -95,7 +105,8 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
     bool littleEndian = (header[loc1] == '<' || header[loc1] == '|' ? true : false);
     assert(littleEndian); littleEndian;
 
-    //char type = header[loc1+1];
+    // read a char that describes the numpy data type, this was previously ignored for some reason, but already present in the file format.
+    type = header[loc1+1];
     //assert(type == map_type(T));
 
     std::string str_ws = header.substr(loc1+2);
@@ -129,7 +140,7 @@ void cnpy::parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& globa
     assert(comment_len == 0);
 
     // make compiler happy, otherwise warns with "variable set but not used"
-    // on the other hand it seems having the asserts in here is useful. 
+    // on the other hand it seems having the asserts in here is useful.
     _unused(disk_no);
     _unused(disk_start);
     _unused(nrecs_on_disk);
@@ -139,13 +150,15 @@ void cnpy::parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& globa
 cnpy::NpyArrayPtr load_the_npy_file(FILE* fp) {
     unsigned int* shape;
     unsigned int ndims, word_size;
+    char type;
     bool fortran_order;
-    cnpy::parse_npy_header(fp, word_size, shape, ndims, fortran_order);
+    cnpy::parse_npy_header(fp, type, word_size, shape, ndims, fortran_order);
     unsigned long long size = 1; //long long so no overflow when multiplying by word_size
     for(unsigned int i = 0; i < ndims; i++)
         size *= shape[i];
 
     auto arr = cnpy::NpyArrayPtr(new cnpy::NpyArray());
+    arr->type = type;
     arr->word_size = word_size;
     arr->shape = std::vector<unsigned int>(shape, shape+ndims);
     delete[] shape;

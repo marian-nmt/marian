@@ -26,7 +26,7 @@ class LambdaInit : public NodeInitializer {
 class LambdaInitConvert : public NodeInitializer {
   private:
     std::function<void(Tensor)> lambda_;
-    Type intermediateType_; // is used for the creation of a temporary intermedia tensor on which the lambda actually operates.
+    Type intermediateType_; // is used for the creation of a temporary intermediate tensor on which the lambda actually operates.
                             // This tensor is then automatically cast and copied to the type of the actual tensor. 
 
   public:

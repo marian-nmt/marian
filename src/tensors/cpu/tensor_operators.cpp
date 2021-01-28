@@ -24,14 +24,17 @@ namespace cpu {
   ABORT("Not implemented");
 }
 
-template <typename To, typename From>
+template <bool add, typename To, typename From>
 void CopyCastTo(To* out, const From* in, int length) {
   for(int i = 0; i < length; ++i)
 #ifdef _MSC_VER
 #pragma warning (push)
 #pragma warning (disable: 4244)  // 'argument': conversion from 'const From' to 'float', possible loss of data
 #endif
-    out[i] = (To)in[i];
+    if(add)
+      out[i] += (To)in[i];
+    else
+      out[i]  = (To)in[i];
 #ifdef _MSC_VER
 #pragma warning (pop)
 #endif
@@ -42,12 +45,12 @@ void CopyCastTo(To* out, const From* in, int length) {
 // the full Carthesian product of possible type cast via template magic.
 // Extending CopyCast and CopyCastFrom with a new branch in the "if" clause
 // adds all possible variants.
-template <typename T>
+template <bool add, typename T>
 void CopyCastFrom(Tensor out, const T* in, int length) {
   if(out->type() == Type::float32) {
-    CopyCastTo(out->data<float>(), in, length);
+    CopyCastTo<add>(out->data<float>(), in, length);
   } else if(out->type() == Type::float16) {
-    CopyCastTo(out->data<float16>(), in, length);
+    CopyCastTo<add>(out->data<float16>(), in, length);
   } else {
     ABORT("CopyCastTo to type {} not implemented", out->type());
   }
@@ -56,11 +59,24 @@ void CopyCastFrom(Tensor out, const T* in, int length) {
 // currently useless on the CPU until more types are added
 void CopyCast(Tensor out, const Tensor in) {
   if(in->type() == Type::float32) {
-    CopyCastFrom(out, in->data<float>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<float>(), (int)in->size());
   } else if(in->type() == Type::float16) {
-    CopyCastFrom(out, in->data<float16>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<float16>(), (int)in->size());
   } else if(in->type() == Type::uint32) {
-    CopyCastFrom(out, in->data<uint32_t>(), (int)in->size());
+    CopyCastFrom</*add=*/false>(out, in->data<uint32_t>(), (int)in->size());
+  } else {
+    ABORT("CopyCastFrom from type {} not implemented", in->type());
+  }
+}
+
+// currently useless on the CPU until more types are added
+void AddCast(Tensor out, const Tensor in) {
+  if(in->type() == Type::float32) {
+    CopyCastFrom</*add=*/true>(out, in->data<float>(), (int)in->size());
+  } else if(in->type() == Type::float16) {
+    CopyCastFrom</*add=*/true>(out, in->data<float16>(), (int)in->size());
+  } else if(in->type() == Type::uint32) {
+    CopyCastFrom</*add=*/true>(out, in->data<uint32_t>(), (int)in->size());
   } else {
     ABORT("CopyCastFrom from type {} not implemented", in->type());
   }

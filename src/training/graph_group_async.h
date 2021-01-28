@@ -1,7 +1,6 @@
 #pragma once
 
 #include "3rd_party/threadpool.h"
-#include "training/exponential_smoothing.h"
 #include "training/graph_group.h"
 
 #include <future>
@@ -9,16 +8,12 @@
 
 namespace marian {
 
-class AsyncGraphGroup : public GraphGroup, public ExponentialSmoothing {
+class AsyncGraphGroup : public GraphGroup {
 public:
   virtual void setScheduler(Ptr<Scheduler> scheduler) override;
 
 protected:
   bool first_{true};
-
-  std::vector<Ptr<models::ICriterionFunction>> builders_;
-  std::vector<Ptr<ExpressionGraph>> graphs_;
-  std::vector<DeviceId> devices_;
 
   std::mutex sync_;
   std::vector<std::mutex> shardSync_;
@@ -31,12 +26,8 @@ protected:
   std::vector<Tensor> grads_;
   std::vector<Ptr<TensorAllocator>> gradsAlloc_;
 
-  std::vector<Ptr<OptimizerBase>> shardOpt_;
-
   int shardSize_;
 
-  std::vector<Tensor> paramsAvg_;
-  std::vector<Ptr<TensorAllocator>> paramsAllocAvg_;
   std::unique_ptr<ThreadPool> pool_;
 
   size_t optimizerDelay_{1};
@@ -46,7 +37,8 @@ protected:
                            int device_id);
 
   virtual void pushGradients(Tensor newGrads,
-                             int device_id);
+                             int device_id,
+                             size_t mbSize);
 
   virtual void init(Ptr<data::Batch> batch);
   void execute(Ptr<data::Batch> batch);
@@ -59,13 +51,9 @@ public:
     execute(batch);
   }
 
-  void load() override;
-  void save(bool final = false) override;
-  void save(Ptr<ExpressionGraph>, bool final = false);
-
   // @TODO: give it a fake batch generator which own vocabs instead of passing vocabs
-  virtual Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) {
-    return GraphGroup::collectStats(graphs_[0], builders_[0], vocabs);
+  Ptr<data::BatchStats> collectStats(const std::vector<Ptr<Vocab>>& vocabs) override {
+    return GraphGroup::collectStats(graphs_[0], models_[0], vocabs);
   }
 
   virtual void finalize() override;

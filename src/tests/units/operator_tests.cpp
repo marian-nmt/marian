@@ -27,6 +27,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 #endif
 
   auto floatApprox = [](T x, T y) -> bool { return x == Approx(y).margin(0.001f); };
+  auto floatApprox2 = [](T x, T y) -> bool { return x == Approx(y).margin(0.01f); };
   auto floatEqual  = [](T x, T y) -> bool { return x == y; };
 
   Config::seed = 1234;
@@ -437,7 +438,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     std::vector<T> vC({22, 28,
                        49, 64,
                        76, 100,
-                        103, 136});
+                       103, 136});
 
     auto A = graph->param("A", {2, 2, 3}, inits::fromVector(vA));
     auto B = graph->param("B", {3, 2}, inits::fromVector(vB));
@@ -451,28 +452,29 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(values == vC);
   }
 
-  // Currently no support for fp16 or CPU - TODO use MKL for CPU, convert to float32 on the fly for fp16 via cast(x, Type::float16) or internally
-  if(device == DeviceType::gpu && floatType == Type::float32) {
+  // Currently no support for CPU
+  // @TODO: support for fp16 is done internally via cast to fp16, not efficient.
+  if(device == DeviceType::gpu) {
     SECTION("csr-dot product") {
       graph->clear();
       values.clear();
       // CSR dot product, tested against dense product on the same values
-      std::vector<float> vS({1, 0, 0, 1,          // sparse
-                            0, 0, 1, 1.5});
-      std::vector<float> vD({1, 2, 3, 1.2, 5.6,   // dense
-                            4, 5, 6, 2.3, 6.7,
-                            7, 8, 9, 3.4, 7.8,
-                            1, 1, 2, 4.5, 8.9});
+      std::vector<T> vS({1, 0, 0, 1,          // sparse
+                         0, 0, 1, 1.5});
+      std::vector<T> vD({1, 2, 3, 1.2, 5.6,   // dense
+                         4, 5, 6, 2.3, 6.7,
+                         7, 8, 9, 3.4, 7.8,
+                         1, 1, 2, 4.5, 8.9});
       auto S  = graph->param("S",  { 2, 4 }, inits::fromVector(vS));
       auto D  = graph->param("D",  { 4, 5 }, inits::fromVector(vD));
       auto DT = graph->param("DT", { 5, 4 }, inits::fromVector(vD)); // example matrix with transposed dimensions
-      std::vector<float> SV;    // create CSR version of S
+      std::vector<T> SV;    // create CSR version of S
       std::vector<IndexType> SI, SO;
       SO.push_back((IndexType)SI.size());
       for (IndexType i = 0; i < (IndexType)S->shape()[0]; i++) {
         for (IndexType j = 0; j < (IndexType)S->shape()[1]; j++) {
           auto k = 4 * i + j;
-          if (vS[k] != 0) {
+          if (vS[k] != (T)0.f) {
             SV.push_back(vS[k]);
             SI.push_back(j);
           }
@@ -484,45 +486,51 @@ void tests(DeviceType device, Type floatType = Type::float32) {
       auto STxSxDd = dot(S, SxDd, /*transA=*/true);
       auto SxDs = csr_dot( // sparse x dense
             S->shape(),
-            graph->constant({(int)SV.size()}, inits::fromVector(SV), floatType),
+            graph->constant({(int)SV.size()}, inits::fromVector(SV)),
             graph->constant({(int)SI.size()}, inits::fromVector(SI), Type::uint32),
             graph->constant({(int)SO.size()}, inits::fromVector(SO), Type::uint32),
             D);
       auto STxSxDs = csr_dot(   // transpose(sparse) x dense; we use result of previous since dimensions match
             S->shape(),
-            graph->constant({(int)SV.size()}, inits::fromVector(SV), floatType),
+            graph->constant({(int)SV.size()}, inits::fromVector(SV)),
             graph->constant({(int)SI.size()}, inits::fromVector(SI), Type::uint32),
             graph->constant({(int)SO.size()}, inits::fromVector(SO), Type::uint32),
             SxDd, /*transS=*/true);
 
+#if 0 // currently not used anywhere
       auto DTxSTd   = dot(DT,     S, /*transA=*/false, /*transB=*/true);
       auto DTxSTxSd = dot(DTxSTd, S);
       auto DTxSTs = dot_csr( // dense x sparse
             DT,
             S->shape(),
-            graph->constant({(int)SV.size()}, inits::fromVector(SV), floatType),
+            graph->constant({(int)SV.size()}, inits::fromVector(SV)),
             graph->constant({(int)SI.size()}, inits::fromVector(SI), Type::uint32),
             graph->constant({(int)SO.size()}, inits::fromVector(SO), Type::uint32),
             /*transS=*/true);
       auto DTxSTxSs = dot_csr( // dense x transpose(sparse)
             DTxSTd,
             S->shape(),
-            graph->constant({(int)SV.size()}, inits::fromVector(SV), floatType),
+            graph->constant({(int)SV.size()}, inits::fromVector(SV)),
             graph->constant({(int)SI.size()}, inits::fromVector(SI), Type::uint32),
             graph->constant({(int)SO.size()}, inits::fromVector(SO), Type::uint32));
+#endif
 
       CHECK(SxDs->shape() == SxDd->shape());
       CHECK(STxSxDs->shape() == STxSxDd->shape());
+#if 0
       CHECK(DTxSTs->shape() == DTxSTd->shape());
       CHECK(DTxSTxSs->shape() == DTxSTxSd->shape());
+#endif
 
       graph->forward();
 
       // dense and sparse operation results must be the same
       SxDd    ->val()->get(values2); SxDs    ->val()->get(values); CHECK(values == values2);
       STxSxDd ->val()->get(values2); STxSxDs ->val()->get(values); CHECK(values == values2);
+#if 0
       DTxSTd  ->val()->get(values2); DTxSTs  ->val()->get(values); CHECK(values == values2);
       DTxSTxSd->val()->get(values2); DTxSTxSs->val()->get(values); CHECK(values == values2);
+#endif
     }
   }
 
@@ -950,12 +958,12 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     auto yhatGa   = reshape(yhat, {3, 1});   // [3, 1]
 
     float lsAlpha = 0.1;
-    auto ceOp = cross_entropy(logits, yhat, /*labelSmoothing=*/lsAlpha);
+    auto ceOp = cast(cross_entropy(logits, yhat, /*labelSmoothing=*/lsAlpha), floatType);
 
     auto ceGa = -gather(logsoftmax(logitsGa), -1, yhatGa);
          ceGa = (1.f - lsAlpha) * ceGa - lsAlpha * mean(logsoftmax(logitsGa), /*axis=*/-1);
 
-    auto top = sum(ceOp) + sum(ceGa);
+    auto top = sum(ceOp) + sum(ceGa); // cast to float16 if required as cross_entropy casts to float32 internally
 
     graph->forward();
     graph->backward();
@@ -965,14 +973,16 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     // compare forward values
     ceOp->val()->get(values);
     ceGa->val()->get(values2);
+
     CHECK( std::equal(values.begin(), values.end(),
-                      values2.begin(), floatApprox) );
+                      values2.begin(), floatApprox2) );
+
 
     // compare parameter gradients
     logits->grad()->get(values);
     logitsGa->grad()->get(values2);
     CHECK( std::equal(values.begin(), values.end(),
-                      values2.begin(), floatApprox) );
+                      values2.begin(), floatApprox2) );
   }
 }
 

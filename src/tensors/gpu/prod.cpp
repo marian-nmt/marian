@@ -4,7 +4,6 @@
 #endif
 
 #include <cublas_v2.h>
-#include <cusparse.h>
 
 // clang-format off
 #include "tensors/gpu/prod.h"
@@ -65,71 +64,185 @@ static void unsetTensorMode(cublasHandle_t cublasHandle) {
 #endif
 }
 
-// overload for float, contains configuration settings for float32
-static cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
-                                      CudaCompute computeCapability,
-                                      cublasOperation_t transa, 
-                                      cublasOperation_t transb,
-                                      int m, int n, int k,
-                                      const float* alpha,
-                                      const float* A, int lda,
-                                      const float* B, int ldb,
-                                      const float* beta,
-                                      float* C, int ldc) {
-// double #if and if unfortunately required to safeguard against compilation error 
-// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
-#if CUDA_VERSION > 9000
-  // query math mode and set algorithm accordingly
-  auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
-  if(computeCapability.major >= 5)
-    return cublasGemmEx(handle, transa, transb, 
-                        m, n, k, alpha, 
-                        A, CUDA_R_32F, lda, 
-                        B, CUDA_R_32F, ldb, beta, 
-                        C, CUDA_R_32F, ldc,
-                        CUDA_R_32F, algorithm); // @TODO: review algorithm
-#endif
-  return cublasSgemm(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      A, lda, 
-                      B, ldb, beta, 
-                      C, ldc);
-}
+// primary template for specialization with different element and compute types
+template <typename ElementType, typename ComputeType>
+struct TypedGemm { };
+
+template <>
+struct TypedGemm</*ElementType=*/float, /*ComputeType=*/float> { // specialization for element type float32 and compute type float32
+  static void gemm(cublasHandle_t handle,
+                   CudaCompute computeCapability,
+                   cublasOperation_t transa,
+                   cublasOperation_t transb,
+                   int m, int n, int k,
+                   const float* alpha, // has to match compute type!
+                   const float* A, int lda,
+                   const float* B, int ldb,
+                   const float* beta,  // has to match compute type!
+                   float* C, int ldc) {
+  // double #if and if unfortunately required to safeguard against compilation error 
+  // with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
+  #if CUDA_VERSION > 9000
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    if(computeCapability.major >= 5)
+      CUBLAS_CHECK(cublasGemmEx(handle, transa, transb,
+                                m, n, k, alpha,
+                                A, CUDA_R_32F, lda,
+                                B, CUDA_R_32F, ldb, beta,
+                                C, CUDA_R_32F, ldc,
+                                CUDA_R_32F, algorithm));
+    else // don't lose the "else"
+  #endif
+      CUBLAS_CHECK(cublasSgemm(handle, transa, transb,
+                               m, n, k, alpha,
+                               A, lda,
+                               B, ldb, beta,
+                               C, ldc));
+  
+  }
+
+  static void batchedGemm(cublasHandle_t handle,
+                          CudaCompute computeCapability,
+                          cublasOperation_t transa,
+                          cublasOperation_t transb,
+                          int m, int n, int k,
+                          const float *alpha, // has to match compute type!
+                          const float *Aarray[], int lda,
+                          const float *Barray[], int ldb,
+                          const float *beta,  // has to match compute type!
+                          float *Carray[], int ldc,
+                          int batchCount) {
+  // double #if and if unfortunately required to safeguard against compilation error
+  // with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
+  #if CUDA_VERSION > 9000
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    if(computeCapability.major >= 5)
+      CUBLAS_CHECK(cublasGemmBatchedEx(handle, transa, transb,
+                                       m, n, k, alpha,
+                                       (void* const*)Aarray, CUDA_R_32F, lda,
+                                       (void* const*)Barray, CUDA_R_32F, ldb, beta,
+                                       (void**)Carray, CUDA_R_32F, ldc, batchCount,
+                                       CUDA_R_32F, algorithm));
+    else // don't lose the "else"
+  #endif
+      CUBLAS_CHECK(cublasSgemmBatched(handle, transa, transb,
+                                      m, n, k, alpha,
+                                      Aarray, lda,
+                                      Barray, ldb, beta,
+                                      Carray, ldc, batchCount));
+  }
+};
 
 #if COMPILE_FP16
-// overload for half, contains configuration settings for float16
-static cublasStatus_t cublasGemmTyped(cublasHandle_t handle,
-                                      CudaCompute computeCapability,
-                                      cublasOperation_t transa, 
-                                      cublasOperation_t transb,
-                                      int m, int n, int k,
-                                      const half* alpha,
-                                      const half* A, int lda,
-                                      const half* B, int ldb,
-                                      const half* beta,
-                                      half* C, int ldc) {
-  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
-  // query math mode and set algorithm accordingly
-  auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
-  return cublasGemmEx(handle, transa, transb, 
-                      m, n, k, alpha, 
-                      A, CUDA_R_16F, lda, 
-                      B, CUDA_R_16F, ldb, beta, 
-                      C, CUDA_R_16F, ldc,
-                      CUDA_R_16F, algorithm); // @TODO: review algorithm
-}
+template <>
+struct TypedGemm</*ElementType=*/half, /*ComputeType=*/half> { // specialization for element type float16 and compute type float16
+  // overload for half, contains configuration settings for float16
+  static void gemm(cublasHandle_t handle,
+                   CudaCompute computeCapability,
+                   cublasOperation_t transa, 
+                   cublasOperation_t transb,
+                   int m, int n, int k,
+                   const half* alpha,  // has to match compute type!
+                   const half* A, int lda,
+                   const half* B, int ldb,
+                   const half* beta,  // has to match compute type!
+                   half* C, int ldc) {
+    ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    CUBLAS_CHECK(cublasGemmEx(handle, transa, transb,
+                              m, n, k, alpha,
+                              A, CUDA_R_16F, lda,
+                              B, CUDA_R_16F, ldb, beta,
+                              C, CUDA_R_16F, ldc,
+                              CUDA_R_16F, algorithm)); // @TODO: review algorithm
+  }
+
+  static void batchedGemm(cublasHandle_t handle,
+                          CudaCompute computeCapability,
+                          cublasOperation_t transa,
+                          cublasOperation_t transb,
+                          int m, int n, int k,
+                          const half *alpha,  // has to match compute type!
+                          const half *Aarray[], int lda,
+                          const half *Barray[], int ldb,
+                          const half *beta,   // has to match compute type!
+                          half *Carray[], int ldc,
+                          int batchCount) {
+    ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    CUBLAS_CHECK(cublasGemmBatchedEx(handle, transa, transb,
+                                     m, n, k, alpha,
+                                     (void* const*)Aarray, CUDA_R_16F, lda,
+                                     (void* const*)Barray, CUDA_R_16F, ldb, beta,
+                                     (void**)Carray, CUDA_R_16F, ldc, batchCount,
+                                     CUDA_R_16F, algorithm));
+  }
+};
+
+template <>
+struct TypedGemm</*ElementType=*/half, /*ComputeType=*/float> { // specialization for element type float16 and compute type float32
+// overload for half, contains configuration settings for float16 and accumulation in float32
+  static void gemm(cublasHandle_t handle,
+                   CudaCompute computeCapability,
+                   cublasOperation_t transa, 
+                   cublasOperation_t transb,
+                   int m, int n, int k,
+                   const float* alpha, // has to match compute type!
+                   const half* A, int lda,
+                   const half* B, int ldb,
+                   const float* beta, // has to match compute type!
+                   half* C, int ldc) {
+    ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    CUBLAS_CHECK(cublasGemmEx(handle, transa, transb, 
+                              m, n, k, alpha,
+                              A, CUDA_R_16F, lda,
+                              B, CUDA_R_16F, ldb, beta,
+                              C, CUDA_R_16F, ldc,
+                              CUDA_R_32F, algorithm)); // use 32-bit compute type for accumulation
+  }
+
+  static void batchedGemm(cublasHandle_t handle,
+                          CudaCompute computeCapability,
+                          cublasOperation_t transa,
+                          cublasOperation_t transb,
+                          int m, int n, int k,
+                          const float *alpha, // has to match compute type!
+                          const half *Aarray[], int lda,
+                          const half *Barray[], int ldb,
+                          const float *beta,  // has to match compute type!
+                          half *Carray[], int ldc,
+                          int batchCount) {
+    ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
+    // query math mode and set algorithm accordingly
+    auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
+    CUBLAS_CHECK(cublasGemmBatchedEx(handle, transa, transb,
+                                     m, n, k, alpha,
+                                     (void* const*)Aarray, CUDA_R_16F, lda,
+                                     (void* const*)Barray, CUDA_R_16F, ldb, beta,
+                                     (void**)Carray, CUDA_R_16F, ldc, batchCount,
+                                     CUDA_R_32F, algorithm)); // use 32-bit compute type for accumulation
+  }
+};
 #endif
 
-template <typename T>
+
+// overload for float, contains configuration settings for float32
+template <typename ElementType, typename ComputeType>
 void ProdTyped(marian::Tensor C,
                const marian::Tensor& A,
                const marian::Tensor& B,
                bool transA,
                bool transB,
-               T beta,
-               T scalar) {
+               ComputeType beta,
+               ComputeType scalar) {
   CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
-  T alpha = scalar;
+  ComputeType alpha = scalar;
 
   int m = A->shape().elements() / A->shape().back();
   int k = A->shape().back();
@@ -156,21 +269,14 @@ void ProdTyped(marian::Tensor C,
   auto computeCapability = backend->getCudaComputeCapability();
 
   setTensorMode(cublasHandle);
-  CUBLAS_CHECK(cublasGemmTyped(cublasHandle,
-                               computeCapability,
-                               opB,
-                               opA,
-                               n,
-                               m,
-                               k,
-                               &alpha,
-                               B->data<T>(),
-                               ldb,
-                               A->data<T>(),
-                               lda,
-                               &beta,
-                               C->data<T>(),
-                               ldc));
+  TypedGemm<ElementType, ComputeType>::gemm(cublasHandle, computeCapability,
+                                            opB, opA,
+                                            n, m, k,
+                                            &alpha,
+                                            B->data<ElementType>(), ldb,
+                                            A->data<ElementType>(), lda,
+                                            &beta,
+                                            C->data<ElementType>(), ldc);
   unsetTensorMode(cublasHandle);
 }
 
@@ -181,83 +287,41 @@ void Prod(marian::Tensor C,
           bool transB,
           float beta,
           float scalar) {
-  if(C->type() == Type::float32) {
-    ProdTyped<float>(C, A, B, transA, transB, beta, scalar);
+  gpu::Prod(C, A, B, transA, transB, beta, scalar, C->type());
+}
+
+void Prod(marian::Tensor C,
+          const marian::Tensor& A,
+          const marian::Tensor& B,
+          bool transA,
+          bool transB,
+          float beta,
+          float scalar,
+          Type computeType) {
+  if(C->type() == Type::float32 && computeType == Type::float32) {
+    ProdTyped</*ElementType=*/float, /*ComputeType=*/float>(C, A, B, transA, transB, beta, scalar);
 #if COMPILE_FP16
-  } else if(C->type() == Type::float16) {
-    ProdTyped<half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+  } else if(C->type() == Type::float16 && computeType == Type::float16) {
+    ProdTyped</*ElementType=*/half, /*ComputeType=*/half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+  } else if(C->type() == Type::float16 && computeType == Type::float32) {
+    ProdTyped</*ElementType=*/half, /*ComputeType=*/float>(C, A, B, transA, transB, beta, scalar);
 #endif
   } else {
-    ABORT("Prod not implemented for type {}", C->type());
+    ABORT("Prod not implemented for element type {} and compute type {}", C->type(), computeType);
   }
 }
 
-cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
-                                      CudaCompute computeCapability,
-                                      cublasOperation_t transa, 
-                                      cublasOperation_t transb,
-                                      int m, int n, int k,
-                                      const float *alpha,
-                                      const float *Aarray[], int lda,
-                                      const float *Barray[], int ldb,
-                                      const float *beta,
-                                      float *Carray[], int ldc, 
-                                      int batchCount) {
-// double #if and if unfortunately required to safeguard against compilation error 
-// with CUDA 8.0 and runtime error with CUDA >9.0 on GPUs with compute capability under 5
-#if CUDA_VERSION > 9000
-  // query math mode and set algorithm accordingly
-  auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
-  if(computeCapability.major >= 5)
-    return cublasGemmBatchedEx(handle, transa, transb, 
-                               m, n, k, alpha, 
-                               (void* const*)Aarray, CUDA_R_32F, lda, 
-                               (void* const*)Barray, CUDA_R_32F, ldb, beta,
-                               (void**)Carray, CUDA_R_32F, ldc, batchCount,
-                               CUDA_R_32F, algorithm);
-#endif
-  return cublasSgemmBatched(handle, transa, transb, 
-                            m, n, k, alpha, 
-                            Aarray, lda, 
-                            Barray, ldb, beta,
-                            Carray, ldc, batchCount);
-}
-
-#if COMPILE_FP16 // should not be visible for CUDA 9.0 and below
-cublasStatus_t cublasGemmBatchedTyped(cublasHandle_t handle,
-                                      CudaCompute computeCapability,
-                                      cublasOperation_t transa, 
-                                      cublasOperation_t transb,
-                                      int m, int n, int k,
-                                      const half *alpha,
-                                      const half *Aarray[], int lda,
-                                      const half *Barray[], int ldb,
-                                      const half *beta,
-                                      half *Carray[], int ldc, 
-                                      int batchCount) {
-  ABORT_IF(computeCapability.major < 6, "Compute capability {} below 6 should not happen for FP16", computeCapability.major);
-  // query math mode and set algorithm accordingly
-  auto algorithm = tensorOpsEnabled(handle) ? CUBLAS_GEMM_DEFAULT_TENSOR_OP : CUBLAS_GEMM_DEFAULT;
-  return cublasGemmBatchedEx(handle, transa, transb, 
-                             m, n, k, alpha, 
-                             (void* const*)Aarray, CUDA_R_16F, lda, 
-                             (void* const*)Barray, CUDA_R_16F, ldb, beta,
-                             (void**)Carray, CUDA_R_16F, ldc, batchCount,
-                             CUDA_R_16F, algorithm); // @TODO: to 16, this is testing
-}
-#endif
-
-template <typename T>
+template <typename ElementType, typename ComputeType>
 void ProdBatchedTyped(marian::Tensor C,                 
-                 Ptr<Allocator> allocator,
-                 const marian::Tensor A,
-                 const marian::Tensor B,
-                 bool transA,
-                 bool transB,
-                 T beta,
-                 T scalar) {
+                      Ptr<Allocator> allocator,
+                      const marian::Tensor A,
+                      const marian::Tensor B,
+                      bool transA,
+                      bool transB,
+                      ComputeType beta,
+                      ComputeType scalar) {
   CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
-  T alpha = scalar;
+  ComputeType alpha = scalar;
 
   int batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
   int batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
@@ -291,43 +355,36 @@ void ProdBatchedTyped(marian::Tensor C,
   auto strideC = n * m;
   auto batchC = std::max(batchA, batchB);
 
-  std::vector<const T*> aptr;
-  std::vector<const T*> bptr;
-  std::vector<T*> cptr;
+  std::vector<const ElementType*> aptr;
+  std::vector<const ElementType*> bptr;
+  std::vector<ElementType*> cptr;
 
   for(int i = 0; i < batchC; i++) {
-    aptr.push_back(A->data<T>() + (i % batchA) * strideA);
-    bptr.push_back(B->data<T>() + (i % batchB) * strideB);
-    cptr.push_back(C->data<T>() + i * strideC);
+    aptr.push_back(A->data<ElementType>() + (i % batchA) * strideA);
+    bptr.push_back(B->data<ElementType>() + (i % batchB) * strideB);
+    cptr.push_back(C->data<ElementType>() + i * strideC);
   }
 
   // auto fails here from weird reason
-  IPtr<MemoryPiece> mp_aptr = allocator->alloc<const T*>(aptr.size());
-  CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const T*>());
+  IPtr<MemoryPiece> mp_aptr = allocator->alloc<const ElementType*>(aptr.size());
+  CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const ElementType*>());
 
-  IPtr<MemoryPiece> mp_bptr = allocator->alloc<const T*>(bptr.size());
-  CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const T*>());
+  IPtr<MemoryPiece> mp_bptr = allocator->alloc<const ElementType*>(bptr.size());
+  CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const ElementType*>());
 
-  IPtr<MemoryPiece> mp_cptr = allocator->alloc<T*>(cptr.size());
-  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<T*>());
+  IPtr<MemoryPiece> mp_cptr = allocator->alloc<ElementType*>(cptr.size());
+  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<ElementType*>());
 
   setTensorMode(cublasHandle);
-  CUBLAS_CHECK(cublasGemmBatchedTyped(cublasHandle,
-                                      compute,
-                                      opB,
-                                      opA,
-                                      n,
-                                      m,
-                                      k,
-                                      &alpha,
-                                      mp_bptr->data<const T*>(),
-                                      ldb,
-                                      mp_aptr->data<const T*>(),
-                                      lda,
-                                      &beta,
-                                      mp_cptr->data<T*>(),
-                                      ldc,
-                                      batchC));
+  TypedGemm<ElementType, ComputeType>::batchedGemm(cublasHandle, compute,
+                                                   opB, opA,
+                                                   n, m, k,
+                                                   &alpha,
+                                                   mp_bptr->data<const ElementType*>(), ldb,
+                                                   mp_aptr->data<const ElementType*>(), lda,
+                                                   &beta,
+                                                   mp_cptr->data<ElementType*>(), ldc,
+                                                   batchC);
   unsetTensorMode(cublasHandle);
 
   allocator->free(mp_aptr);
@@ -335,6 +392,7 @@ void ProdBatchedTyped(marian::Tensor C,
   allocator->free(mp_cptr);
 }
 
+// @TODO: add version with compute type for completeness
 void ProdBatched(marian::Tensor C,
                  Ptr<Allocator> allocator,
                  const marian::Tensor A,
@@ -344,199 +402,14 @@ void ProdBatched(marian::Tensor C,
                  float beta,
                  float scalar) {
   if(C->type() == Type::float32) {
-    ProdBatchedTyped<float>(C, allocator, A, B, transA, transB, beta, scalar);
+    ProdBatchedTyped<float, float>(C, allocator, A, B, transA, transB, beta, scalar);
 #if COMPILE_FP16
   } else if(C->type() == Type::float16) { // not a *.cu file
-    ProdBatchedTyped<half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+    ProdBatchedTyped<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
 #endif
   } else {
-    ABORT("ProdBatched not implemented for type {}", C->type());
+    ABORT("ProdBatched not implemented for element type {}", C->type());
   }
-}
-
-// bug in cuSparse: sparse matrix is limited to 65535 columns
-// This function is a drop-in replacement that handles it (by slicing).
-cusparseStatus_t
-static cusparseSgemmiEx(cusparseHandle_t handle, int m,
-  int n, // the offending number of columns of matrices B and C
-  int k, int nnz, const float *alpha, const float *A, int lda,
-  const float *cscValB, const int *cscColPtrB, const int *cscRowIndB, const float *beta,
-  float *C, int ldc)
-{
-#if CUDA_VERSION >= 11000
-  ABORT("cusparseSgemmi is not available in CUDA VERSION >= 11.");
-#else
-  const int nMax = 65535; // max. number of columns allowed by cuSparse 10 implementation
-  for (int j0 = 0; j0 < n; j0 += 65535) { // loop over column slices, j0 = index of first column
-    // Call original function on a column slice.
-    // Replace all parameters that relate to the column slice.
-    // nnz does not need to be corrected.
-    auto n1 = std::min(n - j0, nMax);   // width of column slice is limited to max
-    auto C1 = C + j0 * ldc;             // column slice into result matrix C
-    auto cscColPtrB1 = cscColPtrB + j0; // column slice into sparse factor B
-    auto rc = cusparseSgemmi(handle, m, n1, k, nnz, alpha, A, lda, cscValB, cscColPtrB1, cscRowIndB, beta, C1, ldc);
-    if (rc != CUSPARSE_STATUS_SUCCESS)
-      return rc;
-  }
-#endif
-  return CUSPARSE_STATUS_SUCCESS;
-}
-
-// @TODO: make this work with fp16
-
-// C = op(S) x D if not swapOperands else C = D x op(S)
-// op(S) = S if not transA else S^T
-void CSRProd(marian::Tensor C,
-             Ptr<Allocator> allocator,
-             const marian::Tensor& S_values,
-             const marian::Tensor& S_indices,
-             const marian::Tensor& S_offsets,
-             const marian::Tensor& D,
-             bool transS,
-             bool swapOperands,
-             float beta) {
-  cudaSetDevice((int)C->getDeviceId().no);
-  auto cusparseHandle = std::static_pointer_cast<gpu::Backend>(C->getBackend())
-                              ->getCusparseHandle();
-  // interpret tensor dimensions as matrix dimensions
-  const auto& shapeC = C->shape();
-  const auto& shapeD = D->shape();
-  // If swapOperands, S and D are swapped (C = D x S instead of C = S x D).
-  // In that case, in the next 6 lines, please read all dimensions as if they were reversed in order.
-  auto rowsC = shapeC[-(int)swapOperands];
-  auto colsC = shapeC.elements() / rowsC;
-  auto rowsD = shapeD[-(int)swapOperands];
-  auto colsD = shapeD.elements() / rowsD;
-  auto rowsS = transS ? rowsD : rowsC;
-  auto colsS = transS ? rowsC : rowsD;
-  ABORT_IF(colsD != colsC, "Inconsistent outer dimensions in CSR product");
-  if (swapOperands) { // make rowsX actual row dimensions again, likewise colsX
-    std::swap(rowsC, colsC);
-    std::swap(rowsD, colsD);
-    std::swap(rowsS, colsS);
-  }
-  // sparse arrays
-  auto numValues  = S_values->shape().elements();
-  auto numOffsets = S_offsets->shape().elements() - 1; // -1 since last value is length
-  ABORT_IF(numOffsets != rowsS, "Unexpected number of rows in CSR argument");
-  ABORT_IF(S_values->shape() != S_indices->shape(), "CSR values and indices must have the same size");
-  float alpha = 1;
-  MemoryPiece::PtrType St_values, St_indices, St_offsets;
-  if (transS != swapOperands) {
-    // Cusparse gemmi() does not support this specific version of transpose, and csrmm() is non-deterministic.
-    // Hence, we transpose the matrix explicitly.
-    // Note that gemmi() expects a CSC, while csrmm() a CSR; hence, the strange condition (transS != swapOperands) above.
-    St_values  = allocator->alloc<float>(numValues);
-    St_indices = allocator->alloc<int>(numValues);
-    St_offsets = allocator->alloc<int>(colsS + 1);
-    // transpose the second argument
-#if CUDA_VERSION >= 11000
-    size_t buffer_size;
-    CUSPARSE_CHECK(cusparseCsr2cscEx2_bufferSize(cusparseHandle,
-                                          /*m=*/ rowsS, // number of rows of matrix
-                                          /*n=*/ colsS, // number of columns of matrix
-                                          /*nnz=*/ (int)numValues,
-                                          /*csrcVal=*/          S_values ->data<float>(),
-                                          /*csrcRowPtr=*/ (int*)S_offsets->data<IndexType>(),
-                                          /*csrcColInd=*/ (int*)S_indices->data<IndexType>(),
-                                          /*cscVal=*/    St_values ->data<float>(),  // transposed version goes here
-                                          /*cscColPtr=*/ St_offsets->data<int>(),
-                                          /*cscRowInd=*/ St_indices->data<int>(),
-                                          /*valType*/ CUDA_R_32F,
-                                          /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
-                                          /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO,
-                                          /*alg*/ CUSPARSE_CSR2CSC_ALG1,
-                                          /*bufferSize*/ &buffer_size));
-    MemoryPiece::PtrType buffer= (buffer_size > 0) ? allocator->alloc<uint8_t>(buffer_size) : nullptr;
-
-    CUSPARSE_CHECK(cusparseCsr2cscEx2(cusparseHandle,
-                                          /*m=*/ rowsS, // number of rows of matrix
-                                          /*n=*/ colsS, // number of columns of matrix
-                                          /*nnz=*/ (int)numValues,
-                                          /*csrcVal=*/          S_values ->data<float>(),
-                                          /*csrcRowPtr=*/ (int*)S_offsets->data<IndexType>(),
-                                          /*csrcColInd=*/ (int*)S_indices->data<IndexType>(),
-                                          /*cscVal=*/    St_values ->data<float>(),  // transposed version goes here
-                                          /*cscColPtr=*/ St_offsets->data<int>(),
-                                          /*cscRowInd=*/ St_indices->data<int>(),
-                                          /*valType=*/ CUDA_R_32F,
-                                          /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
-                                          /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO,
-                                          /*alg=*/ CUSPARSE_CSR2CSC_ALG1,
-                                          /*buffer=*/ buffer->data<uint8_t>()));
-
-    if (buffer)
-      allocator->free(buffer);
-    ABORT("This code is untested. Please remove this ABORT once tests exist and pass.");
-#else
-    CUSPARSE_CHECK(cusparseScsr2csc(cusparseHandle,
-        /*m=*/ rowsS, // number of rows of matrix
-        /*n=*/ colsS, // number of columns of matrix
-        /*nnz=*/ (int)numValues,
-        /*csrcVal=*/          S_values ->data<float>(),
-        /*csrcRowPtr=*/ (int*)S_offsets->data<IndexType>(),
-        /*csrcColInd=*/ (int*)S_indices->data<IndexType>(),
-        /*cscVal=*/    St_values ->data<float>(),  // transposed version goes here
-        /*cscRowInd=*/ St_indices->data<int>(),
-        /*cscColPtr=*/ St_offsets->data<int>(),
-        /*copyValues=*/ CUSPARSE_ACTION_NUMERIC,
-        /*idxBase=*/ CUSPARSE_INDEX_BASE_ZERO));
-#endif
-    std::swap(rowsS, colsS); // these variables now represent the dims of the explicitly transposed object
-  }
-  if (swapOperands) {
-    // C = D x S for row-major matrices
-    // Implemented via cusparse as C' = S' x D' ("csrmm") where C' and D' are column-major,
-    // and S' is CSR (if not transS then we make a transposed copy).
-#if CUDA_VERSION >= 11000
-    ABORT("CSRProd is not yet implemented for CUDA VERSION >= 11");
-#else
-    cusparseMatDescr_t descrA;
-    CUSPARSE_CHECK(cusparseCreateMatDescr(&descrA));
-    cusparseSetMatType     (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
-    cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
-    CUSPARSE_CHECK(cusparseScsrmm(cusparseHandle,
-        CUSPARSE_OPERATION_NON_TRANSPOSE, // (we explicitly transposed above)
-        /*m=*/ rowsS, // #rows of first (CSR) factor (the transpose was done explicitly)
-        /*n=*/ rowsC, // #cols of second (col-major) factor and (col-major) result = #rows of row-major C
-        /*k=*/ colsS, // #cols of first (CSR) factor
-        /*nnz=*/ (int)numValues,
-        &alpha, descrA,
-        /*csrValA=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
-        /*csrRowPtrA=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
-        /*csrColIndA=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
-        D->data(),
-        /*ldb=*/ colsD, // stride
-        &beta,
-        C->data(),
-        /*ldc=*/ colsC)); // stride
-    cusparseDestroyMatDescr(descrA);
-#endif
-  }
-  else {
-    // C = S x D for row-major matrices
-    // Implemented via cusparse as C' = D' x S' ("gemmi") where C' and D' are column-major.
-    CUSPARSE_CHECK(cusparseSgemmiEx(cusparseHandle,
-        /*m=*/ colsD, // #rows of first (col-major) factor = #cols of row-major D
-        /*n=*/ rowsC, // #cols of second (CSC) factor and (col-major) result = #rows of row-major C
-        /*k=*/ rowsD, // #cols of first (col-major) factor = #rows of row-major D
-        /*nnz=*/ (int)numValues,
-        &alpha,
-        /*A=*/ D->data(),
-        /*lda=*/ colsD, // stride
-        /*cscValB=*/    St_values  ? St_values ->data<float>() :       S_values ->data<float>(),
-        /*cscColPtrB=*/ St_offsets ? St_offsets->data<int>()   : (int*)S_offsets->data<IndexType>(),
-        /*cscRowIndB=*/ St_indices ? St_indices->data<int>()   : (int*)S_indices->data<IndexType>(),
-        &beta,
-        C->data(),
-        /*ldc=*/ colsC)); // stride
-    // Note: cuSparse 10 docs says this about cscColPtrB:
-    //   "integer array of k + 1 elements that contains the start of every row and the end of the last row plus one."
-    // This is wrong. It should be col instead of row, and n instead of k.
-  }
-  if(St_values ) allocator->free(St_values );
-  if(St_indices) allocator->free(St_indices);
-  if(St_offsets) allocator->free(St_offsets);
 }
 
 }  // namespace gpu

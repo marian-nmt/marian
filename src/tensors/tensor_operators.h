@@ -38,6 +38,7 @@ void copy(Ptr<Backend>& backend, const InIt beg, const InIt end, OutIt it) {
 }
 
 DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
+DISPATCH2(AddCast, marian::Tensor, const marian::Tensor);
 DISPATCH4(IsNaN, const Tensor, Ptr<Allocator>, bool&, bool&);
 
 template <class Functor, class... Tensors>
@@ -100,6 +101,8 @@ void Reduce(Functor functor, AggFunctor aggFunctor, float aggInit,
 
 // clang-format off
 DISPATCH7(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float)
+DISPATCH8(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float, Type) // overloading since we want the default to for computeType be C->type() which difficult otherwise.
+
 DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 DISPATCH9(CSRProd, marian::Tensor, Ptr<Allocator>, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float)
 

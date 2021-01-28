@@ -34,13 +34,12 @@ int main(int argc, char** argv) {
 
   auto devices = Config::getDevices(options);
 
-  if(devices.size() > 1) {
-    if(options->get<bool>("sync-sgd"))
-      New<TrainMNIST<SyncGraphGroup>>(options)->run();
-    else
-      New<TrainMNIST<AsyncGraphGroup>>(options)->run();
-  } else
+  if(devices.size() == 1)
     New<TrainMNIST<SingletonGraph>>(options)->run();
+  else if(options->get<bool>("sync-sgd"))
+    New<TrainMNIST<SyncGraphGroup>>(options)->run();
+  else
+    New<TrainMNIST<AsyncGraphGroup>>(options)->run();
 
   return 0;
 }

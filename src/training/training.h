@@ -23,6 +23,14 @@ public:
 
   void run() override {
     using namespace data;
+    
+    // MPI init should be first thing in training
+    auto mpi = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd")); // @TODO: do we need the multiThreaded distinction at all?
+    
+    if(mpi) { // if we run MPI, then make sure to sync seed across processes as first action
+      mpi->bCast(&Config::seed, 1, IMPIWrapper::getDataType(&Config::seed));
+      LOG(info, "Synced seed {}", Config::seed);
+    }
 
     Ptr<CorpusBase> dataset;
     if(!options_->get<std::string>("sqlite").empty())
@@ -35,8 +43,6 @@ public:
       dataset = New<Corpus>(options_);
 
     dataset->prepare();
-
-    auto mpi = initMPI(/*multiThreaded=*/!options_->get<bool>("sync-sgd")); // @TODO: do we need the multiThreaded distinction at all?
 
     Ptr<BatchStats> stats;
     if(options_->get<bool>("mini-batch-fit")) {

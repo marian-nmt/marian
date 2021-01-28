@@ -33,6 +33,15 @@ public:
     auto ioItems = io::loadItems(name);
     // map names and remove a dummy matrix 'decoder_c_tt' from items to avoid creating isolated node
     for(auto it = ioItems.begin(); it != ioItems.end();) {
+      // for backwards compatibility, turn one-dimensional vector into two dimensional matrix with first dimension being 1 and second dimension of the original size
+      // @TODO: consider dropping support for Nematus models
+      if(it->shape.size() == 1) {
+        int dim = it->shape[-1];
+        it->shape.resize(2);
+        it->shape.set(0, 1);
+        it->shape.set(1, dim);
+      }
+      
       if(it->name == "decoder_c_tt") {
         it = ioItems.erase(it);
       } else if(it->name == "uidx") {
