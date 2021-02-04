@@ -9,8 +9,10 @@ add_subdirectory(./faiss)
 include_directories(./faiss)
 
 if(COMPILE_CPU)
-  set(INTGEMM_DONT_BUILD_TESTS ON CACHE BOOL "Disable intgemm tests")
-  add_subdirectory(./intgemm)
+  if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
+    set(INTGEMM_DONT_BUILD_TESTS ON CACHE BOOL "Disable intgemm tests")
+    add_subdirectory(./intgemm)
+  endif()
 endif(COMPILE_CPU)
 
 if(USE_FBGEMM)
@@ -69,7 +71,9 @@ if(USE_SENTENCEPIECE)
   endif()
 
   # regardless of -DUSE_STATIC_LIBS setting always build sentencepiece statically
-  set(SPM_ENABLE_SHARED OFF CACHE BOOL  "Builds shared libaries in addition to static libraries." FORCE)
+  if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
+    set(SPM_ENABLE_SHARED OFF CACHE BOOL  "Builds shared libaries in addition to static libraries." FORCE)
+  endif()
   set(SPM_ENABLE_TCMALLOC ON CACHE BOOL "Enable TCMalloc if available.")
 
   if(USE_STATIC_LIBS)
