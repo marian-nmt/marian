@@ -543,7 +543,7 @@ class EncoderTransformer : public Transformer<EncoderBase> {
   using Base::Base;
 public:
   EncoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Transformer(graph, options) {
-    depthScaling_ = options_->get<bool>("transformer-depth-scaling");
+    depthScaling_ = options_->get<bool>("transformer-depth-scaling", false);
     depth_ = 1;
   }
 
@@ -680,7 +680,7 @@ private:
 
 public:
   DecoderTransformer(Ptr<ExpressionGraph> graph, Ptr<Options> options) : Transformer(graph, options) {
-    depthScaling_ = options_->get<bool>("transformer-depth-scaling");
+    depthScaling_ = options_->get<bool>("transformer-depth-scaling", false);
     depth_ = 1;
   }
 
