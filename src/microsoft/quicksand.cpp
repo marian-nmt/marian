@@ -245,7 +245,9 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
   }
 }
 
-// @TODO: clean-up this code and unify with marian-conv. The targetPrec parameter is not clear enought etc.
+// unified with marian-conv.
+// marian defined types are used for external project as well.
+// The targetPrec is passed as int32_t for the exported function definition.
 bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec) {
   std::cerr << "Converting from: " << inputFile << ", to: " << outputFile << ", precision: " << targetPrec << std::endl;
 
@@ -259,11 +261,17 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
 
   graph->load(inputFile);
   graph->forward();
+
+  Type targetPrecType = (Type) targetPrec;
   auto saveGemmType = Type::float32;
-  if (targetPrec == 16)
-    saveGemmType = Type::packed16;
-  else if (targetPrec == 8)
-    saveGemmType = Type::packed8avx2; // We currently use avx2 by default.
+  if (targetPrecType == Type::packed16 
+      || targetPrecType == Type::packed8avx2 
+      || targetPrecType == Type::packed8avx512)
+    saveGemmType = targetPrecType;
+  else {
+    ABORT("Currently not supported precision type in marian: {}", targetPrec);
+    return false;
+  }
 
   // added a flag if the weights needs to be packed or not
   graph->packAndSave(outputFile, configStr.str(), saveGemmType);
