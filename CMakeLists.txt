@@ -438,8 +438,10 @@ endif(USE_MPI)
 ###############################################################################
 # Find BLAS library
 if(COMPILE_CPU)
-  set(EXT_LIBS ${EXT_LIBS} intgemm) # Enable intgemm when compiling CPU
-  add_definitions(-DCOMPILE_CPU=1)
+  if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
+    set(EXT_LIBS ${EXT_LIBS} intgemm) # Enable intgemm when compiling CPU
+    add_definitions(-DCOMPILE_CPU=1)
+  endif()
   if(USE_APPLE_ACCELERATE)
     if(NOT APPLE)
       message(FATAL_ERROR "FATAL ERROR: Apple Accelerate only works on macOS.")
