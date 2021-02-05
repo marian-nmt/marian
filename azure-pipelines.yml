@@ -267,7 +267,10 @@ stages:
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
 
-    - bash: make -j3
+    # Clean build/src/ to safe disk space on Azure-hosted VMs and stay below the 10GB limit
+    - bash: |
+        make -j3
+        rm -rf src/
       displayName: Compile
       workingDirectory: build
 
