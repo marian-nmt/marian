@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.10.0] - 2021-02-06
+
 ### Added
 - Added `intgemm8(ssse3|avx|avx512)?`, `intgemm16(sse2|avx|avx512)?` types to marian-conv with uses intgemm backend. Types intgemm8 and intgemm16 are hardware-agnostic, the other ones hardware-specific.
 - Shortlist is now always multiple-of-eight.
