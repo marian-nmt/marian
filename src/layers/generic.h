@@ -137,8 +137,8 @@ public:
 private:
     // helper functions
     Ptr<ExpressionGraph> graph() const;
-    Expr constant(const Shape& shape, const std::vector<float>&    data) const { return graph()->constant(shape, inits::fromVector(data), Type::float32); }
-    Expr constant(const Shape& shape, const std::vector<uint32_t>& data) const { return graph()->constant(shape, inits::fromVector(data), Type::uint32);  }
+    Expr constant(const Shape& shape, const std::vector<float>&    data) const { return graph()->constant(shape, inits::fromVector(data)); }
+    Expr constant(const Shape& shape, const std::vector<uint32_t>& data) const { return graph()->constant(shape, inits::fromVector(data));  }
     template<typename T> Expr constant(const std::vector<T>& data) const { return constant(Shape{(int)data.size()}, data); } // same as constant() but assuming vector
     Expr indices(const std::vector<uint32_t>& data) const { return graph()->indices(data); } // actually the same as constant(data) for this data type
     std::vector<float> getFactorMasks(size_t factorGroup, const std::vector<WordIndex>& indices) const;
@@ -441,7 +441,13 @@ public:
 
 // like affine() but with built-in parameters, activation, and dropout
 static inline
-Expr denseInline(Expr x, std::string prefix, std::string suffix, int outDim, const std::function<Expr(Expr)>& actFn = nullptr, float dropProb = 0.0f)
+Expr denseInline(Expr x, 
+                std::string prefix, 
+                std::string suffix, 
+                int outDim,
+                Ptr<inits::NodeInitializer> initFn = inits::glorotUniform(), 
+                const std::function<Expr(Expr)>& actFn = nullptr, 
+                float dropProb = 0.0f)
 {
   auto graph = x->graph();
 

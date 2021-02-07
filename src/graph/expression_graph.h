@@ -448,6 +448,8 @@ public:
     defaultElementType_ = defaultElementType;
   }
 
+  Type getDefaultElementType() { return defaultElementType_; }
+
   Expr add(Expr node);
 
   void allocateForward(Expr node) {
@@ -562,9 +564,13 @@ public:
   void save(const std::string& name, const std::string& meta = "", Type saveElementType = Type::float32) {
     std::vector<io::Item> ioItems;
     save(ioItems, saveElementType);
-    if(!meta.empty())
-      io::addMetaToItems(meta, "special:model.yml", ioItems);
-    io::saveItems(name, ioItems);
+    if(ioItems.empty()) {
+      LOG(warn, "Item list is empty, skipping saving");
+    } else {
+      if(!meta.empty())
+        io::addMetaToItems(meta, "special:model.yml", ioItems);
+      io::saveItems(name, ioItems);
+    }
   }
 };
 

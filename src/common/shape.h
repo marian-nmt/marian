@@ -51,7 +51,7 @@ public:
 
   inline size_t size() const { return shape_.size(); }
 
-  void resize(size_t n) { shape_.resize(n, 1); }
+  void resize(size_t n) { shape_.resize(n, 1); } // @TODO: this should respect shape semantics? Currently behaves like vector which is the wrong way around.
 
   const int* data() const { return shape_.data(); }
   int* data() { return shape_.data(); }

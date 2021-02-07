@@ -134,7 +134,6 @@ protected:
     auto model = options_->get<std::string>("model");
     std::string suffix = model.substr(model.size() - 4);
     ABORT_IF(suffix != ".npz" && suffix != ".bin", "Unknown model suffix {}", suffix);
-
     builder_->save(graphs[0], model + ".best-" + type() + suffix, true);
   }
 };

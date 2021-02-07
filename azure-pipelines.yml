@@ -181,19 +181,19 @@ stages:
         ################################################################
         # Ubuntu 20.04 supports CUDA 11+
         #
-        # Disabled because FBGEMM + GCC 9+ do not compile on machines with
+        # CPU is disabled because FBGEMM + GCC 9+ do not compile on machines with
         # avx512_vnni, see https://github.com/marian-nmt/marian-dev/issues/709
         #
-        #"20.04 CUDA 11.0 gcc-9":
-          #image: ubuntu-20.04
-          #boost: false  # ubuntu-20.04 does not have Boost pre-installed yet
-          #cpu: true
-          #gpu: true
-          #cuda: 11.0
-          #gcc: 9
-          #unit_tests: false # disable unit tests to minimize compilation time
-          #examples: false   # disable examples to minimize compilation time
-          #static: false
+        "20.04 CUDA 11.1 gcc-9":
+          image: ubuntu-20.04
+          boost: false      # ubuntu-20.04 does not have Boost pre-installed yet
+          cpu: false        # the used fbgemm does not compile with gcc 9+
+          gpu: true
+          cuda: 11.1
+          gcc: 9
+          unit_tests: false # disable unit tests to minimize compilation time
+          examples: false   # disable examples to minimize compilation time
+          static: false
         ################################################################
         # Ubuntu 18.04 supports CUDA 10.1+
         "18.04 CUDA 10.2 gcc-8":
@@ -257,7 +257,7 @@ stages:
           -DCOMPILE_EXAMPLES=$(examples) \
           -DCOMPILE_SERVER=$(boost) \
           -DCOMPILE_TESTS=$(unit_tests) \
-          -DUSE_FBGEMM=on \
+          -DUSE_FBGEMM=$(cpu) \
           -DUSE_SENTENCEPIECE=on \
           -DUSE_STATIC_LIBS=$(static) \
           -DBOOST_ROOT=$BOOST_ROOT_1_72_0 \
@@ -267,7 +267,10 @@ stages:
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
 
-    - bash: make -j3
+    # Clean build/src/ to safe disk space on Azure-hosted VMs and stay below the 10GB limit
+    - bash: |
+        make -j3
+        rm -rf src/
       displayName: Compile
       workingDirectory: build
 

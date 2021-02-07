@@ -569,10 +569,30 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
 }
 
+// @TODO: Not a great place to check this
+#if CUDA_VERSION < 11000
 // multiply a CSR matrix A with a matrix B
 // A[i,j] is at A_values[A_offsets[i]+k], where k is position of j in A_indices[A_offsets[i]:A_offsets[i+1]]
 // @TODO: Define a proper sparse tensor type.
 Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA /*= false*/) {
+  if(A_values->value_type() == Type::float16)
+    LOG_ONCE(warn, "Using very slow version of sparse matrix operations with explicity cast to {}. Use CUDA 11.0 or higher.", Type::float16);
+  return cast(Expression<CSRDotNodeOp>(A_shape, cast(A_values, Type::float32), A_indices, A_offsets, cast(B, Type::float32), transA, /*swapOperands=*/false), A_values->value_type());
+}
+
+// multiply a matrix A with a CSR matrix B
+// @TODO: Define a proper sparse tensor type.
+Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB /*= false*/) {
+  if(B_values->value_type() == Type::float16)
+    LOG_ONCE(warn, "Using very slow version of sparse matrix operations with explicity cast to {}. Use CUDA 11.0 or higher.", Type::float16);
+  return cast(Expression<CSRDotNodeOp>(B_shape, cast(B_values, Type::float32), B_indices, B_offsets, cast(A, Type::float32), transB, /*swapOperands=*/true), B_values->value_type());
+}
+#else
+// multiply a CSR matrix A with a matrix B
+// A[i,j] is at A_values[A_offsets[i]+k], where k is position of j in A_indices[A_offsets[i]:A_offsets[i+1]]
+// @TODO: Define a proper sparse tensor type.
+Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets, Expr B, bool transA /*= false*/) {
+  // @TODO: implement this without cast
   return Expression<CSRDotNodeOp>(A_shape, A_values, A_indices, A_offsets, B, transA, /*swapOperands=*/false);
 }
 
@@ -581,6 +601,8 @@ Expr csr_dot(const Shape& A_shape, Expr A_values, Expr A_indices, Expr A_offsets
 Expr dot_csr(Expr A, const Shape& B_shape, Expr B_values, Expr B_indices, Expr B_offsets, bool transB /*= false*/) {
   return Expression<CSRDotNodeOp>(B_shape, B_values, B_indices, B_offsets, A, transB, /*swapOperands=*/true);
 }
+#endif
+
 
 // swap the last two axes
 // @TODO: change to swapAxes(a, -1, -2)
@@ -631,7 +653,7 @@ Expr swapAxes(Expr x, int axis1, int axis2)
 
 Expr cast(Expr a, Type type) {
   if(a->value_type() == type) {
-    return a;
+    return a; // it's the correct type already, so nothing to do here
   } else {
     return Expression<CastNodeOp>(a, type);
   }

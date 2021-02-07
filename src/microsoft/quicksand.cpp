@@ -245,7 +245,9 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
   }
 }
 
-// @TODO: clean-up this code and unify with marian-conv. The targetPrec parameter is not clear enought etc.
+// This function converts an fp32 model into an FBGEMM based packed model.
+// marian defined types are used for external project as well.
+// The targetPrec is passed as int32_t for the exported function definition.
 bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec) {
   std::cerr << "Converting from: " << inputFile << ", to: " << outputFile << ", precision: " << targetPrec << std::endl;
 
@@ -259,16 +261,17 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
 
   graph->load(inputFile);
   graph->forward();
-  auto saveGemmType = Type::float32;
-  if (targetPrec == 16)
-    saveGemmType = Type::packed16;
-  else if (targetPrec == 8)
-    saveGemmType = Type::packed8avx2; // We currently use avx2 by default.
 
-  // added a flag if the weights needs to be packed or not
-  graph->packAndSave(outputFile, configStr.str(), saveGemmType);
-
-  std::cerr << "Conversion Finished." << std::endl;
+  Type targetPrecType = (Type) targetPrec;
+  if (targetPrecType == Type::packed16 
+      || targetPrecType == Type::packed8avx2 
+      || targetPrecType == Type::packed8avx512) {
+    graph->packAndSave(outputFile, configStr.str(), targetPrecType);
+    std::cerr << "Conversion Finished." << std::endl;
+  } else {
+    ABORT("Target type is not supported in this funcion: {}", targetPrec);
+    return false;
+  }
 
   return true;
 }

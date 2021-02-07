@@ -81,7 +81,7 @@ public:
 
   NodeOps backwardOps() override {
     using namespace functional;
-    return { NodeOp(CopyCast(child(0)->grad(), adj_)) };
+    return { NodeOp(AddCast(child(0)->grad(), adj_)) };
   }
 
   const std::string type() override { return "cast"; }

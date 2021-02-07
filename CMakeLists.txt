@@ -286,8 +286,8 @@ if(CUDA_FOUND)
     option(COMPILE_CUDA_SM75 "Compile GPU version with SM75 support" ON)
   endif()
   if(CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0")
-    option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" ON)
-    option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" ON)
+    option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" OFF) # deprecated for CUDA 11
+    option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" OFF) # deprecated for CUDA 11
     option(COMPILE_CUDA_SM60 "Compile GPU version with SM60 support" ON)
     option(COMPILE_CUDA_SM70 "Compile GPU version with SM70 support" ON)
     option(COMPILE_CUDA_SM75 "Compile GPU version with SM75 support" ON)
@@ -438,8 +438,10 @@ endif(USE_MPI)
 ###############################################################################
 # Find BLAS library
 if(COMPILE_CPU)
-  set(EXT_LIBS ${EXT_LIBS} intgemm) # Enable intgemm when compiling CPU
-  add_definitions(-DCOMPILE_CPU=1)
+  if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
+    set(EXT_LIBS ${EXT_LIBS} intgemm) # Enable intgemm when compiling CPU
+    add_definitions(-DCOMPILE_CPU=1)
+  endif()
   if(USE_APPLE_ACCELERATE)
     if(NOT APPLE)
       message(FATAL_ERROR "FATAL ERROR: Apple Accelerate only works on macOS.")
@@ -497,11 +499,29 @@ if(COMPILE_SERVER)
   endif(OpenSSL_FOUND)
 endif(COMPILE_SERVER)
 
+###############################################################################
+# Undo static lib search and put non-static searches here:
+
 if(USE_STATIC_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
-# TODO: move inside if(BOOST_COMPONENTS) ?
+# Find MPI
+if(USE_MPI)  
+  # 2.0 refers to MPI2 standard. OpenMPI is an implementation of that standard regardless of the specific OpenMPI version 
+  # e.g. OpenMPI 1.10 implements MPI2 and will be found correctly.
+  find_package(MPI 2.0 REQUIRED)
+  if(MPI_FOUND)
+    include_directories(${MPI_INCLUDE_PATH})
+    set(EXT_LIBS "${EXT_LIBS} ${MPI_LIBRARIES}")
+    if(USE_STATIC_LIBS) # alternatively this could install OpenMPI like NCCL and link against that statically with greater control
+      message(WARNING "MPI implementations are notoriously difficult to link statically, linking ${MPI_LIBRARIES} dynamically despite -DUSE_STATIC_LIBS=on")
+    endif(USE_STATIC_LIBS)
+    add_definitions(-DMPI_FOUND=1)
+  endif(MPI_FOUND)
+endif(USE_MPI)
+
+# TODO: move inside if(BOOST_COMPONENTS) 
 if(USE_STATIC_LIBS)
   set(Boost_USE_STATIC_LIBS ON)
 endif()

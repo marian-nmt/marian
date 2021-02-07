@@ -88,7 +88,7 @@ int main() {
     graph->reserveWorkspaceMB(128);
 
     // Choose optimizer (Sgd, Adagrad, Adam) and initial learning rate
-    auto opt = Optimizer<Adam>(0.005);
+    auto opt = Optimizer(New<Options>("optimizer", "adam", "learn-rate", 0.005));
 
     for(size_t epoch = 1; epoch <= MAX_EPOCHS; ++epoch) {
       // Shuffle data in each epochs
@@ -100,7 +100,7 @@ int main() {
       // Train classifier and update weights
       graph->forward();
       graph->backward();
-      opt->update(graph);
+      opt->update(graph, /*mbSize=*/0);
 
       if(epoch % 10 == 0)
         std::cout << "Epoch: " << epoch << " Cost: " << cost->scalar()

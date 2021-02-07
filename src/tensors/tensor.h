@@ -187,6 +187,33 @@ public:
     set(v.data(), v.data() + v.size());
   }
 
+  // a binary copy with type checking
+  void set(const char* begin, const char* end, Type type) {
+    ABORT_IF(type_ != type,
+             "Tensor type ({}) and data type ({}) do not match",
+             type_,
+             type);
+
+    size_t dataSize = (end - begin) / sizeOf(type);
+    ABORT_IF(size() != dataSize,
+             "Tensor size ({}) and mapped size ({}) do not match",
+             size(),
+             dataSize);
+
+    if(backend_->getDeviceId().type == DeviceType::cpu) {
+      std::copy(begin, end, data<char>());
+    }
+#ifdef CUDA_FOUND
+    else {
+      gpu::copy(backend_, begin, end, data<char>());
+    }
+#endif
+  }
+
+  void set(const std::vector<char>& v, Type type) {
+    set(v.data(), v.data() + v.size(), type);
+  }
+
   void set(const io::Item& item);
 
   // For single values enable conversion to other numeric formats if possible

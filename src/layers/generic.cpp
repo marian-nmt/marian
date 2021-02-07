@@ -52,8 +52,8 @@ namespace marian {
       auto factorMask    = constant(maskedFactoredLabels.masks);   // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
       auto factorLogits  = logits_[g];                             // [B... * Ug] label-wise loss values (not aggregated yet)
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
-      auto factorLoss = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
-      factorLoss = factorLoss * reshape(factorMask, factorLoss->shape()); // mask out factor for words that do not have that factor
+      auto factorLoss = cast(lossFn(factorLogits->loss(), factorIndices), loss ? loss->value_type() : Type::float32); // [B... x 1]
+      factorLoss = factorLoss * cast(reshape(factorMask, factorLoss->shape()), factorLoss->value_type()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
     return loss;
@@ -70,7 +70,10 @@ namespace marian {
   // For groupIndex == 0, the function also requires the shortlist if there is one.
   Expr Logits::getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist /*= nullptr*/, const std::vector<IndexType>& hypIndices /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
-    auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
+    
+    auto computeType = graph()->getDefaultElementType(); // make sure to use the right compute type here
+    // loss might be float32, cast to whatever type we are using for computation
+    auto sel = cast(logits_[groupIndex]->loss(), computeType); // [localBeamSize, 1, dimBatch, dimFactorVocab]
 
     // normalize for decoding:
     //  - all secondary factors: subtract their max
@@ -81,7 +84,7 @@ namespace marian {
     else {
       auto numGroups = getNumFactorGroups();
       for (size_t g = 1; g < numGroups; g++) {
-        auto factorMaxima = max(logits_[g]->loss(), -1);
+        auto factorMaxima = max(cast(logits_[g]->loss(), computeType), -1); // we cast since loss is likely ce-loss which has type float32
         auto factorMasks = constant(getFactorMasks(g, shortlist ? shortlist->indices() : std::vector<WordIndex>()));
         sel = sel + factorMaxima * factorMasks; // those lemmas that don't have a factor get multiplied with 0
       }
@@ -124,14 +127,14 @@ namespace marian {
     y = dot_csr(
         y,  // [B x U]
         factorMatrix.shape,
-        graph->constant({(int)factorMatrix.weights.size()}, inits::fromVector(factorMatrix.weights), Type::float32),
+        graph->constant({(int)factorMatrix.weights.size()}, inits::fromVector(factorMatrix.weights)),
         graph->constant({(int)factorMatrix.indices.size()}, inits::fromVector(factorMatrix.indices), Type::uint32),
         graph->constant({(int)factorMatrix.offsets.size()}, inits::fromVector(factorMatrix.offsets), Type::uint32),
         /*transB=*/ true); // -> [B x V]
 
     // mask out gaps
     auto gapLogMask = factoredVocab_->getGapLogMask(); // [V]
-    y = y + graph->constant({ (int)gapLogMask.size() }, inits::fromVector(gapLogMask), Type::float32);
+    y = y + graph->constant({ (int)gapLogMask.size() }, inits::fromVector(gapLogMask));
 
     return y;
 #else
@@ -352,7 +355,7 @@ namespace marian {
             // FF layer
             auto ffnDropProb = 0.1f;    // @TODO: get as a parameter
             auto ffnDim = inputDim * 2; // @TODO: get as a parameter
-            auto f = denseInline(input1, name + "_ffn", /*suffix=*/"1", ffnDim, (ActivationFunction*)relu, ffnDropProb);
+            auto f = denseInline(input1, name + "_ffn", /*suffix=*/"1", ffnDim, inits::glorotUniform(), (ActivationFunction*)relu, ffnDropProb);
             f      = denseInline(f,      name + "_ffn", /*suffix=*/"2", inputDim);
             // add & norm
             input1 = f + input1;
@@ -464,15 +467,14 @@ namespace marian {
   }
 
   // helper to embed a sequence of words (given as indices) via factored embeddings
-  /*private*/ Expr Embedding::multiRows(const Words& data, float dropProb) const
-  {
+  Expr Embedding::multiRows(const Words& data, float dropProb) const {
     auto graph = E_->graph();
     auto factoredData = factoredVocab_->csr_rows(data);
     // multi-hot factor vectors are represented as a sparse CSR matrix
     // [row index = word position index] -> set of factor indices for word at this position
     ABORT_IF(factoredData.shape != Shape({(int)factoredData.offsets.size()-1/*=rows of CSR*/, E_->shape()[0]}), "shape mismatch??");
     // the CSR matrix is passed in pieces
-    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::fromVector(factoredData.weights), Type::float32);
+    auto weights = graph->constant({ (int)factoredData.weights.size() }, inits::fromVector(factoredData.weights));
     auto indices = graph->constant({ (int)factoredData.indices.size() }, inits::fromVector(factoredData.indices), Type::uint32);
     auto offsets = graph->constant({ (int)factoredData.offsets.size() }, inits::fromVector(factoredData.offsets), Type::uint32);
     // apply dropout

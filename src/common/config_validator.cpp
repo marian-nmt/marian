@@ -170,22 +170,16 @@ void ConfigValidator::validateModelExtension(cli::mode mode) const {
   }
 }
 
-void ConfigValidator::validateDevices(cli::mode mode) const {
+void ConfigValidator::validateDevices(cli::mode /*mode*/) const {
   std::string devices = utils::join(get<std::vector<std::string>>("devices"));
   utils::trim(devices);
 
   regex::regex pattern;
   std::string help;
-  // @TODO: Is this format still supported? Remove this if not.
-  if(mode == cli::mode::training && get<bool>("multi-node")) {
-    // valid strings: '0: 1 2', '0:1 2 1:2 3'
-    pattern = "( *[0-9]+ *: *[0-9]+( *[0-9]+)*)+";
-    help = "Supported format for multi-node setting: '0:0 1 2 3 1:0 1 2 3'";
-  } else {
-    // valid strings: '0', '0 1 2 3', '3 2 0 1'
-    pattern = "[0-9]+( *[0-9]+)*";
-    help = "Supported formats: '0 1 2 3'";
-  }
+
+  // valid strings: '0', '0 1 2 3', '3 2 0 1'
+  pattern = "[0-9]+( *[0-9]+)*";
+  help = "Supported formats: '0 1 2 3'";
 
   ABORT_IF(!regex::regex_match(devices, pattern),
            "the argument '{}' for option '--devices' is invalid. {}",
