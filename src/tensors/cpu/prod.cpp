@@ -69,7 +69,6 @@ void Prod(marian::Tensor C,
 #endif
 }
 
-
 // dummy implementation, computeType doesn't do anything on CPU
 void Prod(marian::Tensor C,
           const marian::Tensor& A,

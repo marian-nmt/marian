@@ -700,6 +700,54 @@ void Softmax(Tensor out, Tensor in) {
   }
 }
 
+template <typename T>
+__global__ void gSinusoidalPositionEmbeddings(T* out,
+                                              functional::Shape outShape,
+                                              int start) {
+  using namespace functional;
+
+  int rows = outShape.elements() / outShape.back();
+  int cols = outShape.back();
+
+  float numTimescales = (float)cols / 2.f;
+  float logTimescaleIncrement = Ops<float>::log(10000.f) / (numTimescales - 1.f);
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) { // loop over blocks of rows
+    int j = bid + blockIdx.x; // blockIdx.x - row index (within block of rows)
+    if(j < rows) { // compute softmax over one row, row elements distributed over threads
+      T* outRow = out + j * cols; // pointer to row data
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          float v = (float)(j + start) * Ops<float>::exp((float)(i % (int)numTimescales) * -logTimescaleIncrement);
+          outRow[i] = (T)(i < (int)numTimescales ? Ops<float>::sin(v) : Ops<float>::cos(v));
+        }
+      }
+    }
+  }
+}
+
+void SinusoidalPositionEmbeddings(Tensor out, int start) {
+  cudaSetDevice(out->getDeviceId().no);
+
+  size_t rows = out->shape().elements() / out->shape().back();
+  size_t cols = out->shape().back();
+
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
+
+  if(out->type() == Type::float32) {
+    gSinusoidalPositionEmbeddings<float><<<blocks, threads>>>(out->data<float>(), out->shape(), start);
+#if COMPILE_FP16
+  } else if (out->type() == Type::float16) {
+    gSinusoidalPositionEmbeddings<half><<<blocks, threads>>>(out->data<half>(), out->shape(), start);
+#endif
+  } else {
+    ABORT("SinusoidalPositionEmbeddings not implemented for type {}", out->type());
+  }
+}
+
+
 // @TODO: refactor to reuse code from softmax, add comments
 template <typename T, typename AccType = float>
 __global__ void gLogSoftmax(T* out,
@@ -1398,11 +1446,12 @@ __global__ void gGRUFastBackward(T* outState,
       T* rowOutState = outState + j * cols;
       T* rowOutXW = outXW + j * cols * 3;
       T* rowOutSU = outSU + j * cols * 3;
+      T* rowOutB  = outB ? outB + j * cols * 3 : nullptr;
 
       const T* rowState = state + j * cols;
-      const T* rowXW = xW + j * cols * 3;
-      const T* rowSU = sU + j * cols * 3;
-      const T* rowAdj = adj + j * cols;
+      const T* rowXW    = xW + j * cols * 3;
+      const T* rowSU    = sU + j * cols * 3;
+      const T* rowAdj   = adj + j * cols;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
@@ -1438,7 +1487,7 @@ __global__ void gGRUFastBackward(T* outState,
           if(outSU)
             rowOutSU[i] += dfdxW_r;
           if(outB)
-            atomics::atomicAdd(outB + i, dfdxW_r); // @TODO: get rid of atomicAdd everywhere
+            rowOutB[i] += dfdxW_r;
 
           // df/d(xW_z) ...
           T dfdxW_z = m * ((T)1.f - z) * z * (rowState[i] - h) * adj;
@@ -1447,7 +1496,7 @@ __global__ void gGRUFastBackward(T* outState,
           if(outSU)
             rowOutSU[k] += dfdxW_z;
           if(outB)
-            atomics::atomicAdd(outB + k, dfdxW_z);
+            rowOutB[k] += dfdxW_z;
 
           // df/d(xW_x) ...
           T dfdxW_x = m * t * adj;
@@ -1457,16 +1506,17 @@ __global__ void gGRUFastBackward(T* outState,
             rowOutSU[l] += dfdxW_x * r;
           if(outB)
             if(final)
-              atomics::atomicAdd(outB + l, dfdxW_x * r);
+              rowOutB[l] += dfdxW_x * r;
             else
-              atomics::atomicAdd(outB + l, dfdxW_x);
+              rowOutB[l] += dfdxW_x;
         }
       }
     }
   }
 }
 
-void GRUFastBackward(std::vector<Tensor> outputs,
+void GRUFastBackward(Ptr<Allocator> allocator,
+                     std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj,
                      bool final) {
@@ -1478,12 +1528,26 @@ void GRUFastBackward(std::vector<Tensor> outputs,
   int blocks = std::min(MAX_BLOCKS, rows);
   int threads = std::min(MAX_THREADS, cols);
 
+  Tensor tempGradBias, tempOnes; 
+  MemoryPiece::PtrType tempGradBiasMemory, tempOnesMemory;
+  if(outputs[3]) {
+    Shape memShape = {rows, outputs[3]->shape()[-1]};
+
+    tempGradBiasMemory = allocator->alloc(memShape.elements() * sizeOf(outputs[3]->type()));
+    tempGradBias = TensorBase::New(tempGradBiasMemory, memShape, outputs[3]->type(), outputs[3]->getBackend());
+    tempGradBias->set(0.f);
+
+    tempOnesMemory = allocator->alloc(rows * sizeOf(outputs[3]->type()));
+    tempOnes = TensorBase::New(tempOnesMemory, Shape({1, rows}), outputs[3]->type(), outputs[3]->getBackend());
+    tempOnes->set(1.f);
+  }
+
   if(adj->type() == Type::float32) {
     gGRUFastBackward<<<blocks, threads>>>(
         outputs[0] ? outputs[0]->data<float>() : 0,        // state - adj
         outputs[1] ? outputs[1]->data<float>() : 0,        // xW - adj
         outputs[2] ? outputs[2]->data<float>() : 0,        // sU - adj
-        outputs[3] ? outputs[3]->data<float>() : 0,        // b - adj
+        outputs[3] ? tempGradBias->data<float>() : 0,      // b - adj
         inputs[0]->data<float>(),                          // state
         inputs[1]->data<float>(),                          // xW
         inputs[2]->data<float>(),                          // sU
@@ -1499,7 +1563,7 @@ void GRUFastBackward(std::vector<Tensor> outputs,
         outputs[0] ? outputs[0]->data<half>() : 0,        // state - adj
         outputs[1] ? outputs[1]->data<half>() : 0,        // xW - adj
         outputs[2] ? outputs[2]->data<half>() : 0,        // sU - adj
-        outputs[3] ? outputs[3]->data<half>() : 0,        // b - adj
+        outputs[3] ? tempGradBias->data<half>() : 0,        // b - adj
         inputs[0]->data<half>(),                          // state
         inputs[1]->data<half>(),                          // xW
         inputs[2]->data<half>(),                          // sU
@@ -1512,6 +1576,17 @@ void GRUFastBackward(std::vector<Tensor> outputs,
 #endif
   } else {
     ABORT("gGRUFastBackward not implemented for type {}", adj->type());
+  }
+
+  // We use this go get rid of the atomicAdd and perform a reduce of the gradients afterwards.
+  // This is much faster for fp16 which seems to have a broken atomicAdd implementation.
+  // We reduce bias gradients with a matrix multiply, but use a 32-bit compute type. 
+  // This preserves precision with larger batches where all batch entries reduce into a single vector.
+  // See also AffineNodeOp where we do the same for biases
+  if(outputs[3]) {
+    gpu::Prod(outputs[3], tempOnes, tempGradBias, false, false, 1, 1, Type::float32); // beta set to one to add
+    allocator->free(tempGradBiasMemory);
+    allocator->free(tempOnesMemory);
   }
 }
 

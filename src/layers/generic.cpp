@@ -52,7 +52,9 @@ namespace marian {
       auto factorMask    = constant(maskedFactoredLabels.masks);   // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
       auto factorLogits  = logits_[g];                             // [B... * Ug] label-wise loss values (not aggregated yet)
       // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
-      auto factorLoss = cast(lossFn(factorLogits->loss(), factorIndices), loss ? loss->value_type() : Type::float32); // [B... x 1]
+      auto factorLoss = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
+      if(loss)
+        factorLoss = cast(factorLoss, loss->value_type());
       factorLoss = factorLoss * cast(reshape(factorMask, factorLoss->shape()), factorLoss->value_type()); // mask out factor for words that do not have that factor
       loss = loss ? (loss + factorLoss) : factorLoss; // [B... x 1]
     }
@@ -71,9 +73,7 @@ namespace marian {
   Expr Logits::getFactoredLogits(size_t groupIndex, Ptr<data::Shortlist> shortlist /*= nullptr*/, const std::vector<IndexType>& hypIndices /*= {}*/, size_t beamSize /*= 0*/) const {
     ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
     
-    auto computeType = graph()->getDefaultElementType(); // make sure to use the right compute type here
-    // loss might be float32, cast to whatever type we are using for computation
-    auto sel = cast(logits_[groupIndex]->loss(), computeType); // [localBeamSize, 1, dimBatch, dimFactorVocab]
+    auto sel = logits_[groupIndex]->loss(); // [localBeamSize, 1, dimBatch, dimFactorVocab]
 
     // normalize for decoding:
     //  - all secondary factors: subtract their max
@@ -84,15 +84,16 @@ namespace marian {
     else {
       auto numGroups = getNumFactorGroups();
       for (size_t g = 1; g < numGroups; g++) {
-        auto factorMaxima = max(cast(logits_[g]->loss(), computeType), -1); // we cast since loss is likely ce-loss which has type float32
+        auto factorMaxima = max(logits_[g]->loss(), -1); // we cast since loss is likely ce-loss which has type float32
         auto factorMasks = constant(getFactorMasks(g, shortlist ? shortlist->indices() : std::vector<WordIndex>()));
-        sel = sel + factorMaxima * factorMasks; // those lemmas that don't have a factor get multiplied with 0
+        sel = sel + cast(factorMaxima, sel->value_type()) * cast(factorMasks, sel->value_type()); // those lemmas that don't have a factor get multiplied with 0
       }
     }
 
     // if selIdx are given, then we must reshuffle accordingly
     if (!hypIndices.empty()) // use the same function that shuffles decoder state
       sel = rnn::State::select(sel, hypIndices, (int)beamSize, /*isBatchMajor=*/false);
+    
     return sel;
   }
 

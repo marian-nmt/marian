@@ -320,6 +320,8 @@ public:
     DISPATCH_BY_TYPE2(type_, debug, precision, dispCols);
   }
 
+  size_t hash();
+
 };
 
 typedef TensorBase::PtrType Tensor;

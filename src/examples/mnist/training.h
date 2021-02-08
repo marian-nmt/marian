@@ -27,7 +27,7 @@ public:
 
     // Prepare scheduler with validators
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
-    auto scheduler = New<Scheduler>(options_, trainState);
+    auto scheduler = New<Scheduler>(options_, trainState, nullptr);
     scheduler->addValidator(New<MNISTAccuracyValidator>(options_));
 
     // Multi-node training

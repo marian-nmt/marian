@@ -82,19 +82,17 @@ void element(const Functor& functor, marian::Tensor out, Tensors... tensors) {
 template <class Functor, class... Tensors>
 void elementFloat(const Functor& functor, marian::Tensor out, Tensors... tensors) {
 #ifndef __CUDACC__
-  std::vector<marian::Tensor> ts({tensors...});
+  std::vector<marian::Tensor> ts({out, tensors...});
   bool div8 = true;
   bool div4 = true;
 
-  if(out->shape()[-1] % 8 != 0)
-    div8 = false;
-  if(out->shape()[-1] % 4 != 0)
-    div4 = false;
   for(auto t : ts) {
     if(t->shape()[-1] % 8 != 0)
       div8 = false;
-    if(t->shape()[-1] % 4 != 0)
+    if(t->shape()[-1] % 4 != 0) {
       div4 = false;
+      break;
+    }
   }
 
   if(div8) {

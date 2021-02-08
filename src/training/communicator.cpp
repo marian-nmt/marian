@@ -11,9 +11,19 @@
 
 namespace marian {
 
+ShardingMode getShardingMode(Ptr<Options> options, Ptr<IMPIWrapper> mpi) {
+  auto shardOpt = options->get<std::string>("sharding", "global");
+  if(shardOpt == "global" || !mpi || (mpi && mpi->numMPIProcesses() == 1))
+    return ShardingMode::global;
+  else if(shardOpt == "local")
+    return ShardingMode::local;
+  else
+    ABORT("Unknown sharding mode {}", shardOpt);
+}
+
 Ptr<ICommunicator> createCommunicator(
   const std::vector<Ptr<ExpressionGraph>>& graphs,
-  bool noNccl, Ptr<IMPIWrapper> mpi) {
+  bool noNccl, ShardingMode shardingMode, Ptr<IMPIWrapper> mpi) {
   mpi;
 #if defined(CUDA_FOUND) && defined(USE_NCCL)
   if(noNccl) {
@@ -38,9 +48,9 @@ Ptr<ICommunicator> createCommunicator(
   }
 
   // the actual implementation is inside communicator.cu
-  return New<NCCLCommunicator>(graphs, mpi);
+  return New<NCCLCommunicator>(graphs, shardingMode, mpi);
 #else // no CUDA or no NCCL
-  noNccl; // (unused)
+  noNccl; shardingMode; // (unused)
   return New<DefaultCommunicator>(graphs, mpi);
 #endif
 }

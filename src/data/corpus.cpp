@@ -11,16 +11,17 @@
 namespace marian {
 namespace data {
 
-Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate),
+Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/, size_t seed /*= Config:seed*/)
+    : CorpusBase(options, translate, seed),
         shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
         allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
         titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
-               Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options),
+               Ptr<Options> options,
+               size_t seed /*= Config:seed*/)
+    : CorpusBase(paths, vocabs, options, seed),
         shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
         allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
         titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}

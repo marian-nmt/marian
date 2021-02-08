@@ -354,7 +354,6 @@ template <>
 struct Ops<float32x8> {
   typedef float Single;
 
-
   static inline float32x8 loop8(const std::function<float(const float&)>& f, const float32x8& x) {
     float32x8 out;
     for(int i = 0; i < 8; i++)
@@ -471,8 +470,6 @@ struct Ops<float32x8> {
 
 #ifdef __CUDACC__
 #if COMPILE_FP16
-// only compile with fp16 support for compute_70, i.e. VOLTA 100 and above.
-#include <cuda_fp16.h>
 
 namespace marian {
 namespace functional {
@@ -490,7 +487,12 @@ struct Ops<half> {
   static DEVICE_INLINE half sqrt(const half& x) { return hsqrt(x); }
   static DEVICE_INLINE half neg(const half& x)  { return -x; }
 
-  static DEVICE_INLINE half abs(const half& x)  { return fabs((float)x); }// @TODO half has this information somewhere in the struct, right?
+#if CUDA_VERSION < 11000
+  static DEVICE_INLINE half abs(const half& x)  { return fabs((float)x); }
+#else
+  static DEVICE_INLINE half abs(const half& x)  { return __habs(x); }
+#endif
+
   static DEVICE_INLINE half sgn(const half& x)  { half zero = 0.f; return (zero < x) - (x < zero); } // @TODO half has this information somewhere in the struct, right?
 
   static DEVICE_INLINE half round(const half& x)  { return hrint(x); }
@@ -549,12 +551,11 @@ struct Ops<half> {
   }
   static DEVICE_INLINE half relu(const half& x) {
     const half zero = 0.f;
-    return x > zero ? x : zero;
+    return max(x, zero);
   }
   static DEVICE_INLINE half reluBack(const half& x) {
     const half zero = 0.f;
-    const half one =  1.f;
-    return x > zero ? one : zero;
+    return geq(x, zero);
   }
 
   static DEVICE_INLINE half prelu(const half& x, const half& y)     {
@@ -573,6 +574,118 @@ struct Ops<half> {
   static DEVICE_INLINE half sumReduce(const half& x) { return x; }
   static DEVICE_INLINE half maxReduce(const half& x) { return x; }
   static DEVICE_INLINE half minReduce(const half& x) { return x; }
+
+};
+
+// Specialization for halfx2
+template <>
+struct Ops<halfx2> {
+
+  static DEVICE_INLINE halfx2 sin(const halfx2& x)  { return h2sin(x); }
+  static DEVICE_INLINE halfx2 cos(const halfx2& x)  { return h2cos(x); }
+  static DEVICE_INLINE halfx2 tan(const halfx2& x)  { return h2sin(x) / h2cos(x); }
+  static DEVICE_INLINE halfx2 log(const halfx2& x)  { return h2log(x); }
+  static DEVICE_INLINE halfx2 exp(const halfx2& x)  { return h2exp(x); }
+  static DEVICE_INLINE halfx2 sqr(const halfx2& x)  { return __hmul2(x, x); }
+  static DEVICE_INLINE halfx2 sqrt(const halfx2& x) { return h2sqrt(x); }
+  static DEVICE_INLINE halfx2 neg(const halfx2& x)  { return __hneg2(x); }
+
+#if CUDA_VERSION < 11000
+  static DEVICE_INLINE halfx2 abs(const halfx2& x)  { return {Ops<half>::abs(x[0]), Ops<half>::abs(x[1])}; }
+#else
+  static DEVICE_INLINE halfx2 abs(const halfx2& x)  { return __habs2(x); }
+#endif
+  
+  static DEVICE_INLINE halfx2 sgn(const halfx2& x)  { halfx2 zero(0.f, 0.f); return __hsub2(__hlt2(zero, x), __hlt2(x, zero)); }
+
+  static DEVICE_INLINE halfx2 round(const halfx2& x)  { return h2rint(x); }
+  static DEVICE_INLINE halfx2 floor(const halfx2& x)  { return h2floor(x); }
+  static DEVICE_INLINE halfx2 ceil(const halfx2& x)   { return h2ceil(x); } 
+
+  static DEVICE_INLINE halfx2 add(const halfx2& x, const halfx2& y)  { return __hadd2(x, y); }
+  static DEVICE_INLINE halfx2 sub(const halfx2& x, const halfx2& y)  { return __hsub2(x, y); }
+  static DEVICE_INLINE halfx2 mul(const halfx2& x, const halfx2& y)  { return __hmul2(x, y); }
+  static DEVICE_INLINE halfx2 div(const halfx2& x, const halfx2& y)  { return __h2div(x, y); }
+
+  static DEVICE_INLINE halfx2 pow(const halfx2& x, const halfx2& y)  { return exp(mul(y, log(x))); }
+
+  // Neural Networks specific functions
+  // @TODO: this is unsafe
+  static DEVICE_INLINE halfx2 sigmoid(const halfx2& x) {
+    halfx2 e = exp(x);
+    halfx2 one(1.f, 1.f);
+    return div(e, add(one, e));
+  }
+
+  static DEVICE_INLINE halfx2 tanh(const halfx2& x) {
+    // tanh(x) = 2 * sigmoid(2 * x) - 1
+    const halfx2 one(1.f);
+    const halfx2 two(2.f);
+    return sub(mul(two, sigmoid(mul(two, x))), one); 
+  }
+
+  static DEVICE_INLINE halfx2 max(const halfx2& x, const halfx2& y)  { 
+    return { Ops<half>::max(x[0], y[0]), Ops<half>::max(x[1], y[1]) }; 
+  }
+
+  static DEVICE_INLINE halfx2 min(const halfx2& x, const halfx2& y)  { 
+    return { Ops<half>::min(x[0], y[0]), Ops<half>::min(x[1], y[1]) }; 
+  }
+  
+  static DEVICE_INLINE halfx2 negate(const halfx2& x)  { return { Ops<half>::negate(x[0]), Ops<half>::negate(x[1]) }; }
+  static DEVICE_INLINE halfx2 eq(const halfx2& x, const halfx2& y)   { return __heq2(x, y); }
+  static DEVICE_INLINE halfx2 neq(const halfx2& x, const halfx2& y)  { return __hne2(x, y); }
+  static DEVICE_INLINE halfx2 gt(const halfx2& x, const halfx2& y)   { return __hgt2(x, y); }
+  static DEVICE_INLINE halfx2 lt(const halfx2& x, const halfx2& y)   { return __hlt2(x, y); }
+  static DEVICE_INLINE halfx2 geq(const halfx2& x, const halfx2& y)  { return __hge2(x, y); }
+  static DEVICE_INLINE halfx2 leq(const halfx2& x, const halfx2& y)  { return __hle2(x, y); }
+  static DEVICE_INLINE halfx2 and_(const halfx2& x, const halfx2& y) { return {x[0] && y[0], x[1] && y[1]}; } // 'and' is used by gcc
+  static DEVICE_INLINE halfx2 or_(const halfx2& x, const halfx2& y)  { return {x[0] || y[0], x[1] || y[1]}; } // 'or' is used by gcc
+  
+  static DEVICE_INLINE halfx2 log1p(const halfx2& x) {
+    return log(add(x, halfx2(1.f))); // probably acceptable loss of precision, it's half anyway
+  }
+
+  static DEVICE_INLINE halfx2 if_then_else(const halfx2& x, const halfx2& y, const halfx2& z) { 
+    return {x[0] ? y[0] : z[0], x[1] ? y[1] : z[1]}; 
+  }
+
+  static DEVICE_INLINE halfx2 logaddexp(const halfx2& x, const halfx2& y) {
+    // Note: This may not be ideal for CUDA; cf. CNTK implementation
+    auto a = add(y, log1p(exp(sub(x, y)))); 
+    auto b = add(x, log1p(exp(sub(y, x))));
+    return if_then_else(lt(x, y), a, b);
+  }
+
+  static DEVICE_INLINE halfx2 clip(const halfx2& x, const halfx2& y)  { 
+    return if_then_else(geq(abs(x), y), mul(sgn(x), y), x); 
+  }
+
+  // derivative of Clip, cut-off function
+  static DEVICE_INLINE halfx2 bump(const halfx2& x, const halfx2& y)  {
+    const halfx2 zero(0.f);
+    const halfx2 one(1.f);
+    return if_then_else(geq(abs(x), y), zero, one);
+  }
+  static DEVICE_INLINE halfx2 relu(const halfx2& x) {
+    const halfx2 zero(0.f);
+    return max(x, zero);
+  }
+  static DEVICE_INLINE halfx2 reluBack(const halfx2& x) {
+    const halfx2 zero(0.f);
+    return geq(x, zero);
+  }
+
+  static DEVICE_INLINE halfx2 prelu(const halfx2& x, const halfx2& y)     {
+    const halfx2 zero(0.f);
+    return if_then_else(gt(x, zero), x , mul(x, y));
+  }
+
+  static DEVICE_INLINE halfx2 preluBack(const halfx2& x, const halfx2& y) {
+    const halfx2 zero(0.f);
+    const halfx2 one(1.f);
+    return if_then_else(gt(x, zero), one, y);
+  }
 
 };
 

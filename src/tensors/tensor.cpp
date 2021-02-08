@@ -138,5 +138,14 @@ void TensorBase::set(const io::Item& item) {
        memory_->data<char>());
 }
 
+size_t TensorBase::hash() {
+  io::Item temp;
+  size_t seed = 0;
+  get(temp, "temp");
+  for(auto c : temp.bytes)
+    util::hash_combine(seed, c);
+  return seed;
+}
+
 }  // namespace marian
 

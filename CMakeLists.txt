@@ -273,53 +273,61 @@ if(CUDA_FOUND)
   # We want to compile as many targets as possible but different CUDA versions support different targets.
   # Let's instead enable options based on what cuda version we have.
   if((CUDA_VERSION VERSION_EQUAL "9.0" OR CUDA_VERSION VERSION_GREATER "9.0") AND CUDA_VERSION VERSION_LESS "11.0")
-    option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" ON)
-    option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" ON)
-    option(COMPILE_CUDA_SM60 "Compile GPU version with SM60 support" ON)
-    option(COMPILE_CUDA_SM70 "Compile GPU version with SM70 support" ON)
+    option(COMPILE_KEPLER  "Compile GPU version with SM35 support" OFF)
+    option(COMPILE_MAXWELL "Compile GPU version with SM50 support" OFF)
+    option(COMPILE_PASCAL  "Compile GPU version with SM60 support" ON)
+    option(COMPILE_VOLTA   "Compile GPU version with SM70 support" ON)
   endif()
   if((CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0") AND CUDA_VERSION VERSION_LESS "11.0")
-    option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" ON)
-    option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" ON)
-    option(COMPILE_CUDA_SM60 "Compile GPU version with SM60 support" ON)
-    option(COMPILE_CUDA_SM70 "Compile GPU version with SM70 support" ON)
-    option(COMPILE_CUDA_SM75 "Compile GPU version with SM75 support" ON)
+    option(COMPILE_KEPLER  "Compile GPU version with SM35 support" OFF)
+    option(COMPILE_MAXWELL "Compile GPU version with SM50 support" OFF)
+    option(COMPILE_PASCAL  "Compile GPU version with SM60 support" ON)
+    option(COMPILE_VOLTA   "Compile GPU version with SM70 support" ON)
+    option(COMPILE_TURING  "Compile GPU version with SM75 support" ON)
   endif()
   if(CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0")
-    option(COMPILE_CUDA_SM35 "Compile GPU version with SM35 support" OFF) # deprecated for CUDA 11
-    option(COMPILE_CUDA_SM50 "Compile GPU version with SM50 support" OFF) # deprecated for CUDA 11
-    option(COMPILE_CUDA_SM60 "Compile GPU version with SM60 support" ON)
-    option(COMPILE_CUDA_SM70 "Compile GPU version with SM70 support" ON)
-    option(COMPILE_CUDA_SM75 "Compile GPU version with SM75 support" ON)
-    option(COMPILE_CUDA_SM80 "Compile GPU version with SM80 support" ON)
+    option(COMPILE_KEPLER  "Compile GPU version with SM35 support" OFF) # deprecated for CUDA 11
+    option(COMPILE_MAXWELL "Compile GPU version with SM50 support" OFF) # deprecated for CUDA 11
+    option(COMPILE_PASCAL  "Compile GPU version with SM60 support" ON)
+    option(COMPILE_VOLTA   "Compile GPU version with SM70 support" ON)
+    option(COMPILE_TURING  "Compile GPU version with SM75 support" ON)
+    option(COMPILE_AMPERE  "Compile GPU version with SM80 support" ON)
+    LIST(APPEND COMPUTE -Wno-deprecated-gpu-targets)
   endif()
 
-  if(COMPILE_CUDA_SM35)
-    LIST(APPEND COMPUTE -arch=sm_35; -gencode=arch=compute_35,code=sm_35;)                             # Tesla K40 and above
-  endif(COMPILE_CUDA_SM35)
-  if(COMPILE_CUDA_SM50)
+  if(COMPILE_KEPLER)
+    message(STATUS "Compiling code for Kepler GPUs")
+    LIST(APPEND COMPUTE -gencode=arch=compute_35,code=sm_35;) # Tesla K40 and above
+  endif(COMPILE_KEPLER)
+  if(COMPILE_MAXWELL)
+    message(STATUS "Compiling code for Maxwell GPUs")
     LIST(APPEND COMPUTE -gencode=arch=compute_50,code=sm_50; -gencode=arch=compute_52,code=sm_52;)     # Maxwell GPUs
-  endif(COMPILE_CUDA_SM50)
-  if(COMPILE_CUDA_SM60)
+  endif(COMPILE_MAXWELL)
+  if(COMPILE_PASCAL)
+    message(STATUS "Compiling code for Pascal GPUs")
     LIST(APPEND COMPUTE -gencode=arch=compute_60,code=sm_60; -gencode=arch=compute_61,code=sm_61;)     # Pascal GPUs
-  endif(COMPILE_CUDA_SM60)
-  if(COMPILE_CUDA_SM70)
-    LIST(APPEND COMPUTE -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70) # Volta GPUs
-  endif(COMPILE_CUDA_SM70)
+  endif(COMPILE_PASCAL)
+  if(COMPILE_VOLTA)
+    message(STATUS "Compiling code for Volta GPUs")
+    LIST(APPEND COMPUTE -arch=sm_70; -gencode=arch=compute_70,code=sm_70; -gencode=arch=compute_70,code=compute_70) # Volta GPUs
+  endif(COMPILE_VOLTA)
   if(CUDA_VERSION VERSION_EQUAL "10.0" OR CUDA_VERSION VERSION_GREATER "10.0")
-    if(COMPILE_CUDA_SM75)
+    if(COMPILE_TURING)
+        message(STATUS "Compiling code for Turing GPUs")
         LIST(APPEND COMPUTE -gencode=arch=compute_75,code=sm_75; -gencode=arch=compute_75,code=compute_75) # Turing GPUs
-    endif(COMPILE_CUDA_SM75)
+    endif(COMPILE_TURING)
   endif()
   if(CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0")
-    if(COMPILE_CUDA_SM80)
+    if(COMPILE_AMPERE)
+        message(STATUS "Compiling code for Ampere GPUs")
         LIST(APPEND COMPUTE -gencode=arch=compute_80,code=sm_80; -gencode=arch=compute_80,code=compute_80) # Ampere GPUs
-    endif(COMPILE_CUDA_SM80)
+    endif(COMPILE_AMPERE)
   endif()
 
   if(USE_STATIC_LIBS)
-    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
-    set(CUDA_LIBS ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
+    set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusparse_LIBRARY})
+    set(CUDA_LIBS ${CUDA_curand_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusparse_LIBRARY})
+    
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64)
     # The cuLIBOS library does not seem to exist in Windows CUDA toolkit installs
     if(CUDA_culibos_LIBRARY)
@@ -425,17 +433,6 @@ if(NOT WIN32)
 endif()
 
 ###############################################################################
-# Find MPI
-if(USE_MPI)
-  find_package(MPI 2.0)
-  if(MPI_FOUND)
-    include_directories(${MPI_INCLUDE_PATH})
-    set(EXT_LIBS ${EXT_LIBS} ${MPI_LIBRARIES})
-    add_definitions(-DMPI_FOUND=1)
-  endif(MPI_FOUND)
-endif(USE_MPI)
-
-###############################################################################
 # Find BLAS library
 if(COMPILE_CPU)
   if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
@@ -513,7 +510,7 @@ if(USE_MPI)
   find_package(MPI 2.0 REQUIRED)
   if(MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
-    set(EXT_LIBS "${EXT_LIBS} ${MPI_LIBRARIES}")
+    set(EXT_LIBS ${EXT_LIBS} ${MPI_LIBRARIES})
     if(USE_STATIC_LIBS) # alternatively this could install OpenMPI like NCCL and link against that statically with greater control
       message(WARNING "MPI implementations are notoriously difficult to link statically, linking ${MPI_LIBRARIES} dynamically despite -DUSE_STATIC_LIBS=on")
     endif(USE_STATIC_LIBS)

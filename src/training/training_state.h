@@ -49,7 +49,7 @@ struct SchedulingParameter {
     }
     double number = utils::parseNumber(param);
     res.n = (size_t)number;
-    ABORT_IF(number != (double)res.n, "Scheduling parameters must be whole numbers");
+    ABORT_IF(number != (double)res.n, "Scheduling parameters must be whole numbers"); // @TODO: do they?
     return res;
   }
 
@@ -100,6 +100,7 @@ public:
   }
   // State-based multiplication factor for learning rate
   float factor{1.f};
+  // @TODO: should also have warmup period here?
   SchedulingParameter warmupStart; // has same unit as lr-warmup
 
   // Sum of costs since last display
@@ -265,6 +266,7 @@ public:
 
     eta = config["eta"].as<float>();
     factor = config["eta-factor"].as<float>();
+
     warmupStart = SchedulingParameter::parse(config["warmup-start"].as<std::string>());
 
     costSum = config["cost-sum"].as<float>();

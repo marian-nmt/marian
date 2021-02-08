@@ -13,12 +13,19 @@ private:
   size_t beamSize_;
   Ptr<const Vocab> trgVocab_;
 
-  const float INVALID_PATH_SCORE = std::numeric_limits<float>::lowest(); // @TODO: observe this closely
+  const float INVALID_PATH_SCORE;
   const bool PURGE_BATCH = true; // @TODO: diagnostic, to-be-removed once confirmed there are no issues.
+
+  static float chooseInvalidPathScore(Ptr<Options> options) {
+    auto prec = options->get<std::vector<std::string>>("precision", {"float32"});
+    auto computeType = typeFromString(prec[0]);
+    return NumericLimits<float>(computeType).lowest;
+  }
 
 public:
   BeamSearch(Ptr<Options> options, const std::vector<Ptr<Scorer>>& scorers, const Ptr<const Vocab> trgVocab)
-      : options_(options), scorers_(scorers), beamSize_(options_->get<size_t>("beam-size")), trgVocab_(trgVocab)
+      : options_(options), scorers_(scorers), beamSize_(options_->get<size_t>("beam-size")), trgVocab_(trgVocab),
+        INVALID_PATH_SCORE{chooseInvalidPathScore(options)}
   {}
 
   // combine new expandedPathScores and previous beams into new set of beams

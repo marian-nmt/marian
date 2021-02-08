@@ -787,9 +787,17 @@ void ConfigParser::addSuboptionsDevices(cli::CLIWrapper& cli) {
   cli.add<size_t>("--num-devices",
       "Number of GPUs to use for this process. Defaults to length(devices) or 1");
 #ifdef USE_NCCL
-  if(mode_ == cli::mode::training)
+  if(mode_ == cli::mode::training) {
     cli.add<bool>("--no-nccl",
       "Disable inter-GPU communication via NCCL");
+    cli.add<std::string>("--sharding",
+      "When using NCCL and MPI for multi-process training use 'global' (default, less memory usage) "
+      "or 'local' (more memory usage but faster) sharding",
+      {"global"});
+    cli.add<std::string/*SchedulerPeriod*/>("--sync-freq",
+      "When sharding is local sync all shards across processes once every n steps (possible units u=updates, t=target labels, e=epochs)",
+      "200u");
+  }
 #endif
 #ifdef CUDA_FOUND
   cli.add<size_t>("--cpu-threads",

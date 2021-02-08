@@ -16,11 +16,10 @@ inline marian::Shape adapt(const marian::Shape& shape) {
   return shape;
 }
 
-// modify last shape dimension to automatically map to a larger stride. We are moving now by 4 floats
-// at once and need to stop earlier. This is a shallow typecast to bascially an array of 4 floats.
-
 #ifndef __CUDACC__ // vectorized types not available from .cu files
 
+// modify last shape dimension to automatically map to a larger stride. We are moving now by 4 floats
+// at once and need to stop earlier. This is a shallow typecast to bascially an array of 4 floats.
 template <>
 inline marian::Shape adapt<float32x4>(const marian::Shape& shape) {
   ABORT_IF(shape[-1] % 4 != 0,
@@ -31,7 +30,9 @@ inline marian::Shape adapt<float32x4>(const marian::Shape& shape) {
   x4Shape.set(-1, shape[-1] / 4);
   return x4Shape;
 }
+
 #ifdef __AVX__
+// as above, but for a stride of 8, since we are processing 8 floats at once
 template <>
 inline marian::Shape adapt<float32x8>(const marian::Shape& shape) {
   ABORT_IF(shape[-1] % 8 != 0,
@@ -43,6 +44,20 @@ inline marian::Shape adapt<float32x8>(const marian::Shape& shape) {
   return x8Shape;
 }
 #endif
+#endif
+
+#if COMPILE_FP16
+// as above, but for a stride of 2, since we are processing 2 half floats at once. Works on GPU.
+template <>
+inline marian::Shape adapt<halfx2>(const marian::Shape& shape) {
+  ABORT_IF(shape[-1] % 2 != 0,
+           "Last dim ({}) is not a multiple of 2 while converting to Tensor<halfx2>",
+           shape[-1]);
+
+  marian::Shape x2Shape = shape;
+  x2Shape.set(-1, shape[-1] / 2);
+  return x2Shape;
+}
 #endif
 
 template <typename T, const int D>

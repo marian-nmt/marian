@@ -188,7 +188,7 @@ void OptimizerBase::load(std::vector<io::Item>& items,
             if(!opt->baseAlloc_) {
               LOG_ONCE(info, "Allocating memory for general optimizer shards");
               opt->baseAlloc_ = New<TensorAllocator>(backends[localDeviceIndex]);
-              opt->baseAlloc_->reserveExact(numShards * size);
+              opt->baseAlloc_->reserveExact(std::vector<size_t>(numShards, size));
             }
             int elements = (int)size / (int)sizeOf(iAvg.type);
             opt->baseAlloc_->allocate(opt->avg_, {1, elements}, iAvg.type);
@@ -371,8 +371,11 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize) {
 
   double T = 1, Tref = 1;
   if(OptimizerBase::refMBWordsParam_ > 0) {
-    T    = (double)actualMBSize;
-    Tref = (double)refMBWordsParam_;
+    T = (double)actualMBSize;
+    if(actualMBSize > refBatchTrgWords_)
+      Tref = (double)refMBWordsParam_;
+    else 
+      Tref = T;
   }
 
   // adjust for minibatch-size changes if Adam parameters are given a reference size (else do nothing)
@@ -396,8 +399,18 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize) {
 
   // numerators. Divide by T to convert ce-sum gradient to avg gradient.
   using namespace functional;
+#if 0 // why the division by T or T^2 here? It's T=1 without mb-ref anyway and we have the adjustment above, also converges a lot(!) slower with T != 1
   Element(_1 = ((float)beta1 * _1) + float((1 - beta1) / T    ) *  _2,       mt_, grads); // momentum smoothing. At steady state: =smoothed avg gradient
   Element(_1 = ((float)beta2 * _1) + float((1 - beta2) / T / T) * (_2 * _2), vt_, grads); // RMS normalization.  At steady state: =mean square of the avg gradients
+#else
+  Element(_1 = ((float)beta1 * _1) + float((1 - beta1)) *  _2,       mt_, grads); // momentum smoothing. At steady state: =smoothed avg gradient
+  Element(_1 = ((float)beta2 * _1) + float((1 - beta2)) * (_2 * _2), vt_, grads); // RMS normalization.  At steady state: =mean square of the avg gradients
+#endif
+
+  // make sure eps_ does not drop below minimum value, this is important
+  // when training with mixed precision. Otherwise we divide by 0.
+  // We multiply the minimum by 2 in order to step away from the abyss.
+  eps_ = std::max(NumericLimits<float>(params->type()).min * 2.f, eps_);
 
   // make sure eps_ does not drop below minimum value, this is important
   // when training with mixed precision. Otherwise we divide by 0.
@@ -409,7 +422,7 @@ void Adam::updateImpl(Tensor params, Tensor grads, size_t actualMBSize) {
   Element(_1 -= etaf                               // learning-rate: x_t = x_{t-1} - \eta * (...)
                 * ((  (     _2 / denom1f)          // momentum-smoothed per-sample gradient: m_{t-1}
                     / (sqrt(_3 / denom2f) + eps_)) // normalize by RMS: \sqrt(v_{t-1})
-                   + decayf * _1),                 // weight-decay: w * x_{t-1}
+                   + (decayf * _1)),                 // weight-decay: w * x_{t-1}
           params,  // =_1
           mt_,     // =_2
           vt_      // =_3
@@ -476,8 +489,8 @@ void Adam::load(std::vector<io::Item>& items,
     });
 
   scatterFn(iVt,
-    [&](size_t id, const char* begin, const char* end) {
-      auto opt = std::dynamic_pointer_cast<Adam>(opts[id]);
+    [&](size_t localDeviceIndex, const char* begin, const char* end) {
+      auto opt = std::dynamic_pointer_cast<Adam>(opts[localDeviceIndex]);
       opt->vt_->set(begin, end, iVt.type);
     });
 }

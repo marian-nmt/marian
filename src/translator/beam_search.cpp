@@ -419,10 +419,9 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
           //      factoredVocab ? factoredVocab->word2string(prevWords[kk]) : (*batch->back()->vocab())[prevWords[kk]],
           //      prevScores[kk]);
           states[i] = scorers_[i]->step(graph, states[i], hypIndices, prevWords, batchIndices, (int)maxBeamSize);
-          if (numFactorGroups == 1) // @TODO: this branch can go away
+          if (numFactorGroups == 1) { // @TODO: this branch can go away
             logProbs = states[i]->getLogProbs().getLogits(); // [maxBeamSize, 1, currentDimBatch, dimVocab]
-          else
-          {
+          } else {
             auto shortlist = scorers_[i]->getShortlist();
             logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, shortlist); // [maxBeamSize, 1, currentDimBatch, dimVocab]
           }

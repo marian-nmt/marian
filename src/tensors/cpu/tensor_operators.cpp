@@ -20,7 +20,7 @@ namespace marian {
 
 namespace cpu {
 
-  void IsNaN(const Tensor /*in*/, Ptr<Allocator> /*allocator*/, bool& /*isNaN*/, bool& /*isInf*/) {
+void IsNaN(const Tensor /*in*/, Ptr<Allocator> /*allocator*/, bool& /*isNaN*/, bool& /*isInf*/) {
   ABORT("Not implemented");
 }
 
@@ -802,7 +802,8 @@ void GRUFastForward(Tensor out_, std::vector<Tensor> inputs, bool final) {
   }
 }
 
-void GRUFastBackward(std::vector<Tensor> outputs,
+void GRUFastBackward(Ptr<Allocator> /*allocator*/,
+                     std::vector<Tensor> outputs,
                      std::vector<Tensor> inputs,
                      Tensor adj_,
                      bool final) {
@@ -1548,6 +1549,21 @@ void LSTMOutputBackward(std::vector<Tensor> outputs,
       if(outB) {
         outB[k] += dcdxo;
       }
+    }
+  }
+}
+
+void SinusoidalPositionEmbeddings(marian::Tensor t, int start) {
+  int dimEmb   = t->shape()[-1];
+  int dimWords = (int)t->size() / dimEmb;
+
+  float numTimescales = (float)dimEmb / 2;
+  float logTimescaleIncrement = std::log(10000.f) / (numTimescales - 1.f);
+
+  for(int j = 0; j < dimWords; ++j) {
+    for(int i = 0; i < dimEmb; ++i) {
+      float v = (j + start) * std::exp((i % (int)numTimescales) * -logTimescaleIncrement);
+      t->data()[j * dimEmb + i] = i < (int)numTimescales ? std::sin(v) : std::cos(v);
     }
   }
 }

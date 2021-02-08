@@ -33,14 +33,15 @@ public:
     }
 
     Ptr<CorpusBase> dataset;
+    auto corpusSeed = Config::seed + (mpi ? mpi->myMPIRank() : 0); // @BUGBUG: no correct resume right now
     if(!options_->get<std::string>("sqlite").empty())
 #ifndef _MSC_VER // @TODO: include SqLite in Visual Studio project
-      dataset = New<CorpusSQLite>(options_);
+      dataset = New<CorpusSQLite>(options_, /*translate=*/false, corpusSeed);
 #else
       ABORT("SqLite presently not supported on Windows");
 #endif
     else
-      dataset = New<Corpus>(options_);
+      dataset = New<Corpus>(options_, /*translate=*/false, corpusSeed);
 
     dataset->prepare();
 
@@ -56,7 +57,7 @@ public:
       // use temporary scheduler to make sure everything gets destroyed properly
       // otherwise the scheduler believes that registered objects still exist
       auto tempTrainState = New<TrainingState>(options_->get<float>("learn-rate"));
-      auto tempScheduler = New<Scheduler>(options_, tempTrainState);
+      auto tempScheduler = New<Scheduler>(options_, tempTrainState, mpi);
 
       model->setScheduler(tempScheduler); // collectStats() needs to know about dynamic MB scaling
       stats = model->collectStats(dataset->getVocabs());
@@ -64,7 +65,7 @@ public:
     }
 
     auto trainState = New<TrainingState>(options_->get<float>("learn-rate"));
-    auto scheduler = New<Scheduler>(options_, trainState);
+    auto scheduler = New<Scheduler>(options_, trainState, mpi);
 
     if((options_->hasAndNotEmpty("valid-sets") || options_->hasAndNotEmpty("valid-script-path"))
        && SchedulingParameter::parse(options_->get<std::string>("valid-freq"))) {
@@ -113,7 +114,8 @@ public:
       model->save(true);
 
     // Signal success to a potential MPI runner
-    model = nullptr; // release any reference to MPI that model may hold
+    model = nullptr;     // release any reference to MPI that model may hold
+    scheduler = nullptr; // as above
     finalizeMPI(std::move(mpi));
   }
 };

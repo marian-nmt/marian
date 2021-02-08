@@ -42,8 +42,8 @@ public:
                          Ptr<const TrainingState> state) = 0;
   virtual std::string type() = 0;
 
-  float lastBest() { return lastBest_; }
-  size_t stalled() { return stalled_; }
+  float& lastBest() { return lastBest_; }
+  size_t& stalled() { return stalled_; }
 
   virtual float initScore();
   virtual void actAfterLoaded(TrainingState& state) override;

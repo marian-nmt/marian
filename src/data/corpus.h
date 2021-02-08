@@ -34,11 +34,14 @@ private:
 
 public:
   // @TODO: check if translate can be replaced by an option in options
-  Corpus(Ptr<Options> options, bool translate = false);
+  Corpus(Ptr<Options> options, 
+         bool translate = false, 
+         size_t seed = Config::seed);
 
   Corpus(std::vector<std::string> paths,
          std::vector<Ptr<Vocab>> vocabs,
-         Ptr<Options> options);
+         Ptr<Options> options,
+         size_t seed = Config::seed);
 
   /**
    * @brief Iterates sentence tuples in the corpus.

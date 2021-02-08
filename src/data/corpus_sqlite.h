@@ -44,11 +44,12 @@ private:
 
 public:
   // @TODO: check if translate can be replaced by an option in options
-  CorpusSQLite(Ptr<Options> options, bool translate = false);
+  CorpusSQLite(Ptr<Options> options, bool translate = false, size_t seed = Config::seed);
 
   CorpusSQLite(const std::vector<std::string>& paths,
                const std::vector<Ptr<Vocab>>& vocabs,
-               Ptr<Options> options);
+               Ptr<Options> options,
+               size_t seed = Config::seed);
 
   Sample next() override;
 

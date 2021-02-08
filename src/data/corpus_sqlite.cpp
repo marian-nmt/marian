@@ -5,15 +5,15 @@
 namespace marian {
 namespace data {
 
-CorpusSQLite::CorpusSQLite(Ptr<Options> options, bool translate /*= false*/)
-    : CorpusBase(options, translate), seed_(Config::seed) {
+CorpusSQLite::CorpusSQLite(Ptr<Options> options, bool translate /*= false*/, size_t seed /*= Config:seed*/)
+    : CorpusBase(options, translate, seed), seed_(seed) {
   fillSQLite();
 }
 
 CorpusSQLite::CorpusSQLite(const std::vector<std::string>& paths,
                            const std::vector<Ptr<Vocab>>& vocabs,
-                           Ptr<Options> options)
-    : CorpusBase(paths, vocabs, options), seed_(Config::seed) {
+                           Ptr<Options> options, size_t seed)
+    : CorpusBase(paths, vocabs, options, seed), seed_(seed) {
   fillSQLite();
 }
 

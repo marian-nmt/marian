@@ -35,8 +35,9 @@ const SentenceTuple& CorpusIterator::dereference() const {
 // weighting.
 CorpusBase::CorpusBase(const std::vector<std::string>& paths,
                        const std::vector<Ptr<Vocab>>& vocabs,
-                       Ptr<Options> options)
-    : DatasetBase(paths, options),
+                       Ptr<Options> options,
+                       size_t seed)
+    : DatasetBase(paths, options), RNGEngine(seed),
       vocabs_(vocabs),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
@@ -61,8 +62,8 @@ CorpusBase::CorpusBase(const std::vector<std::string>& paths,
   initEOS(/*training=*/true);
 }
 
-CorpusBase::CorpusBase(Ptr<Options> options, bool translate)
-    : DatasetBase(options),
+CorpusBase::CorpusBase(Ptr<Options> options, bool translate, size_t seed)
+    : DatasetBase(options), RNGEngine(seed),
       maxLength_(options_->get<size_t>("max-length")),
       maxLengthCrop_(options_->get<bool>("max-length-crop")),
       rightLeft_(options_->get<bool>("right-left")),

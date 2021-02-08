@@ -31,7 +31,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
         outputs.push_back(nullptr);
     }
 
-    return {NodeOp(GRUFastBackward(outputs, inputs, adj_, final_))};
+    return {NodeOp(GRUFastBackward(graph()->allocator(), outputs, inputs, adj_, final_))};
   }
 
   // do not check if node is trainable

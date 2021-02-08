@@ -610,9 +610,9 @@ void SacreBleuValidator::updateStats(std::vector<float>& stats,
     ref.push_back(w);
   }
 
-  LOG_VALID_ONCE(info, "[valid] First sentence's tokens as scored:");
-  LOG_VALID_ONCE(info, "[valid]   Hyp: {}", utils::join(decode(cand, /*addEOS=*/false)));
-  LOG_VALID_ONCE(info, "[valid]   Ref: {}", utils::join(decode(ref,  /*addEOS=*/false)));
+  LOG_VALID_ONCE(info, "First sentence's tokens as scored:");
+  LOG_VALID_ONCE(info, "  Hyp: {}", utils::join(decode(cand, /*addEOS=*/false)));
+  LOG_VALID_ONCE(info, "  Ref: {}", utils::join(decode(ref,  /*addEOS=*/false)));
   
   if(useWordIds_)
     updateStats(stats, cand, ref);

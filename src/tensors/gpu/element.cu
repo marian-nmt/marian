@@ -65,7 +65,13 @@ void Element(Functor functor, Tensor out, Tensors... tensors) {
     ElementTyped<float>(functor, out, tensors...);
   } else if(out->type() == Type::float16) {
 #if COMPILE_FP16
-    ElementTyped<__half>(functor, out, tensors...);
+    std::vector<marian::Tensor> ts({out, tensors...});
+    bool div2 = std::all_of(ts.cbegin(), ts.cend(), [](marian::Tensor t){ return t->shape()[-1] % 2 == 0; });
+    if(div2) {
+      ElementTyped<halfx2>(functor, out, tensors...);
+    } else {
+      ElementTyped<half>(functor, out, tensors...);
+    }
 #else
     ABORT("FP16 not supported with chosen current hardware or CUDA version");
 #endif

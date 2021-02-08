@@ -47,6 +47,7 @@ protected:
   Ptr<IMPIWrapper> mpi_;    // [not null] all MPI-like communication goes through this (this is a dummy implementation if no MPI run)
 
   std::vector<DeviceId> devices_;                   // [deviceIndex]
+  ShardingMode shardingMode_{ShardingMode::global}; // If local and multi-node training, shard only on local devices and do full sync (faster). If global shard across entire set of GPUs (more RAM). 
   
   // common for all graph groups, individual graph groups decide how to fill them
   std::vector<Ptr<ExpressionGraph>> graphs_;            // [deviceIndex]
@@ -114,7 +115,7 @@ private:
 public:
   void swapWithSmoothed();
 
-  bool isMainProcess() const { return mpi_->myMPIRank() == 0; } // (we need this test a few times)
+  bool isMainProcess() const { return mpi_->isMainProcess(); } // (we need this test a few times)
   void barrier() const { mpi_->barrier(); } // (we need this several times)
 
   void validate();

@@ -6,6 +6,7 @@ GraphGroup::GraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
   : options_(options),
     mpi_(mpi),
     devices_(Config::getDevices(options, mpi->myMPIRank(), mpi->numMPIProcesses())),
+    shardingMode_(getShardingMode(options_, mpi)),
     mbRoundUp_(options_->get<bool>("mini-batch-round-up", true)) {
   if(options_->hasAndNotEmpty("cost-scaling")) {
     auto vcs = options_->get<std::vector<std::string>>("cost-scaling");
@@ -53,7 +54,11 @@ GraphGroup::GraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
   // Note: We may well end up with only one MPI process or only one graph per worker.
   // This part of the code will not special-case any of this here.
   // Rather, it is assumed that the communicator knows to reduce unnecessary transfers to no-ops.
-  comm_ = createCommunicator(graphs_, /*noNccl=*/options_->get<bool>("no-nccl", false), /*mpi=*/mpi_);
+  // @TODO: createCommunicator(options, ...)
+  comm_ = createCommunicator(graphs_,
+                             /*noNccl=*/options_->get<bool>("no-nccl", false),
+                             shardingMode_,
+                             /*mpi=*/mpi_);
 
   auto formattedDeviceType = utils::utf8ToUpper(devices_.front().typeAsString()) + "s";
   if (mpi_->numMPIProcesses() > 1)
@@ -76,9 +81,10 @@ void GraphGroup::initGraphsAndOpts() {
     if(options_->get<bool>("check-nan")) // @TODO: add to other places
       graph->setThrowNaN(true);
 
-    graph->setDevice(device);  
+    graph->setDevice(device);
+    
     graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
-  
+
     graphs_.push_back(graph);
 
     optimizerShards_.push_back(Optimizer(options_));
@@ -172,15 +178,19 @@ float GraphGroup::executeAndCollectNorm(const std::function<float(size_t, size_t
   if(mpi_) { // accumulate gradientNorm from subprocesses
     auto gradNormSquared = gradNorm * gradNorm; // undo sqrt
     mpi_->allReduce(&gradNormSquared, &gradNormSquared, 1, MPI_FLOAT, MPI_SUM); // sum all
+    
+    if(shardingMode_ == ShardingMode::local) // we already have the correct norm on one device, but we also need to check for NaN
+      gradNormSquared /= (float)mpi_->numMPIProcesses();
+    
     gradNorm = std::sqrt(gradNormSquared); // redo sqrt
   }
   return gradNorm;
 }
 
 /**
- * This function computes a normalization factor that is applied to the gradient before an update.
+ * This function computes are normalization factor that is applied to the gradient before an update.
  * Depending on various settings this will return a normalizer that can perform a combination of:
- * - apply a cost-scaling factor if cost-scaling is enabled
+ * - apply a cost scaling factor if cost scaling is enabled
  * - normalize the gradient by the number of words in a batch if requested (turning ce-sum in to ce-mean). @TODO: once fp16 stability issues are proven to not be caused by this, remove.
  * - re-scale the gradient based on a dynamic running average of gradient norms
  */
@@ -253,23 +263,21 @@ void GraphGroup::load(const OptimizerBase::ScatterStateFunc& scatterFn) {
   /*
   if not no-reload (=> i.e. do reload):
     restore scheduler
-    if checkpoint is available:
+    if checkpoint is available or not no-reload-checkpoint:
       reload from checkpoint
     else if model is available:
       reload from model, but warn that no checkpoint was used and the model could be smoothed
-    else if pretrained-model path given:
-      initialize matching weights from pretrained model
+  else if pretrained-model path given:
+    initialize matching weights from pretrained model
   else:
     (implicitly) don't do anything => initialize randomly later
   */
-
   if(!options_->get<bool>("no-reload")) {
     std::string modelFileName = options_->get<std::string>("model");
 
     if(filesystem::exists(modelFileName)) {
       if(scheduler_)
         scheduler_->load(modelFileName);
-
       // we just load it N times from disk (it'll be in disk cache after the first)
       // this also allocates memory correctly when calling forward() inside restoreFromCheckPoint
       size_t i = 0;
@@ -307,6 +315,13 @@ bool GraphGroup::restoreFromCheckpoint(const std::string& modelFileName,
   }
 
   auto items = io::loadItems(checkpointName);
+  
+  // make sure all nodes see the same checkpoint data, may not be the case with distributed file systems
+  // when there was a delay in updating the caches accross nodes. So here node 0 sends its data to all.
+  // We still load them all from disk, but that serves more as a trick to allocate the correct memory.
+  if(mpi_)
+    for(auto& item : items)
+      mpi_->bCast(item);
 
   // @TODO: probably we want to have the list of DeviceIds as an attribute
   std::vector<Ptr<Backend>> backends;
@@ -384,11 +399,8 @@ void GraphGroup::save(bool isFinal,
 
   swapWithSmoothed();
   
-  if(isMainProcess()) { // only save from main MPI process
-    // do final validation
-    if(isFinal && scheduler_)
-      scheduler_->validate(graphs_, isFinal);
-  }
+  if(isFinal && scheduler_)
+    scheduler_->validate(graphs_, isFinal);
 
   barrier(); // (for better grouping of log messages)
   
@@ -429,7 +441,10 @@ void GraphGroup::swapWithSmoothed() {
   };
   comm_->foreach(swap);
   comm_->allGatherParams();
-
+  
+  if(shardingMode_ == ShardingMode::local)
+    comm_->broadcastParams();
+    
   barrier();
 }
 

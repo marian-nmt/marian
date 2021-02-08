@@ -60,7 +60,7 @@ struct BinaryFunctor {
   struct name {                                                   \
     template <typename ElementType>                               \
     HOST_DEVICE_INLINE static ElementType apply(const ElementType& x,        \
-                                     const ElementType& y)        \
+                                                const ElementType& y)        \
       { return func; }                                            \
     static std::string n() { return #name; }                      \
   };                                                              \
@@ -89,9 +89,9 @@ struct TernaryFunctor {
   template <class Arg1, class Arg2, class Arg3>
   TernaryFunctor(Arg1 arg1, Arg2 arg2, Arg3 arg3) : x(arg1), y(arg2), z(arg3) {}
 
-  template <typename... Args>
-  HOST_DEVICE_INLINE float operator()(Args&&... args) {
-    return Function::apply(x(args...), y(args...), z(args...));
+  template <typename T, typename... Args>
+  HOST_DEVICE_INLINE T operator()(T arg, Args&&... args) {
+    return Function::apply(x(arg, args...), y(arg, args...), z(arg, args...));
   }
 };
 
@@ -100,8 +100,8 @@ struct TernaryFunctor {
   struct name {                                                            \
     template <typename ElementType>                                        \
     HOST_DEVICE_INLINE static ElementType apply(ElementType x,             \
-                                     ElementType y,                        \
-                                     ElementType z)                        \
+                                                ElementType y,             \
+                                                ElementType z)             \
     { return func; }                                                       \
   };                                                                       \
   }                                                                        \

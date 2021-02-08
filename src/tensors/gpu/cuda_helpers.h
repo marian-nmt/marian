@@ -4,17 +4,6 @@
 
 #include <cuda_runtime.h>
 
-#if COMPILE_FP16
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4505) // unreferenced local function has been removed
-#endif
-#include <cuda_fp16.h>
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#endif
-
 // template <> inline bool matchType<__half>(Type type)  { return type == Type::float16; }
 // template <> inline std::string request<__half>()  { return "float16"; }
 

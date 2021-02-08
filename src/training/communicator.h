@@ -24,7 +24,11 @@
 
 namespace marian {
 
+enum struct ShardingMode : size_t { global, local };
+
 struct/*interface*/ IMPIWrapper; // @TODO: Should we use a separate header, or move this declaration up here?
+
+ShardingMode getShardingMode(Ptr<Options> options, Ptr<IMPIWrapper> mpi);
 
 // This interface implements the cross-GPU operations for distributed training within a single box.
 class ICommunicator {
@@ -50,10 +54,8 @@ public:
 
   virtual void scatterReduceAndResetGrads() const = 0; // reduce param gradients and scatter into gradient shards
   virtual void allGatherParams() const = 0;     // redistribute value shards into param values
-
-#if 0 // disabled for now, not being called anywhere in the code
-  virtual void swapParams(const std::vector<Tensor>& paramShards) const = 0;
-#endif
+  virtual void broadcastParams(bool average = false) const = 0;  // average corresponding parameters across all workers
+  virtual void broadcastShards(const std::vector<Ptr<OptimizerBase>>& opts, bool average = false) const = 0;
 
   virtual void scatterState(const io::Item& data, const OptimizerBase::ScatterStateSetFunc& setFn) const = 0;
   virtual io::Item gatherState(const OptimizerBase::GatherStateGetFunc& getFn) const = 0;
@@ -72,10 +74,11 @@ struct MPI_Status { int MPI_SOURCE; };
 #define MPI_ANY_SOURCE ((size_t)-2)
 #define MPI_STATUS_IGNORE ((MPI_Status*)nullptr)
 #endif
-struct/*interface*/ IMPIWrapper
-{
+
+struct/*interface*/ IMPIWrapper {
   virtual size_t myMPIRank() const = 0;
   virtual size_t numMPIProcesses() const = 0;
+  virtual bool isMainProcess() const { return myMPIRank() == 0; }
   virtual void barrier(MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void bCast(void* buf, size_t count, MPI_Datatype datatype, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
   virtual void sSend(void* buf, size_t count, MPI_Datatype datatype, size_t destRank, int tag, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
@@ -163,7 +166,7 @@ public:
 
   // determine the (max) shard size
   // All shards except the last one have this size.
-  // Presently, even all shards must have identical size, due to a limitation in NCCL we have not yet worked around.
+  // Presently, all shards must have identical size, due to a limitation in NCCL we have not yet worked around.
   size_t shardSize() const {
     size_t numShards = graphs_.size();
     size_t size = (dataSize() + numShards - 1) / numShards;
@@ -272,6 +275,24 @@ public:
     foreach(gather);
   }
 
+  void broadcastParams(bool average = false) const override {
+    ABORT_IF(average, "Parameter averaging not implemented in DefaultCommunicator::broadcastParams");
+
+    // Copy parameters from first graph
+    auto copyFromFirst = [this](size_t idx, size_t /*begin*/, size_t /*end*/) {
+      if(idx != 0)
+        graphs_[idx]->params()->vals()->copyFrom(graphs_[0]->params()->vals());
+      return true; // dummy success
+    };
+
+    foreach(copyFromFirst);
+  }
+
+  virtual void broadcastShards(const std::vector<Ptr<OptimizerBase>>& opts, bool average = false) const override {
+    opts; average;
+    ABORT("DefaultCommunicator::broadcastShards not implemented");
+  }
+
   void scatterState(const io::Item& data, const OptimizerBase::ScatterStateSetFunc& setFn) const override {
     size_t dataSize = data.size();
     size_t numLocalDevices = graphs_.size();
@@ -296,6 +317,6 @@ public:
 
 Ptr<ICommunicator> createCommunicator(
     const std::vector<Ptr<ExpressionGraph>>& graphs,
-    bool noNccl, Ptr<IMPIWrapper> mpi);
+    bool noNccl, ShardingMode shardingMode, Ptr<IMPIWrapper> mpi);
 
 }  // namespace marian

@@ -43,10 +43,10 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     values.clear();
 
     std::vector<T> vA({1, -2, 3, -4});
-    auto a = graph->constant({2, 2, 1}, inits::fromVector(vA));
+    auto a = graph->constant({2, 2}, inits::fromVector(vA));
 
     auto compare = [&](Expr res, std::function<float(float)> f) -> bool {
-      if (res->shape() != Shape({ 2, 2, 1 }))
+      if (res->shape() != Shape({ 2, 2 }))
           return false;
       res->val()->get(values);
       std::vector<float> ref{f(vA[0]), f(vA[1]), f(vA[2]), f(vA[3])};
@@ -129,14 +129,14 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     std::vector<T> vA({1, -2, 3, -4});
     std::vector<T> vB({0.5, 1.5});
 
-    auto a = graph->constant({2, 2, 1}, inits::fromVector(vA));
-    auto b = graph->constant({2, 1}, inits::fromVector(vB));
+    auto a = graph->constant({2, 2}, inits::fromVector(vA));
+    auto b = graph->constant({2}, inits::fromVector(vB));
 
     // Two lambdas below differ in the use of floatEqual or floatApprox and
     // are not merged because MSVC compiler returns C2446: no conversion from
     // lambda_x to lambda_y
     auto compare = [&](Expr res, std::function<float(float,float)> f) -> bool {
-      if (res->shape() != Shape({ 2, 2, 1 }))
+      if (res->shape() != Shape({ 2, 2 }))
           return false;
       res->val()->get(values);
       std::vector<float> ref{f(vA[0], vB[0]), f(vA[1], vB[1]), f(vA[2], vB[0]), f(vA[3], vB[1])};
@@ -144,7 +144,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     };
 
     auto compareApprox = [&](Expr res, std::function<float(float, float)> f) -> bool {
-      if(res->shape() != Shape({2, 2, 1}))
+      if(res->shape() != Shape({2, 2}))
         return false;
       res->val()->get(values);
       std::vector<float> ref{f(vA[0], vB[0]), f(vA[1], vB[1]), f(vA[2], vB[0]), f(vA[3], vB[1])};

@@ -514,11 +514,14 @@ class CorpusBase : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch
 public:
   typedef SentenceTuple Sample;
 
-  CorpusBase(Ptr<Options> options, bool translate = false);
+  CorpusBase(Ptr<Options> options, 
+             bool translate = false, 
+             size_t seed = Config::seed);
 
   CorpusBase(const std::vector<std::string>& paths,
-      const std::vector<Ptr<Vocab>>& vocabs,
-      Ptr<Options> options);
+             const std::vector<Ptr<Vocab>>& vocabs,
+             Ptr<Options> options,
+             size_t seed = Config::seed);
 
   virtual ~CorpusBase() {}
   virtual std::vector<Ptr<Vocab>>& getVocabs() = 0;

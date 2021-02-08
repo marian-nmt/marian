@@ -179,7 +179,7 @@ private:
 
         maxBatchSize = stats_->findBatchSize(lengths, cachedStatsIter);
         // this optimization makes no difference indeed
-#if 1     // sanity check: would we find the same entry if searching from the start?
+#if 0   // sanity check: would we find the same entry if searching from the start?
         auto it = stats_->lower_bound(lengths);
         auto maxBatchSize1 = stats_->findBatchSize(lengths, it);
         ABORT_IF(maxBatchSize != maxBatchSize1, "findBatchSize iter caching logic is borked");

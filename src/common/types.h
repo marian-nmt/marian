@@ -24,6 +24,12 @@
 #include <cuda.h> // required to see CUDA_VERSION
 #if (CUDA_VERSION > 9000 && (__CUDA_ARCH__ >= 600 || !defined(__CUDA_ARCH__)))
 #define COMPILE_FP16 1 // we are in GPU code and we know what to do with FP16 code
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4505) // "unreferenced local function has been removed" in cuda_fp16.hpp
+#endif
+#include <cuda_fp16.h>
+#include "functional/defs.h"
 #else
 #define COMPILE_FP16 0 // we are in GPU code, but compute capability is too low to use FP16
 #endif
@@ -31,6 +37,12 @@
 #include <cuda.h> // required to see CUDA_VERSION
 #if (CUDA_VERSION > 9000)
 #define COMPILE_FP16 1
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4505) // "unreferenced local function has been removed" in cuda_fp16.hpp
+#endif
+#include <cuda_fp16.h>
+#include "functional/defs.h"
 #else
 #define COMPILE_FP16 0
 #endif
@@ -217,6 +229,37 @@ public:
 struct float32x8 {
 };
 #endif
+#endif
+
+#if COMPILE_FP16
+
+// @TODO: check what intrinsics are actually available.
+struct halfx2 {
+private:
+  __half2 h2_;
+
+public:
+  DEVICE halfx2() {}
+  DEVICE halfx2(const __half2& h2) : h2_(h2) {}
+  DEVICE halfx2(const __half& h) : h2_(h, h) {}
+  DEVICE halfx2(const __half& h1, const __half& h2) : h2_(h1, h2) {}
+
+  DEVICE_INLINE operator const __half2&() const { return h2_; }
+  DEVICE_INLINE operator __half2&() { return h2_; }
+
+  DEVICE_INLINE __half operator[] (size_t i) const {
+    return *(((__half*)&h2_) + i); // potentially undefined, but efficient. In practice __m128 is an array of floats
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, halfx2 h2) {
+    __half* a = (__half*)&h2;
+    out << "[" << (float)a[0];
+    for(int i = 1; i < 2; i++)
+      out << " " << (float)a[i];
+    out << "]";
+    return out;
+  }
+};
 #endif
 
 // Internal to types.h, don't use. Use test functions below.

@@ -153,32 +153,37 @@ if(CUDA_FOUND)
     # disables compilation for sm_30 to avoid ptxas warning... that is general Kepler support. But K80s are supported for instance by sm_35
 
     set(GENCODE "")
-    if(COMPILE_CUDA_SM35)
+    if(CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0")
+      set(GENCODE "${GENCODE} -Wno-deprecated-gpu-targets")
+    endif()
+    if(COMPILE_KEPLER)
       set(GENCODE "${GENCODE} -gencode=arch=compute_35,code=sm_35")
-    endif(COMPILE_CUDA_SM35)
-    if(COMPILE_CUDA_SM50)
+    endif(COMPILE_KEPLER)
+    if(COMPILE_MAXWELL)
       set(GENCODE "${GENCODE} -gencode=arch=compute_50,code=sm_50")
-    endif(COMPILE_CUDA_SM50)
-    if(COMPILE_CUDA_SM60)
+    endif(COMPILE_MAXWELL)
+    if(COMPILE_PASCAL)
       set(GENCODE "${GENCODE} -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61")
-    endif(COMPILE_CUDA_SM60)
-    if(COMPILE_CUDA_SM70)
-      set(GENCODE "${GENCODE} -gencode=arch=compute_70,code=sm_70")
-    endif(COMPILE_CUDA_SM70)
-    if(COMPILE_CUDA_SM75)
+    endif(COMPILE_PASCAL)
+    if(COMPILE_VOLTA)
+      set(GENCODE "${GENCODE} -arch=sm_70 -gencode=arch=compute_70,code=sm_70")
+    endif(COMPILE_VOLTA)
+    if(COMPILE_TURING)
       set(GENCODE "${GENCODE} -gencode=arch=compute_75,code=sm_75; -gencode=arch=compute_75,code=compute_75")
-    endif(COMPILE_CUDA_SM75)
-    if(COMPILE_CUDA_SM80)
+    endif(COMPILE_TURING)
+    if(COMPILE_AMPERE)
       set(GENCODE "${GENCODE} -gencode=arch=compute_80,code=sm_80; -gencode=arch=compute_80,code=compute_80")
-    endif(COMPILE_CUDA_SM80)
+    endif(COMPILE_AMPERE)
 
     # install nccl in ${CMAKE_BINARY_DIR}/local similar to /usr/local linux installation
+    # Using $(MAKE) instead of $CMAKE_MAKE_PROGRAM in order to make parallelization in NCCL compilation work with make -j16. 
+    # Apparently this does not get properly propagated otherwise and builts with only a single thread/process.
     ExternalProject_Add(nccl_install
       SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nccl
       BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/nccl
       CONFIGURE_COMMAND ""
       BUILD_COMMAND
-        ${CMAKE_MAKE_PROGRAM} -f ${CMAKE_CURRENT_SOURCE_DIR}/nccl/Makefile src.build
+        "\$(MAKE)" -f ${CMAKE_CURRENT_SOURCE_DIR}/nccl/Makefile src.build
         BUILDDIR=${CMAKE_BINARY_DIR}/local CUDA_HOME=${CUDA_TOOLKIT_ROOT_DIR}
         CUDA8_GENCODE=${GENCODE} CXX=${CMAKE_CXX_COMPILER} CXX_FLAGS=${NCCL_FLAGS}
       INSTALL_COMMAND "")

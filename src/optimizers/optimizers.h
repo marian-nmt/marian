@@ -115,6 +115,14 @@ public:
   // Usually we will call this twice, to swap in and to swap out.
   void swapWithSmoothed(Tensor params);
 
+  // return stateful optimizer shards, for base that's only averaged parameters
+  virtual std::vector<Tensor> getShards() { 
+    if(avg_)
+      return { avg_ }; 
+    else
+      return { };
+  }
+
 protected:
   virtual void updateImpl(Tensor params, Tensor grads, size_t actualMBSize) = 0;
   virtual void resetStats() = 0;
@@ -190,6 +198,12 @@ public:
       eps_ = params[0];
   }
 
+  std::vector<Tensor> getShards() override { 
+    auto shards = OptimizerBase::getShards();
+    shards.push_back(gt_);
+    return shards;
+  }
+
 private:
   void updateImpl(Tensor params, Tensor grads, size_t actualMBSize) override;
   void resetStats() override;
@@ -220,6 +234,13 @@ public:
             const std::vector<Ptr<OptimizerBase>>& opts,
             const GatherStateFunc& gatherFn,
             bool isMainProcess) override;
+
+  std::vector<Tensor> getShards() override { 
+    auto shards = OptimizerBase::getShards();
+    shards.push_back(mt_);
+    shards.push_back(vt_);
+    return shards;
+  }
 
 private:
   void updateImpl(Tensor params, Tensor grads, size_t actualMBSize) override;
