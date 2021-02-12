@@ -559,13 +559,13 @@ namespace marian {
   // standard encoder word embeddings
   /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer() const {
     auto options = New<Options>(
-        "dimVocab",           opt<std::vector<int>>("dim-vocabs")[batchIndex_],
-        "dimEmb",             opt<int>("dim-emb"),
-        "dropout-embeddings", dropoutEmbeddings_,
-        "inference",          inference_,
-        "prefix",             (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
-        "fixed",              embeddingFix_,
-        "vocab",              opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
+        "dimVocab",  opt<std::vector<int>>("dim-vocabs")[batchIndex_],
+        "dimEmb",    opt<int>("dim-emb"),
+        "dropout",   dropoutEmbeddings_,
+        "inference", inference_,
+        "prefix",    (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb" : prefix_ + "_Wemb",
+        "fixed",     embeddingFix_,
+        "vocab",     opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored embeddings
     if(options_->hasAndNotEmpty("embedding-vectors")) {
       auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
       options->set(
@@ -583,7 +583,7 @@ namespace marian {
         "dimUlrEmb",          opt<int>("ulr-dim-emb"),
         "dimEmb",             opt<int>("dim-emb"),
         "ulr-dropout",        opt<float>("ulr-dropout"),
-        "dropout-embeddings", dropoutEmbeddings_,
+        "dropout",            dropoutEmbeddings_,
         "inference",          inference_,
         "ulrTrainTransform",  opt<bool>("ulr-trainable-transformation"),
         "ulrQueryFile",       opt<std::string>("ulr-query-vectors"),
