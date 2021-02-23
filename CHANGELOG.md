@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+- Developer documentation framework based on Sphinx+Doxygen+Breathe+Exhale
+
 ### Fixed
 - Fix building server with Boost 1.75
 
