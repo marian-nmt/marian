@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Dynamic gradient-scaling with `--dynamic-gradient-scaling`.
 
 ### Fixed
+- Find MKL installed under Ubuntu 20.04 via apt-get
 - Support for CUDA 11.
 - General improvements and fixes for MPI handling, was essentially non-functional before (syncing, random seeds, deadlocks during saving, validation etc.)
 - Allow to compile -DUSE_MPI=on with -DUSE_STATIC_LIBS=on although MPI gets still linked dynamically since it has so many dependencies.
