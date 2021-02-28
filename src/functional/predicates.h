@@ -39,6 +39,12 @@ struct BinaryFunctor {
   }
 };
 
+/**
+ * Macro to set up unary-functions from marian::functional::Ops.
+ * @param name name for the struct
+ * @param name2 callable typedef
+ * @param func function wrapped
+ */
 #define UNARY(name, name2, func)                                      \
   namespace elem {                                                    \
   struct name {                                                       \
@@ -55,6 +61,12 @@ struct BinaryFunctor {
   }                                                                   \
   static inline name<Capture> name2(Capture x) { return name<Capture>(x); }
 
+/**
+ * Macro to set up binary-functions from marian::functional::Ops.
+ * @param name name for the struct
+ * @param name2 callable typedef
+ * @param func function wrapped
+ */
 #define BINARY(name, name2, func)                                 \
   namespace elem {                                                \
   struct name {                                                   \
@@ -95,6 +107,12 @@ struct TernaryFunctor {
   }
 };
 
+/**
+ * Macro to set up ternary-functions from marian::functional::Ops.
+ * @param name name for the struct
+ * @param name2 callable typedef
+ * @param func function wrapped
+ */
 #define TERNARY(name, name2, func)                                         \
   namespace elem {                                                         \
   struct name {                                                            \

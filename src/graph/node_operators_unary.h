@@ -646,7 +646,7 @@ struct CosNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1 * -sin(_2), child(0)->grad(), adj_, child(0)->val()))};
   }
 
-  const std::string type() override { return "sin"; }
+  const std::string type() override { return "cos"; }
 };
 
 struct TanNodeOp : public UnaryNodeOp {
@@ -662,7 +662,7 @@ struct TanNodeOp : public UnaryNodeOp {
     return {NodeOp(Add(_1 / sqr(cos(_2)), child(0)->grad(), adj_, child(0)->val()))};
   }
 
-  const std::string type() override { return "sin"; }
+  const std::string type() override { return "tan"; }
 };
 
 struct SqrtNodeOp : public UnaryNodeOp {

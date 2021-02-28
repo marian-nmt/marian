@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Developer documentation framework based on Sphinx+Doxygen+Breathe+Exhale
 
+
 ### Fixed
 - Fix building server with Boost 1.75
+- Missing implementation for cos/tan expression operator
 
 ## [1.10.0] - 2021-02-06
 

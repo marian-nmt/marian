@@ -85,7 +85,9 @@ doxygen_config = """
 INPUT                = ../src
 EXCLUDE             += ../src/3rd_party
 EXCLUDE             += ../src/tests
-EXCLUDE_PATTERNS     = *.inc *.md *.txt
+EXCLUDE_PATTERNS     = *.md *.txt
+FILE_PATTERNS       += *.cu
+EXTENSION_MAPPING   += cu=C++ inc=C++
 ENABLE_PREPROCESSING = YES
 JAVADOC_AUTOBRIEF    = YES
 WARN_IF_UNDOCUMENTED = NO
