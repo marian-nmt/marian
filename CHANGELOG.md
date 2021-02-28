@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Developer documentation framework based on Sphinx+Doxygen+Breathe+Exhale
-
+- Expresion graph documentation (#788)
+- Graph operators documentation (#801)
 
 ### Fixed
 - Fix building server with Boost 1.75
