@@ -5,7 +5,13 @@
 #include "tensors/tensor.h"
 
 namespace marian {
-
+/**
+ *  A constant node for the graph.
+ *  A constant node is actually a constant tensor whose value is
+ *  immutable during the training. ConstantNode instance is usually
+ *  used as the inputs. To construct a constant node in the
+ *  graph, we use constant() function in ExpressionGraph class.
+ */
 struct ConstantNode : public Node {
   ConstantNode(Ptr<ExpressionGraph> graph,
                const Shape& shape,
@@ -35,7 +41,13 @@ private:
   Ptr<inits::NodeInitializer> init_;
   bool initialized_;
 };
-
+/**
+ * A parameter node for the graph.
+ * A parameter node is used to store model parameters whose value can be
+ * changed during the training, such as weights and biases. To construct
+ * a parameter node in the graph, we use param() function in
+ * ExpressionGraph class.
+ */
 struct ParamNode : public Node {
   ParamNode(Ptr<ExpressionGraph> graph,
             const Shape& shape,

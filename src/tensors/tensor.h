@@ -21,6 +21,12 @@ namespace io {
   struct Item;
 }
 
+/**
+ * Main implementation of a <a href="https://en.wikipedia.org/wiki/Tensor">tensor</a>,
+ * a multi-dimensional matrix containing elements of a single data type.
+ * TensorBase contains the data, data type, pointer to
+ * memory region, shape, backend info and other attributes.
+ */
 class TensorBase {
   MemoryPiece::PtrType memory_;
   Shape shape_;

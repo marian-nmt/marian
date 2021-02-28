@@ -98,9 +98,10 @@ Ptr<NodeInitializer> glorotUniform(bool fanIn, bool fanOut, float scalingFactor)
   return fromLambda([fanIn, fanOut, scalingFactor](Tensor t) {
     float scale = sqrtf(6.0f / (t->shape()[-2] + t->shape()[-1]));
     if(fanIn && !fanOut)
-      scale = sqrtf(3.0f / t->shape()[-2]); // results in columns of matrix to be ~unit length
+      scale = sqrtf(3.0f / t->shape()[-2]); // fanIn mode: the scale of tensor is adapted by the input variance
+                                            // results in columns of matrix to be ~unit range
     if(!fanIn && fanOut)
-      scale = sqrtf(3.0f / t->shape()[-1]);
+      scale = sqrtf(3.0f / t->shape()[-1]); // fanOut mode: the scale of tensor is adapted by the output variance
 
     scale *= scalingFactor;
 
@@ -112,9 +113,9 @@ Ptr<NodeInitializer> glorotNormal(bool fanIn, bool fanOut, float scalingFactor) 
   return fromLambda([fanIn, fanOut, scalingFactor](Tensor t) {
     float scale = sqrtf(2.0f / (t->shape()[-2] + t->shape()[-1]));
     if(fanIn && !fanOut)
-      scale = sqrtf(1.0f / t->shape()[-2]);
+      scale = sqrtf(1.0f / t->shape()[-2]); // fanIn mode: the scale of tensor is adapted by the input variance
     if(!fanIn && fanOut)
-      scale = sqrtf(1.0f / t->shape()[-1]);
+      scale = sqrtf(1.0f / t->shape()[-1]); // fanOut mode: the scale of tensor is adapted by the output variance
 
     scale *= scalingFactor;
 
@@ -170,7 +171,7 @@ Ptr<NodeInitializer> fromWord2vec(const std::string& file,
                               bool normalize /*= false*/) {
   return fromLambda([file, dimVoc, dimEmb, normalize](Tensor t) {
     auto embs = Word2VecReader().read(file, dimVoc, dimEmb);
-    if(normalize) {
+    if(normalize) { // scaling to unit length:
       float norm = 0;
       for(auto e : embs)
         norm += e * e;
