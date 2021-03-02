@@ -72,6 +72,14 @@ Expr sin(Expr a) {
   return Expression<SinNodeOp>(a);
 };
 
+Expr cos(Expr a) {
+  return Expression<CosNodeOp>(a);
+};
+
+Expr tan(Expr a) {
+  return Expression<TanNodeOp>(a);
+};
+
 Expr swish(Expr a) {
   return Expression<SwishNodeOp>(a);
 }

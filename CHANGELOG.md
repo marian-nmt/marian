@@ -20,12 +20,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for CUDA 11.
 - General improvements and fixes for MPI handling, was essentially non-functional before (syncing, random seeds, deadlocks during saving, validation etc.)
 - Allow to compile -DUSE_MPI=on with -DUSE_STATIC_LIBS=on although MPI gets still linked dynamically since it has so many dependencies.
+- Fix building server with Boost 1.75
+- Missing implementation for cos/tan expression operator
 
 ### Changed
 - Change compile options a la -DCOMPILE_CUDA_SM35 to -DCOMPILE_KEPLER, -DCOMPILE_MAXWELL,
 -DCOMPILE_PASCAL, -DCOMPILE_VOLTA, -DCOMPILE_TURING and -DCOMPILE_AMPERE
 - Disable -DCOMPILE_KEPLER, -DCOMPILE_MAXWELL by default.
 - Dropped support for legacy graph groups.
+- Developer documentation framework based on Sphinx+Doxygen+Breathe+Exhale
+- Expresion graph documentation (#788)
+- Graph operators documentation (#801)
 
 ## [1.10.0] - 2021-02-06
 

@@ -118,7 +118,6 @@ ModelState::SetMarianConfigPath()
     // Set the Marian config path.
     std::string config_path("/var/azureml-app/");
     config_path.append(std::getenv("AZUREML_MODEL_DIR"));
-    config_path.append("/nlxseq2seq/triton/nlxseq2seq/1/data/model/");
     config_path.append(config_filepath_str);
     marian_config_path_ = config_path;
 
@@ -199,6 +198,16 @@ ModelInstanceState::ModelInstanceState(
 
 extern "C" {
 
+void
+handler(int sig) {
+    void* array[30];
+
+    size_t size = backtrace(array, 30);
+
+    fprintf(stderr, "Error: signal %d, Exception info:\n", sig);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+}
+
 TRITONSERVER_Error*
 TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
 {
@@ -208,6 +217,9 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
     RETURN_IF_ERROR(
         TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state))
     );
+
+    signal(SIGSEGV, handler);
+    signal(SIGABRT, handler);
 
     return nullptr; // success
 }
@@ -308,7 +320,6 @@ TRITONBACKEND_ModelInstanceExecute(
 
     std::vector<TRITONBACKEND_Input*> request_input;
     std::vector<int> request_batch_size;
-    std::vector<std::string> inputs;
     std::string input_strings;
 
     // Create a single response object for each request. If something
@@ -389,14 +400,13 @@ TRITONBACKEND_ModelInstanceExecute(
             }
             content_buffer.insert(
                 content_buffer.end(), reinterpret_cast<const char*>(input_buffer) + 4,
-                reinterpret_cast<const char*>(input_buffer) + buffer_byte_size - 4
+                reinterpret_cast<const char*>(input_buffer) + buffer_byte_size
             );
         }
 
         std::string s(content_buffer.begin(), content_buffer.end());
         int count = std::count(s.begin(), s.end(), '\n');
         request_batch_size.push_back(count + 1);
-        inputs.push_back(s);
         content_buffer.clear();
 
         if (input_strings.empty()) {
@@ -433,12 +443,16 @@ TRITONBACKEND_ModelInstanceExecute(
             if (output_content == nullptr) {
                 output_content = pos;
             } else {
-                strcat(output_content, "\n");
-                strcat(output_content, pos);
+                // Replace the null terminator of the prev sentence with new line char
+                *(pos - 1) = '\n';
             }
             // Move to next output content.
             if (p != nullptr) {
                 pos = p + 1;
+            } else {
+                // Break if there no left output content, even though batch_size > 0,
+                // '\n' at the end may be processed by Marian.
+                break;
             }
             batch_size--;
         }
