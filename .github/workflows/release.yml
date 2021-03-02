@@ -4,8 +4,8 @@
 #
 # 1. Create a new tag locally and push it to the remote, for example:
 #
-#     git tag v1.2.3
-#     git push origin v1.2.3
+#     git tag 1.2.3
+#     git push origin 1.2.3
 #
 # The workflow, if built successfully, will open a new draft release (not seen
 # for the public, available from under the /releases subpage on GitHub), use
@@ -26,7 +26,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "[0-9]+.[0-9]+.[0-9]+*"
 
 env:
   cuda_version: "10.2"
