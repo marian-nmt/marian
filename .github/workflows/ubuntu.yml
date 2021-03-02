@@ -18,6 +18,8 @@ jobs:
             gcc: 7
             cpu: true
             gpu: false
+            unit_tests: true
+            examples: false
           # Ubuntu GPU-only build
           - name: "Ubuntu GPU-only"
             os: ubuntu-latest
@@ -25,6 +27,8 @@ jobs:
             gcc: 7
             cpu: false
             gpu: true
+            unit_tests: false
+            examples: true
           # Ubuntu 20.04 supports CUDA 11+
           #- name: "Ubuntu 20.04 CUDA 11.0 gcc-9"
             #os: ubuntu-20.04
@@ -32,13 +36,18 @@ jobs:
             #gcc: 9
             #cpu: false
             #gpu: true
+            #unit_tests: false
+            #examples: false
           # Ubuntu 18.04 supports CUDA 10.1+
+          # Unit tests and examples are not compiled to save disk space
           - name: "Ubuntu 18.04 CUDA 10.2 gcc-8"
             os: ubuntu-18.04
             cuda: "10.2"
             gcc: 8
             cpu: true
             gpu: true
+            unit_tests: false
+            examples: false
           # Ubuntu 16.04 supports CUDA 8+
           - name: "Ubuntu 16.04 CUDA 9.2 gcc-7"
             os: ubuntu-16.04
@@ -46,6 +55,8 @@ jobs:
             gcc: 7
             cpu: true
             gpu: true
+            unit_tests: true
+            examples: true
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
@@ -92,9 +103,9 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCOMPILE_CPU=${{ matrix.cpu }} \
           -DCOMPILE_CUDA=${{ matrix.gpu }} \
-          -DCOMPILE_EXAMPLES=on \
+          -DCOMPILE_EXAMPLES=${{ matrix.examples }} \
           -DCOMPILE_SERVER=on \
-          -DCOMPILE_TESTS=on \
+          -DCOMPILE_TESTS=${{ matrix.unit_tests }} \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${{ matrix.cuda }} \
           -DUSE_FBGEMM=${{ matrix.cpu }} \
           -DUSE_SENTENCEPIECE=on \
@@ -109,7 +120,7 @@ jobs:
       working-directory: build
       run: make test
       # GitHub-hosted VMs do not have GPUs, so can not be run in CUDA builds
-      if: matrix.gpu == false
+      if: matrix.unit_tests == true && matrix.gpu == false
 
     - name: Print versions
       working-directory: build
