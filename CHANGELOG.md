@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Correct training with fp16 via `--fp16`. 
 - Dynamic cost-scaling with `--cost-scaling`.
 - Dynamic gradient-scaling with `--dynamic-gradient-scaling`.
+- Fix compilation with OMP
 
 ### Fixed
 - Find MKL installed under Ubuntu 20.04 via apt-get

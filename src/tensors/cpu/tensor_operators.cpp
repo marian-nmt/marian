@@ -914,13 +914,13 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor labelIndices, float labelSmo
     }
 
     float sumexp = 0.f;
-    #pragma omp simd reduction(+ : sum)
+    #pragma omp simd reduction(+ : sumexp)
     for(int i = 0; i < cols; ++i) {
       sumexp += std::exp(sp[i] - max);
     }
 
     float mean = 0.f;
-    #pragma omp simd reduction(+ : sum)
+    #pragma omp simd reduction(+ : mean)
     for(int i = 0; i < cols; ++i) {
       mean += sp[i] - max;
     }
