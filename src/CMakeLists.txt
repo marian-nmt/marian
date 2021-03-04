@@ -72,6 +72,7 @@ set(MARIAN_SOURCES
   layers/loss.cpp
   layers/weight.cpp
   layers/lsh.cpp
+  layers/embedding.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
