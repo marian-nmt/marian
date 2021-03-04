@@ -74,6 +74,7 @@ set(MARIAN_SOURCES
   layers/lsh.cpp
   layers/embedding.cpp
   layers/output.cpp
+  layers/logits.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
