@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graph/expression_operators.h"
-#include "layers/generic.h" // for Logits (Frank's factor hack)
+#include "layers/logits.h" // for Logits (Frank's factor hack)
 #include "data/types.h"
 
 namespace marian {

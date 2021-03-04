@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "generic.h"
+#include "logits.h"
 #include "data/shortlist.h"
 #include "layers/factory.h"
 

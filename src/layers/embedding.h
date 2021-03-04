@@ -4,6 +4,8 @@
 
 namespace marian {
 
+class FactoredVocab;
+
 // A regular embedding layer.
 // Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
 // It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
