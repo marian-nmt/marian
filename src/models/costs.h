@@ -282,12 +282,7 @@ public:
 class LogSoftmaxStep : public ILogProbStep {
 public:
   virtual ~LogSoftmaxStep() {}
-  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    // decoder needs normalized probabilities (note: skipped if beam 1 and --skip-cost)
-    state->setLogProbs(state->getLogProbs().applyUnaryFunction(logsoftmax));
-    // @TODO: This is becoming more and more opaque ^^. Can we simplify this?
-    return state;
-  }
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
 };
 
 // Gumbel-max noising for sampling during beam-search

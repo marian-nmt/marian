@@ -87,6 +87,7 @@ set(MARIAN_SOURCES
   models/model_factory.cpp
   models/encoder_decoder.cpp
   models/transformer_stub.cpp
+  models/costs.cpp
 
   rescorer/score_collector.cpp
   embedder/vector_collector.cpp
