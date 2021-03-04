@@ -3,6 +3,7 @@
 #include "layers/factory.h"
 #include "layers/generic.h"
 #include "layers/embedding.h"
+#include "layers/output.h"
 
 namespace marian {
 namespace mlp {

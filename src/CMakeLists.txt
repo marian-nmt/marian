@@ -73,6 +73,7 @@ set(MARIAN_SOURCES
   layers/weight.cpp
   layers/lsh.cpp
   layers/embedding.cpp
+  layers/output.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
