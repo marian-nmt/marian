@@ -5,12 +5,14 @@
 #include "data/shortlist.h"
 #include "layers/factory.h"
 
-namespace marian { namespace mlp {
-  /**
-   * @brief Activation functions
-   */
-  enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
-}}
+namespace marian {
+namespace mlp {
+/**
+ * @brief Activation functions
+ */
+enum struct act : int { linear, tanh, sigmoid, ReLU, LeakyReLU, PReLU, swish };
+}  // namespace mlp
+}  // namespace marian
 
 namespace marian {
 
@@ -23,8 +25,7 @@ protected:
   Ptr<Options> options_;
 
 public:
-  LayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : graph_(graph), options_(options) {}
+  LayerBase(Ptr<ExpressionGraph> graph, Ptr<Options> options) : graph_(graph), options_(options) {}
 
   template <typename T>
   T opt(const std::string key) const {
@@ -42,7 +43,7 @@ struct IUnaryLayer {
   virtual ~IUnaryLayer() {}
   virtual Expr apply(Expr) = 0;
   virtual Expr apply(const std::vector<Expr>& es) {
-    ABORT_IF(es.size() > 1, "Not implemented"); // simple stub
+    ABORT_IF(es.size() > 1, "Not implemented");  // simple stub
     return apply(es.front());
   }
 };
@@ -54,7 +55,8 @@ struct IHasShortList {
 
 // Embedding from corpus sub-batch to (emb, mask)
 struct IEmbeddingLayer {
-  virtual std::tuple<Expr/*embeddings*/, Expr/*mask*/> apply(Ptr<data::SubBatch> subBatch) const = 0;
+  virtual std::tuple<Expr /*embeddings*/, Expr /*mask*/> apply(
+      Ptr<data::SubBatch> subBatch) const = 0;
 
   virtual Expr apply(const Words& embIdx, const Shape& shape) const = 0;
 
@@ -63,28 +65,29 @@ struct IEmbeddingLayer {
   virtual ~IEmbeddingLayer() {}
 };
 
-// base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream index)
+// base class for Encoder and Decoder classes, which have embeddings and a batch index (=stream
+// index)
 class EncoderDecoderLayerBase : public LayerBase {
 protected:
   const std::string prefix_;
   const bool embeddingFix_;
-  const float dropoutEmbeddings_; // this drops out full embedding vectors 
+  const float dropoutEmbeddings_;  // this drops out full embedding vectors
   const bool inference_;
   const size_t batchIndex_;
-  mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_; // (lazily created)
+  mutable std::vector<Ptr<IEmbeddingLayer>> embeddingLayers_;  // (lazily created)
 
-  EncoderDecoderLayerBase(Ptr<ExpressionGraph> graph, 
-                          Ptr<Options> options, 
-                          const std::string& prefix, 
+  EncoderDecoderLayerBase(Ptr<ExpressionGraph> graph,
+                          Ptr<Options> options,
+                          const std::string& prefix,
                           size_t batchIndex,
                           float dropoutEmbeddings,
-                          bool embeddingFix) :
-      LayerBase(graph, options),
-      prefix_(options->get<std::string>("prefix", prefix)),
-      embeddingFix_(embeddingFix),
-      dropoutEmbeddings_(dropoutEmbeddings),
-      inference_(options->get<bool>("inference", false)),
-      batchIndex_(options->get<size_t>("index", batchIndex)) {}
+                          bool embeddingFix)
+      : LayerBase(graph, options),
+        prefix_(options->get<std::string>("prefix", prefix)),
+        embeddingFix_(embeddingFix),
+        dropoutEmbeddings_(dropoutEmbeddings),
+        inference_(options->get<bool>("inference", false)),
+        batchIndex_(options->get<size_t>("index", batchIndex)) {}
 
   virtual ~EncoderDecoderLayerBase() {}
 
@@ -101,8 +104,7 @@ namespace mlp {
 
 class Dense : public LayerBase, public IUnaryLayer {
 public:
-  Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options)
-      : LayerBase(graph, options) {}
+  Dense(Ptr<ExpressionGraph> graph, Ptr<Options> options) : LayerBase(graph, options) {}
 
   Expr apply(const std::vector<Expr>& inputs) override {
     ABORT_IF(inputs.empty(), "No inputs");
@@ -124,21 +126,17 @@ public:
       if(inputs.size() > 1)
         num = std::to_string(i);
 
-      Expr W = g->param(
-          name + "_W" + num, {in->shape()[-1], dim}, inits::glorotUniform());
+      Expr W = g->param(name + "_W" + num, {in->shape()[-1], dim}, inits::glorotUniform());
       Expr b = g->param(name + "_b" + num, {1, dim}, inits::zeros());
 
       if(useLayerNorm) {
         if(useNematusNorm) {
-          auto ln_s = g->param(
-              name + "_ln_s" + num, {1, dim}, inits::fromValue(1.f));
+          auto ln_s = g->param(name + "_ln_s" + num, {1, dim}, inits::fromValue(1.f));
           auto ln_b = g->param(name + "_ln_b" + num, {1, dim}, inits::zeros());
 
-          outputs.push_back(
-              layerNorm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
+          outputs.push_back(layerNorm(affine(in, W, b), ln_s, ln_b, NEMATUS_LN_EPS));
         } else {
-          auto gamma = g->param(
-              name + "_gamma" + num, {1, dim}, inits::fromValue(1.0));
+          auto gamma = g->param(name + "_gamma" + num, {1, dim}, inits::fromValue(1.0));
 
           outputs.push_back(layerNorm(dot(in, W), gamma, b));
         }
@@ -165,39 +163,35 @@ public:
   Expr apply(Expr input) override { return apply(std::vector<Expr>({input})); }
 };
 
-} // namespace mlp
-
+}  // namespace mlp
 
 // --- a few layers with built-in parameters created on the fly, without proper object
 // @TODO: change to a proper layer object
 
 // like affine() but with built-in parameters, activation, and dropout
-static inline
-Expr denseInline(Expr x, 
-                std::string prefix, 
-                std::string suffix, 
-                int outDim,
-                Ptr<inits::NodeInitializer> initFn = inits::glorotUniform(), 
-                const std::function<Expr(Expr)>& actFn = nullptr, 
-                float dropProb = 0.0f)
-{
+static inline Expr denseInline(Expr x,
+                               std::string prefix,
+                               std::string suffix,
+                               int outDim,
+                               Ptr<inits::NodeInitializer> initFn = inits::glorotUniform(),
+                               const std::function<Expr(Expr)>& actFn = nullptr,
+                               float dropProb = 0.0f) {
   auto graph = x->graph();
 
-  auto W = graph->param(prefix + "_W" + suffix, { x->shape()[-1], outDim }, inits::glorotUniform());
-  auto b = graph->param(prefix + "_b" + suffix, { 1,              outDim }, inits::zeros());
+  auto W = graph->param(prefix + "_W" + suffix, {x->shape()[-1], outDim}, inits::glorotUniform());
+  auto b = graph->param(prefix + "_b" + suffix, {1, outDim}, inits::zeros());
 
   x = affine(x, W, b);
-  if (actFn)
+  if(actFn)
     x = actFn(x);
-  x = dropout(x, dropProb); // @TODO: check for infernce?
+  x = dropout(x, dropProb);  // @TODO: check for infernce?
   return x;
 }
 
-static inline
-Expr layerNorm(Expr x, std::string prefix, std::string suffix = std::string()) {
+static inline Expr layerNorm(Expr x, std::string prefix, std::string suffix = std::string()) {
   int dimModel = x->shape()[-1];
-  auto scale = x->graph()->param(prefix + "_ln_scale" + suffix, { 1, dimModel }, inits::ones());
-  auto bias  = x->graph()->param(prefix + "_ln_bias"  + suffix, { 1, dimModel }, inits::zeros());
+  auto scale = x->graph()->param(prefix + "_ln_scale" + suffix, {1, dimModel}, inits::ones());
+  auto bias = x->graph()->param(prefix + "_ln_bias" + suffix, {1, dimModel}, inits::zeros());
   return marian::layerNorm(x, scale, bias, 1e-6f);
 }
 
