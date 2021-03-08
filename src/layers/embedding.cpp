@@ -6,8 +6,8 @@ namespace marian {
 Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
     : LayerBase(graph, options), inference_(opt<bool>("inference")) {
   std::string name = opt<std::string>("prefix");
-  int dimVoc = opt<int>("dimVocab");
-  int dimEmb = opt<int>("dimEmb");
+  int dimVoc       = opt<int>("dimVocab");
+  int dimEmb       = opt<int>("dimEmb");
 
   bool fixed = opt<bool>("fixed", false);
 
@@ -25,7 +25,7 @@ Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
     std::string file = opt<std::string>("embFile");
     if(!file.empty()) {
       bool norm = opt<bool>("normalization", false);
-      initFunc = inits::fromWord2vec(file, dimVoc, dimEmb, norm);
+      initFunc  = inits::fromWord2vec(file, dimVoc, dimEmb, norm);
     }
   }
 
@@ -34,7 +34,7 @@ Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
 
 // helper to embed a sequence of words (given as indices) via factored embeddings
 Expr Embedding::multiRows(const Words& data, float dropProb) const {
-  auto graph = E_->graph();
+  auto graph        = E_->graph();
   auto factoredData = factoredVocab_->csr_rows(data);
   // multi-hot factor vectors are represented as a sparse CSR matrix
   // [row index = word position index] -> set of factor indices for word at this position
@@ -59,9 +59,9 @@ Expr Embedding::multiRows(const Words& data, float dropProb) const {
 
 std::tuple<Expr /*embeddings*/, Expr /*mask*/> Embedding::apply(Ptr<data::SubBatch> subBatch) const
 /*override final*/ {
-  auto graph = E_->graph();
+  auto graph   = E_->graph();
   int dimBatch = (int)subBatch->batchSize();
-  int dimEmb = E_->shape()[-1];
+  int dimEmb   = E_->shape()[-1];
   int dimWidth = (int)subBatch->batchWidth();
 
   // factored embeddings:
@@ -113,7 +113,7 @@ std::tuple<Expr /*embeddings*/, Expr /*mask*/> Embedding::apply(Ptr<data::SubBat
 Expr Embedding::apply(const Words& words, const Shape& shape) const /*override final*/ {
   if(factoredVocab_) {
     Expr selectedEmbs = multiRows(words, options_->get<float>("dropout", 0.0f));  // [(B*W) x E]
-    selectedEmbs = reshape(selectedEmbs, shape);                                  // [W, B, E]
+    selectedEmbs      = reshape(selectedEmbs, shape);                             // [W, B, E]
     // selectedEmbs = dropout(selectedEmbs, options_->get<float>("dropout", 0.0f), {
     // selectedEmbs->shape()[-3], 1, 1 }); // @TODO: replace with factor dropout
     return selectedEmbs;
@@ -128,7 +128,7 @@ Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& 
   embIdxExpr->set_name("data_"
                        + std::to_string(/*batchIndex_=*/0));  // @TODO: how to know the batch index?
   auto selectedEmbs = rows(E_, embIdxExpr);                   // [(B*W) x E]
-  selectedEmbs = reshape(selectedEmbs, shape);                // [W, B, E]
+  selectedEmbs      = reshape(selectedEmbs, shape);           // [W, B, E]
   // @BUGBUG: We should not broadcast along dimBatch=[-2]. Then we can also dropout before reshape()
   // (test that separately)
   if(!inference_)
@@ -139,22 +139,17 @@ Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& 
 
 // standard encoder word embeddings
 /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createEmbeddingLayer() const {
+  // clang-format off
   auto options = New<Options>(
-      "dimVocab",
-      opt<std::vector<int>>("dim-vocabs")[batchIndex_],
-      "dimEmb",
-      opt<int>("dim-emb"),
-      "dropout",
-      dropoutEmbeddings_,
-      "inference",
-      inference_,
-      "prefix",
-      (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb"
-                                                                             : prefix_ + "_Wemb",
-      "fixed",
-      embeddingFix_,
-      "vocab",
-      opt<std::vector<std::string>>("vocabs")[batchIndex_]);  // for factored embeddings
+      "dimVocab",  opt<std::vector<int>>("dim-vocabs")[batchIndex_],
+      "dimEmb",    opt<int>("dim-emb"),
+      "dropout",   dropoutEmbeddings_,
+      "inference", inference_,
+      "prefix",    (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb"
+                                                                                          : prefix_ + "_Wemb",
+      "fixed",     embeddingFix_,
+      "vocab",     opt<std::vector<std::string>>("vocabs")[batchIndex_]);  // for factored embeddings
+  // clang-format on
   if(options_->hasAndNotEmpty("embedding-vectors")) {
     auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
     options->set(
@@ -165,28 +160,20 @@ Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& 
 
 // ULR word embeddings
 /*private*/ Ptr<IEmbeddingLayer> EncoderDecoderLayerBase::createULREmbeddingLayer() const {
-  return New<ULREmbedding>(
-      graph_,
-      New<Options>("dimSrcVoc",
-                   opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
-                   "dimTgtVoc",
-                   opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
-                   "dimUlrEmb",
-                   opt<int>("ulr-dim-emb"),
-                   "dimEmb",
-                   opt<int>("dim-emb"),
-                   "ulr-dropout",
-                   opt<float>("ulr-dropout"),
-                   "dropout",
-                   dropoutEmbeddings_,
-                   "inference",
-                   inference_,
-                   "ulrTrainTransform",
-                   opt<bool>("ulr-trainable-transformation"),
-                   "ulrQueryFile",
-                   opt<std::string>("ulr-query-vectors"),
-                   "ulrKeysFile",
-                   opt<std::string>("ulr-keys-vectors")));
+  // clang-format off
+  return New<ULREmbedding>(graph_, New<Options>(
+      "dimSrcVoc",         opt<std::vector<int>>("dim-vocabs")[0],  // ULR multi-lingual src
+      "dimTgtVoc",         opt<std::vector<int>>("dim-vocabs")[1],  // ULR monon tgt
+      "dimUlrEmb",         opt<int>("ulr-dim-emb"),
+      "dimEmb",            opt<int>("dim-emb"),
+      "ulr-dropout",       opt<float>("ulr-dropout"),
+      "dropout",           dropoutEmbeddings_,
+      "inference",         inference_,
+      "ulrTrainTransform", opt<bool>("ulr-trainable-transformation"),
+      "ulrQueryFile",      opt<std::string>("ulr-query-vectors"),
+      "ulrKeysFile",       opt<std::string>("ulr-keys-vectors")
+    ));
+  // clang-format on
 }
 
 // get embedding layer for this encoder or decoder

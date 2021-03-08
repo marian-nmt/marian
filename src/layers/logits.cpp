@@ -48,17 +48,14 @@ Expr Logits::applyLossFunction(
   for(size_t g = 0; g < numGroups; g++) {
     if(!logits_[g])
       continue;  // empty factor  --@TODO: use an array of indices of non-empty logits_[]
-    const auto& maskedFactoredLabels = allMaskedFactoredLabels[g];  // array of (word index, mask)
-    auto factorIndices = indices(
-        maskedFactoredLabels
-            .indices);  // [B... flattened] factor-label indices, or 0 if factor does not apply
-    auto factorMask
-        = constant(maskedFactoredLabels.masks);  // [B... flattened] loss values get multiplied with
-                                                 // 0 for labels that don't have this factor
-    auto factorLogits = logits_[g];  // [B... * Ug] label-wise loss values (not aggregated yet)
-    // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask
-    // it out next.
-    auto factorLoss = lossFn(factorLogits->loss(), factorIndices);  // [B... x 1]
+    // clang-format off
+    const auto& maskedFactoredLabels = allMaskedFactoredLabels[g];    // array of (word index, mask)
+    auto factorIndices = indices(maskedFactoredLabels.indices);       // [B... flattened] factor-label indices, or 0 if factor does not apply
+    auto factorMask    = constant(maskedFactoredLabels.masks);        // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
+    auto factorLogits  = logits_[g];                                  // [B... * Ug] label-wise loss values (not aggregated yet)
+    // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
+    auto factorLoss    = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
+    // clang-format on
     if(loss)
       factorLoss = cast(factorLoss, loss->value_type());
     factorLoss
@@ -140,6 +137,7 @@ Expr Logits::getLogits() const {
     logProbs[g] = logsoftmax(logits_[g]->loss());
   auto y = concatenate(logProbs, /*axis=*/-1);
 
+  // clang-format off
   // sum up the unit logits across factors for each target word
   auto graph = y->graph();
   auto factorMatrix = factoredVocab_->getGlobalFactorMatrix();  // [V x U]
@@ -147,13 +145,10 @@ Expr Logits::getLogits() const {
       y,  // [B x U]
       factorMatrix.shape,
       graph->constant({(int)factorMatrix.weights.size()}, inits::fromVector(factorMatrix.weights)),
-      graph->constant({(int)factorMatrix.indices.size()},
-                      inits::fromVector(factorMatrix.indices),
-                      Type::uint32),
-      graph->constant({(int)factorMatrix.offsets.size()},
-                      inits::fromVector(factorMatrix.offsets),
-                      Type::uint32),
+      graph->constant({(int)factorMatrix.indices.size()}, inits::fromVector(factorMatrix.indices), Type::uint32),
+      graph->constant({(int)factorMatrix.offsets.size()}, inits::fromVector(factorMatrix.offsets), Type::uint32),
       /*transB=*/true);  // -> [B x V]
+  // clang-format on
 
   // mask out gaps
   auto gapLogMask = factoredVocab_->getGapLogMask();  // [V]
