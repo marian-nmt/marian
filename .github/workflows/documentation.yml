@@ -1,0 +1,49 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  api-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up Doxygen
+        run: sudo apt-get install -y doxygen
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Set up dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('doc/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: ./doc
+        run: pip install -r requirements.txt
+
+      - name: Build documentation
+        working-directory: ./doc
+        run: make html
+
+      # This artifact contains the HTML output of Sphinx only.
+      # With index.html at the root of the produced zip file.
+      - name: Upload documentation
+        uses: actions/upload-artifact@v2
+        with:
+          name: api-docs
+          path: ./doc/build/html
+          if-no-files-found: error
