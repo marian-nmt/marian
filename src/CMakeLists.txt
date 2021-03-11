@@ -72,6 +72,9 @@ set(MARIAN_SOURCES
   layers/loss.cpp
   layers/weight.cpp
   layers/lsh.cpp
+  layers/embedding.cpp
+  layers/output.cpp
+  layers/logits.cpp
 
   rnn/cells.cpp
   rnn/attention.cpp
@@ -84,6 +87,7 @@ set(MARIAN_SOURCES
   models/model_factory.cpp
   models/encoder_decoder.cpp
   models/transformer_stub.cpp
+  models/costs.cpp
 
   rescorer/score_collector.cpp
   embedder/vector_collector.cpp
