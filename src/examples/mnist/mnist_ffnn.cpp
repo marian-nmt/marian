@@ -24,9 +24,9 @@ using namespace marian;
 int main(int argc, char** argv) {
   auto options = parseOptions(argc, argv, cli::mode::training, false);
 
-  if(!options->has("train-sets"))
+  if(!options->hasAndNotEmpty("train-sets"))
     options->set("train-sets", TRAIN_SET);
-  if(!options->has("valid-sets"))
+  if(!options->hasAndNotEmpty("valid-sets"))
     options->set("valid-sets", VALID_SET);
 
   if(options->get<std::string>("type") != "mnist-lenet")
