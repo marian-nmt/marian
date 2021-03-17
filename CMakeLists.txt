@@ -327,7 +327,7 @@ if(CUDA_FOUND)
   if(USE_STATIC_LIBS)
     set(EXT_LIBS ${EXT_LIBS} ${CUDA_curand_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusparse_LIBRARY})
     set(CUDA_LIBS ${CUDA_curand_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusparse_LIBRARY})
-    
+
     find_library(CUDA_culibos_LIBRARY NAMES culibos PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64)
     # The cuLIBOS library does not seem to exist in Windows CUDA toolkit installs
     if(CUDA_culibos_LIBRARY)
@@ -504,8 +504,8 @@ if(USE_STATIC_LIBS)
 endif()
 
 # Find MPI
-if(USE_MPI)  
-  # 2.0 refers to MPI2 standard. OpenMPI is an implementation of that standard regardless of the specific OpenMPI version 
+if(USE_MPI)
+  # 2.0 refers to MPI2 standard. OpenMPI is an implementation of that standard regardless of the specific OpenMPI version
   # e.g. OpenMPI 1.10 implements MPI2 and will be found correctly.
   find_package(MPI 2.0 REQUIRED)
   if(MPI_FOUND)
@@ -518,19 +518,22 @@ if(USE_MPI)
   endif(MPI_FOUND)
 endif(USE_MPI)
 
-# TODO: move inside if(BOOST_COMPONENTS) 
-if(USE_STATIC_LIBS)
-  set(Boost_USE_STATIC_LIBS ON)
-endif()
 
 ###############################################################################
 # Find Boost if required
 if(BOOST_COMPONENTS)
+  if(USE_STATIC_LIBS)
+    set(Boost_USE_STATIC_LIBS ON)
+  endif()
+
   find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
   if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     set(EXT_LIBS ${EXT_LIBS} ${Boost_LIBRARIES})
     set(EXT_LIBS ${EXT_LIBS} ${ZLIB_LIBRARIES}) # hack for static compilation
+    if(MSVC)
+      add_definitions(-DBOOST_ALL_NO_LIB=1) # hack for missing date-time stub
+    endif()
   else(Boost_FOUND)
     message(SEND_ERROR "Cannot find Boost libraries. Terminating.")
   endif(Boost_FOUND)
