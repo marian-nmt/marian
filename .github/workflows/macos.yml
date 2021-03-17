@@ -18,7 +18,7 @@ jobs:
         submodules: recursive
 
     - name: Install dependencies
-      run: brew install openblas protobuf
+      run: brew install boost openblas openssl protobuf
 
     # Openblas location is exported explicitly because openblas is keg-only,
     # which means it was not symlinked into /usr/local/.

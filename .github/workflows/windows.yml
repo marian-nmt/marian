@@ -8,6 +8,8 @@ on:
 
 env:
   MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+  BOOST_ROOT: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
+  BOOST_URL: "https://sourceforge.net/projects/boost/files/boost-binaries/1.72.0/boost_1_72_0-msvc-14.2-64.exe"
 
 jobs:
   build-windows:
@@ -50,6 +52,14 @@ jobs:
       shell: powershell
       if: matrix.gpu == true
 
+    # Boost is no longer pre-installed on GitHub-hosted Windows runners
+    - name: Download Boost
+      run: |
+        Write-Host "Downloading Boost to ${{ env.BOOST_ROOT }}"
+        C:\msys64\usr\bin\wget.exe -nv "${{ env.BOOST_URL }}" -O "${{ github.workspace }}/boost.exe"
+        Start-Process -Wait -FilePath "${{ github.workspace }}/boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=${{ env.BOOST_ROOT }}"
+      shell: powershell
+
     - name: Prepare vcpkg
       uses: lukka/run-vcpkg@v4
       with:
@@ -85,17 +95,14 @@ jobs:
       if: matrix.gpu == true
 
     # Windows CUDA builds use USE_NCCL=off due to compilation errors
-    # Boost is pre-installed on Azure/GitHub-hosted Windows runners
-    # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
-    # (not used yet)
     - name: Build Release
       uses: lukka/run-cmake@v3
       with:
         buildDirectory: ${{ github.workspace }}/build/
         cmakeAppendedArgs: '-G Ninja
-          -DBOOST_ROOT="$(BOOST_ROOT_1_72_0)"
-          -DBOOST_INCLUDEDIR="$(BOOST_ROOT_1_72_0)/include"
-          -DBOOST_LIBRARYDIR="$(BOOST_ROOT_1_72_0)/lib"
+          -DBOOST_ROOT="${{ env.BOOST_ROOT }}"
+          -DBOOST_INCLUDEDIR="${{ env.BOOST_ROOT }}/include"
+          -DBOOST_LIBRARYDIR="${{ env.BOOST_ROOT }}/lib"
           -DCMAKE_BUILD_TYPE="Release"
           -DOPENSSL_USE_STATIC_LIBS="TRUE"
           -DOPENSSL_MSVC_STATIC_RT="TRUE"
