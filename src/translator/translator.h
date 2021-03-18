@@ -60,8 +60,7 @@ public:
     auto srcVocab = corpus_->getVocabs()[0];
 
     if(options_->hasAndNotEmpty("shortlist"))
-      shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
-          options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
+      shortlistGenerator_ = data::createShortlistGenerator(options_, srcVocab, trgVocab_, 0, 1, vocabs.front() == vocabs.back());
 
     auto devices = Config::getDevices(options_);
     numDevices_ = devices.size();

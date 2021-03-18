@@ -546,7 +546,6 @@ void FactoredVocab::constructNormalizationInfoForVocab() {
 /*virtual*/ void FactoredVocab::transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const {
   for (; num-- > 0; ptr++) {
     auto word = Word::fromWordIndex(*ptr);
-    auto wordString = word2string(word);
     auto lemmaIndex = getFactor(word, 0) + groupRanges_[0].first;
     *ptr = (WordIndex)lemmaIndex;
   }

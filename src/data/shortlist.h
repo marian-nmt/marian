@@ -5,6 +5,7 @@
 #include "common/file_stream.h"
 #include "data/corpus_base.h"
 #include "data/types.h"
+#include "mio/mio.hpp"
 
 #include <random>
 #include <unordered_map>
@@ -291,6 +292,52 @@ public:
     return New<Shortlist>(indices_);
   }
 };
+
+/*
+Legacy binary shortlist for Microsoft-internal use. 
+*/
+class QuicksandShortlistGenerator : public ShortlistGenerator {
+private:
+  Ptr<Options> options_;
+  Ptr<const Vocab> srcVocab_;
+  Ptr<const Vocab> trgVocab_;
+
+  size_t srcIdx_;
+
+  mio::mmap_source mmap_;
+
+  // all the quicksand bits go here
+  bool use16bit_{false};
+  int32_t numDefaultIds_;
+  int32_t idSize_;
+  const int32_t* defaultIds_{nullptr};
+  int32_t numSourceIds_{0};
+  const int32_t* sourceLengths_{nullptr};
+  const int32_t* sourceOffsets_{nullptr};
+  int32_t numShortlistIds_{0};
+  const uint8_t* sourceToShortlistIds_{nullptr};
+  
+public:
+  QuicksandShortlistGenerator(Ptr<Options> options,
+                              Ptr<const Vocab> srcVocab,
+                              Ptr<const Vocab> trgVocab,
+                              size_t srcIdx = 0,
+                              size_t trgIdx = 1,
+                              bool shared = false);
+
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
+};
+
+/*
+Shortlist factory to create correct type of shortlist. Currently assumes everything is a text shortlist 
+unless the extension is *.bin for which the Microsoft legacy binary shortlist is used.
+*/
+Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
+                                                 Ptr<const Vocab> srcVocab,
+                                                 Ptr<const Vocab> trgVocab,
+                                                 size_t srcIdx = 0,
+                                                 size_t trgIdx = 1,
+                                                 bool shared = false);
 
 }  // namespace data
 }  // namespace marian
