@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Support for MS-internal binary shortlist
 - Local/global sharding with MPI training via `--sharding local`
 - fp16 support for factors.
 - Correct training with fp16 via `--fp16`. 

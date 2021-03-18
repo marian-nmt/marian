@@ -15,6 +15,7 @@ pool:
   name: Azure Pipelines
 
 variables:
+  BOOST_ROOT_WINDOWS: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
   CUDA_PATH_WINDOWS: "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"
   MKL_DIR: "$(Build.SourcesDirectory)/mkl"
   MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
@@ -69,6 +70,14 @@ stages:
     #    key: 'v0 | "$(VCPKG_PACKAGES)" | vcpkg | "$(Agent.OS)"'
     #    path: $(VCPKG_DIR)
 
+    # Boost is no longer pre-installed on Azure/GitHub-hosted Windows runners
+    - pwsh: |
+        Write-Host "Downloading Boost to $(BOOST_ROOT_WINDOWS)"
+        $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.72.0/boost_1_72_0-msvc-14.2-64.exe"
+        C:\msys64\usr\bin\wget.exe -nv $Url -O "$(Pipeline.Workspace)/boost.exe"
+        Start-Process -Wait -FilePath "$(Pipeline.Workspace)/boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=$(BOOST_ROOT_WINDOWS)"
+      displayName: Download Boost
+
     - pwsh: |
         git clone https://github.com/Microsoft/vcpkg.git $(VCPKG_DIR)
         cd $(VCPKG_DIR)
@@ -121,9 +130,7 @@ stages:
         # Set envvars so that CMake can find the installed packages
         MKLROOT: $(MKL_DIR)
         CUDA_PATH: $(CUDA_PATH_WINDOWS)/v$(cuda_version)
-        # Boost is pre-installed on Azure/GitHub-hosted Windows runners
-        # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#boost
-        BOOST_ROOT: $(BOOST_ROOT_1_72_0)
+        BOOST_ROOT: $(BOOST_ROOT_WINDOWS)
 
     - script: |
         call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
@@ -226,12 +233,18 @@ stages:
     - checkout: self
       submodules: true
 
-      # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
-      # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
+    # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
+    # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
     - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler
       displayName: Install packages
 
-      # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
+    # Boost is no longer pre-installed on Azure/GitHub-hosted runners
+    # TODO: check which Boost components are really needed and update the list
+    - bash: sudo apt-get install -y libboost-system-dev
+      displayName: Install Boost
+      condition: eq(variables.boost, true)
+
+    # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
     - bash: |
         wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
         sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
@@ -240,13 +253,11 @@ stages:
       displayName: Install MKL
       condition: eq(variables.cpu, true)
 
-      # The script simplifies installation of different versions of CUDA
+    # The script simplifies installation of different versions of CUDA
     - bash: ./scripts/ci/install_cuda_ubuntu.sh $(cuda)
       displayName: Install CUDA
       condition: eq(variables.gpu, true)
 
-    # Boost is already installed on Azure-hosted runners in a non-standard location
-    # https://github.com/actions/virtual-environments/issues/687#issuecomment-610471671
     - bash: |
         mkdir -p build
         cd build
@@ -260,9 +271,6 @@ stages:
           -DUSE_FBGEMM=$(cpu) \
           -DUSE_SENTENCEPIECE=on \
           -DUSE_STATIC_LIBS=$(static) \
-          -DBOOST_ROOT=$BOOST_ROOT_1_72_0 \
-          -DBOOST_INCLUDEDIR=$BOOST_ROOT_1_72_0/include \
-          -DBOOST_LIBRARYDIR=$BOOST_ROOT_1_72_0/lib \
           -DBoost_ARCHITECTURE=-x64 \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-$(cuda)
       displayName: Configure CMake
@@ -346,7 +354,7 @@ stages:
     - checkout: self
       submodules: true
 
-    - bash: brew install openblas protobuf
+    - bash: brew install boost openblas openssl protobuf
       displayName: Install packages
 
     # Openblas location is exported explicitly because openblas is keg-only, which means it was not symlinked into /usr/local/.
