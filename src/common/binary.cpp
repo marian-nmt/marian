@@ -13,28 +13,28 @@ namespace io {
 namespace binary {
 
 struct Header {
-  size_t nameLength;
-  size_t type;
-  size_t shapeLength;
-  size_t dataLength;
+  uint64_t nameLength;
+  uint64_t type;
+  uint64_t shapeLength;
+  uint64_t dataLength;
 };
 
 // cast current void pointer to T pointer and move forward by num elements 
 template <typename T>
-const T* get(const void*& current, size_t num = 1) {
+const T* get(const void*& current, uint64_t num = 1) {
   const T* ptr = (const T*)current;
   current = (const T*)current + num;
   return ptr;
 }
 
 void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
-  size_t binaryFileVersion = *get<size_t>(current);
+  uint64_t binaryFileVersion = *get<uint64_t>(current);
   ABORT_IF(binaryFileVersion != BINARY_FILE_VERSION,
            "Binary file versions do not match: {} (file) != {} (expected)",
            binaryFileVersion,
            BINARY_FILE_VERSION);
 
-  size_t numHeaders = *get<size_t>(current); // number of item headers that follow
+  uint64_t numHeaders = *get<uint64_t>(current); // number of item headers that follow
   const Header* headers = get<Header>(current, numHeaders); // read that many headers
 
   // prepopulate items with meta data from headers
@@ -47,14 +47,14 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 
   // read in actual shape and data
   for(int i = 0; i < numHeaders; ++i) {
-    size_t len = headers[i].shapeLength;
+    uint64_t len = headers[i].shapeLength;
     items[i].shape.resize(len); 
     const int* arr = get<int>(current, len); // read shape
     std::copy(arr, arr + len, items[i].shape.begin()); // copy to Item::shape 
   }
 
   // move by offset bytes, aligned to 256-bytes boundary
-  size_t offset = *get<size_t>(current);
+  uint64_t offset = *get<uint64_t>(current);
   get<char>(current, offset);
 
   for(int i = 0; i < numHeaders; ++i) {
@@ -68,7 +68,7 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
       ABORT_IF(items[i].type == Type::intgemm8 || items[i].type == Type::intgemm16, "mmap format not supported for hardware non-specific intgemm matrices");
       items[i].ptr = get<char>(current, headers[i].dataLength);
     } else { // reading into item data
-      size_t len = headers[i].dataLength;
+      uint64_t len = headers[i].dataLength;
       items[i].bytes.resize(len);
       const char* ptr = get<char>(current, len);
       // Intgemm8/16 matrices in binary model are just quantized, however they also need to be reordered
@@ -89,7 +89,7 @@ void loadItems(const void* current, std::vector<io::Item>& items, bool mapped) {
 
 void loadItems(const std::string& fileName, std::vector<io::Item>& items) {
   // Read file into buffer
-  size_t fileSize = filesystem::fileSize(fileName);
+  uint64_t fileSize = filesystem::fileSize(fileName);
   std::vector<char> buf(fileSize);
 // @TODO: check this again:
 #if 1 // for some reason, the #else branch fails with "file not found" in the *read* operation (open succeeds)
@@ -132,20 +132,20 @@ io::Item getItem(const std::string& fileName, const std::string& varName) {
 void saveItems(const std::string& fileName,
                const std::vector<io::Item>& items) {
   io::OutputFileStream out(fileName);
-  size_t pos = 0;
+  uint64_t pos = 0;
 
-  size_t binaryFileVersion = BINARY_FILE_VERSION;
+  uint64_t binaryFileVersion = BINARY_FILE_VERSION;
   pos += out.write(&binaryFileVersion);
 
   std::vector<Header> headers;
   for(const auto& item : items) {
     headers.push_back(Header{item.name.size() + 1,
-                             (size_t)item.type,
+                             (uint64_t)item.type,
                              item.shape.size(),
                              item.bytes.size()}); // binary item size with padding, will be 256-byte-aligned
   }
 
-  size_t headerSize = headers.size();
+  uint64_t headerSize = headers.size();
   pos += out.write(&headerSize);
   pos += out.write(headers.data(), headers.size());
 
@@ -159,11 +159,11 @@ void saveItems(const std::string& fileName,
   }
 
   // align to next 256-byte boundary
-  size_t nextpos = ((pos + sizeof(size_t)) / 256 + 1) * 256;
-  size_t offset = nextpos - pos - sizeof(size_t);
+  uint64_t nextpos = ((pos + sizeof(uint64_t)) / 256 + 1) * 256;
+  uint64_t offset = nextpos - pos - sizeof(uint64_t);
 
   pos += out.write(&offset);
-  for(size_t i = 0; i < offset; i++) {
+  for(uint64_t i = 0; i < offset; i++) {
     char padding = 0;
     pos += out.write(&padding);
   }

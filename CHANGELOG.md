@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for MS-internal binary shortlist
 - Local/global sharding with MPI training via `--sharding local`
 - fp16 support for factors.
-- Correct training with fp16 via `--fp16`. 
+- Correct training with fp16 via `--fp16`.
 - Dynamic cost-scaling with `--cost-scaling`.
 - Dynamic gradient-scaling with `--dynamic-gradient-scaling`.
 - Add unit tests for binary files.
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Allow to compile -DUSE_MPI=on with -DUSE_STATIC_LIBS=on although MPI gets still linked dynamically since it has so many dependencies.
 - Fix building server with Boost 1.75
 - Missing implementation for cos/tan expression operator
+- Fixed loading binary models on architectures where `size_t` != `uint64_t`.
 - Missing float template specialisation for elem::Plus
 - Broken links to MNIST data sets
 
