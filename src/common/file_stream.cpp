@@ -161,6 +161,7 @@ void TemporaryFile::MakeTemp(const std::string &base) {
   int fd = open(name, oflag, _S_IREAD | _S_IWRITE);
   ABORT_IF(fd == -1, "Error while making a temporary based on '{}'", base);
 
+  file_ = std::string(name);
 #else
   // create temp file
   std::string name(base);

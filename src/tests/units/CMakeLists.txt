@@ -6,6 +6,7 @@ set(UNIT_TESTS
     attention_tests
     fastopt_tests
     utils_tests
+    binary_tests
     # cosmos_tests # optional, uncomment to test with specific files.
 )
 

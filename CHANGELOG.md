@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Correct training with fp16 via `--fp16`. 
 - Dynamic cost-scaling with `--cost-scaling`.
 - Dynamic gradient-scaling with `--dynamic-gradient-scaling`.
+- Add unit tests for binary files.
 - Fix compilation with OMP
 
 ### Fixed
