@@ -8,23 +8,22 @@ installed. If only CUDA is installed but not MKL, a GPU-only version will be bui
 installed and not CUDA, only the CPU version will be built. So if you are interested in only one
 functionality, you can omit one of them. Install both for full functionality.
 
-   - [Cuda 10](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal),
+   - [CUDA](https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal),
      Base installer, CUDA 10.0+ is recommended, there might be issues with CUDA 9.2, see below
    - [Intel MKL](https://software.intel.com/en-us/mkl)
 
 ---
-## Check dependencies : `CheckDeps.bat`
+## Check dependencies : `CheckOrInstallDeps.bat`
 
 In addition to the 2 previous prerequisites, Marian may need the following libraries that you may
 already have on your system:
 
     - Boost (1.58-1.72), optional for marian-server (`COMPILE_SERVER=TRUE` in CMake)
     - OpenSSL, optional for marian-server
-    - Protobuf, optional for compiling with SentencePiece (`USE_SENTENCEPIECE=TRUE` in CMake),
-      recommended
 
-The script `CheckDeps.bat` can be used to verify that all dependencies are found on your system. If
-not, it will use the `vcpkg` library manager to download and manage your dependencies for CMake.
+The script `CheckOrInstallDeps.bat` can be used to verify that all dependencies are found on your
+system. If not, it will use the `vcpkg` library manager to download and manage your dependencies for
+CMake.
 
 If you already have a working `vcpkg` installation, this script can use it.
 If vcpkg is in your `PATH` environment variable, the script will find it and use it automatically.
@@ -67,9 +66,8 @@ configuration is done in 3 different files:
      Use this file to configure the environment variables and the parameters passed to CMake to
      generate the project.
 
-   - `.vs\launch.vs.json`: this is a user specific file and it is not commited in the Git repo.
-     Use this file to configure the debugging targets.
-     For example:
+   - `.vs\launch.vs.json`: this is an optional user specific file and it is not commited in the Git
+     repo. Use this file to configure the debugging targets. For example:
 
          {
              "version": "0.2.1",
@@ -152,11 +150,10 @@ The last alternative is to use the script `BuildRelease.bat` that will:
 
 2. __It does not compile with Boost 1.73 or newer__
 
-    At the moment (version 1.9.26) SimpleWebSocketServer, a 3rd party library that Marian uses for
-    marian-server, does not support Boost newer than 1.72. Since vcpkg does not allow installing a
-    specific library versions, you need to revert `ports/boost*` directories to install older Boost.
-    See `CheckDeps.bat` for an example.
+    It may happen that SimpleWebSocketServer, a 3rd party library that Marian uses for
+    marian-server, does not support the version of Boost available in vcpkg. In such case install a
+    supported version of Boost; if you use vcpkg, an option is to checkout to #5970385, which has
+    Boost 1.72.
 
     Note that Boost is required only if you compile with marian-server, for compilation using CMake,
     it is if you set `COMPILE_SERVER` to `TRUE` in CMakeSettings.json.
-
