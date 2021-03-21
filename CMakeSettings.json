@@ -17,10 +17,7 @@
       // Boost and OpenSSL are required if you compile with COMPILE_SERVER=TRUE
       "BOOST_INCLUDEDIR": "",
       "BOOST_LIBRARYDIR": "",
-      "OPENSSL_ROOT_DIR": "",
-
-      // Protobuf is required if you compile with USE_SENTENCEPIECE=TRUE
-      "Protobuf_SRC_ROOT_FOLDER": ""
+      "OPENSSL_ROOT_DIR": ""
     }
   ],
   "configurations": [
@@ -44,12 +41,13 @@
         { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" },
         { "name": "COMPILE_CPU:BOOL", "value": "TRUE" },
         { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" },
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_SERVER:BOOL", "value": "FALSE" },
         { "name": "COMPILE_TESTS:BOOL", "value": "FALSE" },
 
         { "name": "USE_CUDNN:BOOL", "value": "FALSE" },
         { "name": "USE_FBGEMM:BOOL", "value": "TRUE" },
         { "name": "USE_MPI:BOOL", "value": "FALSE" },
+        { "name": "USE_NCCL:BOOL", "value": "FALSE" },
         { "name": "USE_SENTENCEPIECE:BOOL", "value": "TRUE" },
         { "name": "USE_STATIC_LIBS:BOOL", "value": "TRUE" }
       ]
@@ -74,12 +72,13 @@
         { "name": "COMPILE_CUDA:BOOL", "value": "TRUE" },
         { "name": "COMPILE_CPU:BOOL", "value": "TRUE" },
         { "name": "COMPILE_EXAMPLES:BOOL", "value": "FALSE" },
-        { "name": "COMPILE_SERVER:BOOL", "value": "TRUE" },
+        { "name": "COMPILE_SERVER:BOOL", "value": "FALSE" },
         { "name": "COMPILE_TESTS:BOOL", "value": "TRUE" },
 
         { "name": "USE_CUDNN:BOOL", "value": "FALSE" },
         { "name": "USE_FBGEMM:BOOL", "value": "TRUE" },
         { "name": "USE_MPI:BOOL", "value": "FALSE" },
+        { "name": "USE_NCCL:BOOL", "value": "FALSE" },
         { "name": "USE_SENTENCEPIECE:BOOL", "value": "TRUE" },
         { "name": "USE_STATIC_LIBS:BOOL", "value": "TRUE" }
       ]

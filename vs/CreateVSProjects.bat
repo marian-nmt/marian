@@ -25,7 +25,7 @@ if "%BUILD_ROOT%"=="" set BUILD_ROOT=%ROOT%build
 
 set GENERATOR_TARGET="Visual Studio 15 2017 Win64"
 
-call CheckDeps.bat
+call CheckOrInstallDeps.bat
 if errorlevel 1 exit /b 1
 
 

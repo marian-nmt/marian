@@ -1,5 +1,5 @@
 ::
-:: Usage: CheckDeps.bat
+:: Usage: CheckOrInstallDeps.bat
 ::
 :: This script is used to verify that all the dependencies required to build Marian are available.
 :: The Cuda SDK and the Intel MKL must be installed beforehand by the user.
@@ -29,7 +29,6 @@ set ROOT=%~dp0
 ::set BOOST_INCLUDEDIR=
 ::set BOOST_LIBRARYDIR=
 ::set OPENSSL_ROOT_DIR=
-::set Protobuf_SRC_ROOT_FOLDER=
 
 
 :: If all the variables are empty and vcpkg is found in a known path, the script will download and
@@ -45,7 +44,6 @@ set ROOT=%~dp0
 
 if "%BOOST_INCLUDEDIR%" == "" goto :needVcPkg
 if "%OPENSSL_ROOT_DIR%" == "" goto :needVcPkg
-if "%Protobuf_SRC_ROOT_FOLDER%"=="" goto :needVcPkg
 
 goto :checkDeps
 
@@ -62,36 +60,19 @@ if "%VCPKG_ROOT%" == "" for /f "delims=" %%p in ('where vcpkg 2^>nul') do set VC
 if "%VCPKG_ROOT%" == "" set VCPKG_ROOT=%ROOT%deps\vcpkg
 
 if not exist %VCPKG_ROOT% (
-
     echo --- Cloning vcpkg...
     git clone https://github.com/Microsoft/vcpkg.git %VCPKG_ROOT%
-
-    set USE_BOOST_172=1
     set BOOTSTRAP_VCPKG=1
-
 ) else (
-
     pushd %VCPKG_ROOT%
 
     echo --- Updating vcpkg...
     for /f "delims=" %%p in ('git pull') do (
         if not "%%p" == "Already up to date." (
-            set USE_BOOST_172=1
             set BOOTSTRAP_VCPKG=1
         )
     )
 
-    popd
-)
-
-:: Checkout to the last version of Boost that is supported by the 3rd party library
-:: SimpleWebSocketServer. Vcpkg does not allow installing a specific version of library yet, but
-:: the feature has a PR and should be available soon.
-:: For more details, see https://github.com/microsoft/vcpkg/issues/1681
-if "%USE_BOOST_172%"=="1" (
-    pushd %VCPKG_ROOT%
-    echo --- Checkout to Boost version 1.72...
-    git checkout 597038559647776ee39d02dcf159da05d9342f1d --pathspec-from-file=../../pathspec-boost-1.72.txt
     popd
 )
 
@@ -124,8 +105,7 @@ echo.
 echo ... CUDA
 if "%CUDA_PATH%"=="" (
     echo The CUDA_PATH environment variable is not defined: this will compile only the CPU version.
-)
-else (
+) else (
     echo Found Cuda SDK in %CUDA_PATH%
 )
 
@@ -211,17 +191,6 @@ if "%OPENSSL_ROOT_DIR%"=="" (
     set OPENSSL_ROOT_DIR=%VCPKG_INSTALL%
 )
 
-:: -------------------------
-:: Protobuf_SRC_ROOT_FOLDER can be set to an existing Protobuf installation.
-:: If not, we use vcpkg to install the library
-::
-echo.
-echo ... Protobuf
-if "%Protobuf_SRC_ROOT_FOLDER%"=="" (
-    %VCPKG% install protobuf
-    set Protobuf_SRC_ROOT_FOLDER=%VCPKG_INSTALL%
-)
-
 set CMAKE_PREFIX_PATH=%VCPKG_INSTALL%
 
 echo.
@@ -233,7 +202,6 @@ echo        CMAKE_PREFIX_PATH ^| %CMAKE_PREFIX_PATH%
 echo                CUDA_PATH ^| %CUDA_PATH%
 echo                  MKLROOT ^| %MKLROOT%
 echo         OPENSSL_ROOT_DIR ^| %OPENSSL_ROOT_DIR%
-echo Protobuf_SRC_ROOT_FOLDER ^| %Protobuf_SRC_ROOT_FOLDER%
 echo               VCPKG_ROOT ^| %VCPKG_ROOT%
 echo --------------------------------------------------
 echo.
