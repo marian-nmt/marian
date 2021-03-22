@@ -658,6 +658,9 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
     ->implicit_val("1");
   cli.add<bool>("--word-scores",
       "Print word-level scores. One score per subword unit, not normalized even if --normalize");
+  cli.add<std::string/*SchedulerPeriod*/>("--stat-freq",
+    "Display speed information every arg mini-batches. Disabled by default with 0, set to value larger than 0 to activate",
+    "0");
 #ifdef USE_SENTENCEPIECE
   cli.add<bool>("--no-spm-decode",
       "Keep the output segmented into SentencePiece subwords");

@@ -7,6 +7,9 @@
 #include "data/shortlist.h"
 #include "data/text_input.h"
 
+#include "common/scheduling_parameter.h"
+#include "common/timer.h"
+
 #include "3rd_party/threadpool.h"
 
 #include "translator/history.h"
@@ -130,11 +133,42 @@ public:
     if(options_->get<bool>("quiet-translation"))
       collector->setPrintingStrategy(New<QuietPrinting>());
 
-    bg.prepare();
+    // mutex for syncing counter and timer updates
+    std::mutex syncCounts;
+
+    // timer and counters for total elapsed time and statistics
+    std::unique_ptr<timer::Timer> totTimer(new timer::Timer()); 
+    size_t totBatches      = 0;
+    size_t totLines        = 0;
+    size_t totSourceTokens = 0;
+    
+    // timer and counters for elapsed time and statistics between updates
+    std::unique_ptr<timer::Timer> curTimer(new timer::Timer());
+    size_t curBatches      = 0;
+    size_t curLines        = 0;
+    size_t curSourceTokens = 0;
+
+    // determine if we want to display timer statistics, by default off
+    auto statFreq = SchedulingParameter::parse(options_->get<std::string>("stat-freq", "0u"));
+    // abort early to avoid potentially costly batching and translation before error message
+    ABORT_IF(statFreq.unit != SchedulingUnit::updates, "Units other than 'u' are not supported for --stat-freq value {}", statFreq);
+
+    // Override display for progress heartbeat for MS-internal Philly compute cluster
+    // otherwise this job may be killed prematurely if no log for 4 hrs
+    if(getenv("PHILLY_JOB_ID")) { // this environment variable exists when running on the cluster
+      if(statFreq.n == 0) {
+        statFreq.n = 10000;
+        statFreq.unit = SchedulingUnit::updates;
+      }
+    }
 
     bool doNbest = options_->get<bool>("n-best");
+
+    bg.prepare();
     for(auto batch : bg) {
-      auto task = [=](size_t id) {
+      auto task = [=, &syncCounts,
+                      &totBatches, &totLines, &totSourceTokens, &totTimer, 
+                      &curBatches, &curLines, &curSourceTokens, &curTimer](size_t id) {
         thread_local Ptr<ExpressionGraph> graph;
         thread_local std::vector<Ptr<Scorer>> scorers;
 
@@ -156,20 +190,44 @@ public:
                            doNbest);
         }
 
+        // if we asked for speed information display this
+        if(statFreq.n > 0) { 
+          std::lock_guard<std::mutex> lock(syncCounts);
+          totBatches++; 
+          totLines        += batch->size();
+          totSourceTokens += batch->front()->batchWords();
+        
+          curBatches++;
+          curLines        += batch->size();
+          curSourceTokens += batch->front()->batchWords();
 
-        // progress heartbeat for MS-internal Philly compute cluster
-        // otherwise this job may be killed prematurely if no log for 4 hrs
-        if (getenv("PHILLY_JOB_ID")   // this environment variable exists when running on the cluster
-            && id % 1000 == 0)  // hard beat once every 1000 batches
-        {
-          auto progress = 0.f; //fake progress for now
-          fprintf(stderr, "PROGRESS: %.2f%%\n", progress);
-          fflush(stderr);
+          if(totBatches % statFreq.n == 0) {
+            double totTime = totTimer->elapsed();
+            double curTime = curTimer->elapsed();
+
+            LOG(info, 
+                "Processed {} batches, {} lines, {} source tokens in {:.2f}s - Speed (since last): {:.2f} batches/s - {:.2f} lines/s - {:.2f} tokens/s", 
+                totBatches, totLines, totSourceTokens, totTime, curBatches / curTime, curLines / curTime, curSourceTokens / curTime);
+            
+            // reset stats between updates
+            curBatches = curLines = curSourceTokens = 0;
+            curTimer.reset(new timer::Timer());
+          }
         }
       };
 
       threadPool.enqueue(task, batchId++);
+    }
 
+    // make sure threads are joined before other local variables get de-allocated
+    threadPool.join_all();
+    
+    // display final speed numbers over total translation if intermediate displays were requested
+    if(statFreq.n > 0) {
+      double totTime = totTimer->elapsed();
+      LOG(info, 
+          "Processed {} batches, {} lines, {} source tokens in {:.2f}s - Speed (total): {:.2f} batches/s - {:.2f} lines/s - {:.2f} tokens/s", 
+          totBatches, totLines, totSourceTokens, totTime, totBatches / totTime, totLines / totTime, totSourceTokens / totTime);
     }
   }
 };
