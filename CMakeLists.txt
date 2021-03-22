@@ -421,18 +421,6 @@ if(USE_STATIC_LIBS)
 endif()
 
 ###############################################################################
-# Find Tcmalloc
-if(NOT WIN32)
-  find_package(Tcmalloc)
-  if(Tcmalloc_FOUND)
-    include_directories(${Tcmalloc_INCLUDE_DIR})
-    set(EXT_LIBS ${EXT_LIBS} ${Tcmalloc_LIBRARIES})
-  else(Tcmalloc_FOUND)
-    message(WARNING "Cannot find TCMalloc library. Continuing.")
-  endif(Tcmalloc_FOUND)
-endif()
-
-###############################################################################
 # Find BLAS library
 if(COMPILE_CPU)
   if(NOT GENERATE_MARIAN_INSTALL_TARGETS)

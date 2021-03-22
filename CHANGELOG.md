@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Broken links to MNIST data sets
 
 ### Changed
+- Remove TC_MALLOC as an optional build depdendency. Doesn't seem to actually do anything anymore.
 - Change compile options a la -DCOMPILE_CUDA_SM35 to -DCOMPILE_KEPLER, -DCOMPILE_MAXWELL,
 -DCOMPILE_PASCAL, -DCOMPILE_VOLTA, -DCOMPILE_TURING and -DCOMPILE_AMPERE
 - Disable -DCOMPILE_KEPLER, -DCOMPILE_MAXWELL by default.
