@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix compilation with OMP
 
 ### Fixed
+- Fixed an issue when loading intgemm16 models from unaligned memory.
 - Fix building marian with gcc 9.3+ and FBGEMM
 - Find MKL installed under Ubuntu 20.04 via apt-get
 - Support for CUDA 11.
