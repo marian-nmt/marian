@@ -328,6 +328,13 @@ public:
   virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
 };
 
+class LSHlistGenerator : public ShortlistGenerator {
+private:
+
+public:
+  LSHlistGenerator(int k, int nbits);
+};
+
 /*
 Shortlist factory to create correct type of shortlist. Currently assumes everything is a text shortlist 
 unless the extension is *.bin for which the Microsoft legacy binary shortlist is used.
@@ -337,6 +344,7 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  Ptr<const Vocab> trgVocab,
                                                  size_t srcIdx = 0,
                                                  size_t trgIdx = 1,
+                                                 const std::vector<int> &lshOpts,
                                                  bool shared = false);
 
 }  // namespace data

@@ -133,16 +133,30 @@ Ptr<Shortlist> QuicksandShortlistGenerator::generate(Ptr<data::CorpusBatch> batc
   return New<Shortlist>(indices);
 }
 
+LSHlistGenerator::LSHlistGenerator(int k, int nbits) {
+
+}
+
+Ptr<Shortlist> LSHlistGenerator::generate(Ptr<data::CorpusBatch> batch) const {
+
+}
+
+
 Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  Ptr<const Vocab> srcVocab,
                                                  Ptr<const Vocab> trgVocab,
                                                  size_t srcIdx,
                                                  size_t trgIdx,
+                                                 const std::vector<int> &lshOpts,
                                                  bool shared) {
+  std::cerr << "lshOpts=" << lshOpts.size() << std::endl;
   std::vector<std::string> vals = options->get<std::vector<std::string>>("shortlist");
   ABORT_IF(vals.empty(), "No path to shortlist given");
   std::string fname = vals[0];
-  if(filesystem::Path(fname).extension().string() == ".bin") {
+  if (lshOpts.size() == 2) {
+    return New<LSHlistGenerator>(lshOpts[0], lshOpts[1]);
+  }
+  else if(filesystem::Path(fname).extension().string() == ".bin") {
     return New<QuicksandShortlistGenerator>(options, srcVocab, trgVocab, srcIdx, trgIdx, shared);
   } else {
     return New<LexicalShortlistGenerator>(options, srcVocab, trgVocab, srcIdx, trgIdx, shared);
