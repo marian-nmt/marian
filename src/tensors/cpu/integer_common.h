@@ -198,7 +198,7 @@ void prepareAndTransposeB(io::Item& item, const char * input) {
                                                    cols(item.shape)); //rows here returns the columns of the transposed input matrix, and cols -> the rows
     } else {
         Integer * aligned_input = reinterpret_cast<Integer *>(genericMalloc(512, rows(item.shape)*cols(item.shape)*sizeof(Integer)));
-        std::copy(input, input + rows(item.shape)*cols(item.shape), aligned_input);
+        std::copy(reinterpret_cast<const Integer *>(input), reinterpret_cast<const Integer *>(input) + rows(item.shape)*cols(item.shape), aligned_input);
         Integer * aligned_output = reinterpret_cast<Integer *>(genericMalloc(512, rows(item.shape)*cols(item.shape)*sizeof(Integer)));
         intgemm_<vtype>::width::PrepareBQuantizedTransposed(reinterpret_cast<const Integer *>(aligned_input),
                                                    reinterpret_cast<Integer *>(aligned_output),
