@@ -258,7 +258,6 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
   // We will use the prefix "currentBatch.." whenever we refer to batch dimension that can change due to batch-pruning.
   const int origDimBatch = (int)batch->size();
   const auto trgEosId = trgVocab_->getEosId();
-  const auto trgUnkId = trgVocab_->getUnkId();
 
   auto getNBestList = createGetNBestListFn(beamSize_, origDimBatch, graph->getDeviceId());
 
@@ -298,13 +297,23 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
     const_cast<std::vector<bool>&>(emptyBatchEntries).push_back(batch->front()->data()[origBatchIdx] == srcEosId); // const_cast during construction
   }
 
-  // determine index of UNK in the log prob vectors if we want to suppress it in the decoding process
-  int unkColId = -1;
-  if (trgUnkId != Word::NONE && !options_->get<bool>("allow-unk", false)) { // do we need to suppress unk?
-    unkColId = factoredVocab ? factoredVocab->getUnkIndex() : trgUnkId.toWordIndex(); // what's the raw index of unk in the log prob vector?
-    auto shortlist = scorers_[0]->getShortlist();      // first shortlist is generally ok, @TODO: make sure they are the same across scorers?
-    if (shortlist)
-      unkColId = shortlist->tryForwardMap(unkColId); // use shifted postion of unk in case of using a shortlist, shortlist may have removed unk which results in -1
+  Expr suppressedWordIndices;
+  bool suppressUnk     = !options_->get<bool>("allow-unk", false);
+  bool suppressSpecial = !options_->get<bool>("allow-special", false);
+  if (suppressUnk || suppressSpecial) { // do we need to suppress unk or special?
+    std::vector<WordIndex> suppressed = trgVocab_->suppressedIndices(suppressUnk, suppressSpecial);
+
+    auto shortlist = scorers_[0]->getShortlist(); // first shortlist is generally ok, @TODO: make sure they are the same across scorers?
+    if(shortlist) // check if suppressed words are allowed by the shortlist, if not, remove
+      suppressed.erase(std::remove_if(suppressed.begin(), 
+                                      suppressed.end(), 
+                                      [&](WordIndex i) { 
+                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos; 
+                                      }),
+                       suppressed.end());
+    
+    if(!suppressed.empty())
+      suppressedWordIndices = graph->indices(suppressed);
   }
 
   // the decoding process updates the following state information in each output time step:
@@ -453,10 +462,8 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
-      if(unkColId != -1 && factorGroup == 0)
-        suppressWord(expandedPathScores, unkColId);
-      for(auto state : states)
-        state->blacklist(expandedPathScores, batch);
+      if(suppressedWordIndices && factorGroup == 0)
+        suppressWords(expandedPathScores, suppressedWordIndices);
 
       //**********************************************************************
       // perform beam search

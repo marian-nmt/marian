@@ -1,8 +1,3 @@
-/* All or part of this file was contributed by Intel under license:
- *   Copyright (C) 2017-2018 Intel Corporation
- *   SPDX-License-Identifier: MIT
- */
-
 #include <cuda.h>
 #include <limits>
 
@@ -17,39 +12,50 @@ namespace marian {
 namespace gpu {
 
 template <typename T>
-__global__ void gSetColumn(T* d_in,
-                           size_t n_columns,
-                           size_t n_rows,
-                           size_t noColumn,
-                           T value) {
-  size_t rowNumber = threadIdx.x + blockDim.x * blockIdx.x;
-  size_t index = noColumn + rowNumber * n_columns;
-
-  if(index < n_columns * n_rows) {
-    d_in[index] = value;
+__global__ void gSetColumns(T* out,
+                            int rows,
+                            int cols,
+                            const IndexType* wordIndices,
+                            int numIndices,
+                            T value) {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      T* rowOut = out + j * cols;
+      for(int tid = 0; tid < numIndices; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < numIndices)
+          rowOut[wordIndices[i]] = value;
+      }
+    }
   }
 }
 
-void SetColumn(Tensor in, size_t col, float value) {
-  int nRows = in->shape().elements() / in->shape()[-1];
-  int nColumns = in->shape()[-1];
+void SetColumns(Tensor in, Tensor wordIndices, float value) {
+  matchOrAbort<IndexType>(wordIndices->type());
 
-  int nBlocks = nRows / 512 + ((nRows % 512 == 0) ? 0 : 1);
-  int nThreads = std::min(512, nRows);
+  int rows = in->shape().elements() / in->shape().back();
+  int cols = in->shape().back();
 
- if(in->type() == Type::float32) {
-   gSetColumn<<<nBlocks, nThreads>>>(in->data<float>(), nColumns, nRows, col, value);
+  int numIndices = wordIndices->size();
+
+  int threads = std::min(MAX_THREADS, numIndices);
+  int blocks = std::min(MAX_BLOCKS, rows);
+
+  if(in->type() == Type::float32) {
+    gSetColumns<<<blocks, threads>>>(in->data<float>(), rows, cols, wordIndices->data<WordIndex>(), numIndices, value);
 #if COMPILE_FP16
- } else if(in->type() == Type::float16) {
-   gSetColumn<<<nBlocks, nThreads>>>(in->data<half>(), nColumns, nRows, col, (half)value);
+  } else if(in->type() == Type::float16) {
+    gSetColumns<<<blocks, threads>>>(in->data<half>(),  rows, cols, wordIndices->data<WordIndex>(), numIndices, (half)value);
 #endif
- } else {
-   ABORT("suppressWord not implemented for type {}", in->type());
- }
+  } else {
+    ABORT("suppressWord not implemented for type {}", in->type());
+  }
 }
 
-void suppressWord(Expr probs, WordIndex wordIndex) {
-  SetColumn(probs->val(), wordIndex, NumericLimits<float>(probs->value_type()).lowest);
+void suppressWords(Expr probs, Expr wordIndices) {
+  SetColumns(probs->val(), wordIndices->val(), NumericLimits<float>(probs->value_type()).lowest);
 }
+
 }  // namespace gpu
 }  // namespace marian

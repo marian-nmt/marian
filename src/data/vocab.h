@@ -70,6 +70,13 @@ public:
   // return UNK symbol id
   Word getUnkId() const;
 
+  // return a set of Word ids that should be suppressed based on the underlying vocabulary implementation.
+  // Arguments mosty likely provided based on outside options like --allow-unk etc.
+  std::vector<Word> suppressedIds(bool suppressUnk = true, bool suppressSpecial = true) const;
+
+  // same as suppressedIds but return numeric word indices into the embedding matrices
+  std::vector<WordIndex> suppressedIndices(bool suppressUnk = true, bool suppressSpecial = true) const;
+
   // for corpus augmentation: convert string to all-caps
   // @TODO: Consider a different implementation where this does not show on the vocab interface,
   //        but instead as additional options passed to vocab instantiation.

@@ -49,8 +49,11 @@ public:
   virtual std::string toUpper(const std::string& line) const { return line; }
   virtual std::string toEnglishTitleCase(const std::string& line) const { return line; }
 
-  // this function is an identity mapping for default vocabularies, hence do nothing
+  // Identity mapping for default vocabularies, hence do nothing
   virtual void transcodeToShortlistInPlace(WordIndex* ptr, size_t num) const { ptr; num; }
+
+  // Populates vector `special` with special words like "\n" etc.
+  virtual void addSpecialWords(std::vector<Word>& special) const { special; }
 
   virtual void createFake() = 0;
 

@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <limits>
 
 namespace marian {
 namespace data {
@@ -22,18 +23,20 @@ private:
   std::vector<WordIndex> indices_;    // // [packed shortlist index] -> word index, used to select columns from output embeddings
 
 public:
+  static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
+
   Shortlist(const std::vector<WordIndex>& indices)
     : indices_(indices) {}
 
   const std::vector<WordIndex>& indices() const { return indices_; }
   WordIndex reverseMap(int idx) { return indices_[idx]; }
 
-  int tryForwardMap(WordIndex wIdx) {
+  WordIndex tryForwardMap(WordIndex wIdx) {
     auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
     if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
       return (int)std::distance(indices_.begin(), first); // return coordinate if found
     else
-      return -1;                                          // return -1 if not found
+      return npos;                                        // return npos if not found, @TODO: replace with std::optional once we switch to C++17?
   }
 
 };

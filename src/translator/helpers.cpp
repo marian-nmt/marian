@@ -13,29 +13,30 @@ namespace marian {
 
 namespace cpu {
 
-void SetColumn(Tensor in_, size_t col, float value) {
-  int nRows = in_->shape().elements() / in_->shape()[-1];
-  int nColumns = in_->shape()[-1];
+void SetColumns(Tensor in, Tensor indices, float value) {
+  int nRows = in->shape().elements() / in->shape()[-1];
+  int nColumns = in->shape()[-1];
+  int nSuppress = indices->shape()[-1];
 
-  float* in = in_->data();
   for(int rowNumber = 0; rowNumber < nRows; ++rowNumber) {
-    auto index = col + rowNumber * nColumns;
-    in[index] = value;
+    float* row = in->data() + rowNumber * nColumns;
+    for(int i = 0; i < nSuppress; ++i)
+      row[indices->data<WordIndex>()[i]] = value;
   }
 }
 
-void suppressWord(Expr logProbs, WordIndex wordIndex) {
-  SetColumn(logProbs->val(), wordIndex, std::numeric_limits<float>::lowest());
+void suppressWords(Expr logProbs, Expr wordIndices) {
+  SetColumns(logProbs->val(), wordIndices->val(), std::numeric_limits<float>::lowest());
 }
 }  // namespace cpu
 
-void suppressWord(Expr logProbs, WordIndex wordIndex) {
+void suppressWords(Expr logProbs, Expr wordIndices) {
   if(logProbs->val()->getBackend()->getDeviceId().type == DeviceType::cpu) {
-    cpu::suppressWord(logProbs, wordIndex);
+    cpu::suppressWords(logProbs, wordIndices);
   }
 #ifdef CUDA_FOUND
   else {
-    gpu::suppressWord(logProbs, wordIndex);
+    gpu::suppressWords(logProbs, wordIndices);
   }
 #endif
 }
