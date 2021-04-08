@@ -13,7 +13,7 @@ jobs:
         include:
           # Ubuntu CPU-only build
           - name: "Ubuntu CPU-only"
-            os: ubuntu-latest
+            os: ubuntu-18.04
             cuda: ""
             gcc: 7
             cpu: true
@@ -72,7 +72,9 @@ jobs:
     # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
     # Boost is no longer pre-installed on GitHub-hosted runners
     - name: Install dependencies
-      run: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler libboost-system-dev
+      run: |
+        sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler libboost-system-dev \
+          gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
 
     # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
     - name: Install MKL
