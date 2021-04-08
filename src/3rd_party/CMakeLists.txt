@@ -74,9 +74,13 @@ if(USE_SENTENCEPIECE)
   if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
     set(SPM_ENABLE_SHARED OFF CACHE BOOL  "Builds shared libaries in addition to static libraries." FORCE)
   endif()
+  set(SPM_ENABLE_TCMALLOC ON CACHE BOOL "Enable TCMalloc if available.")
 
-  # disable TCMALLOC for SentencePiece
-  set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "Enable TCMalloc if available." FORCE)
+  if(USE_STATIC_LIBS)
+    set(SPM_TCMALLOC_STATIC ON CACHE BOOL "Link static library of TCMALLOC." FORCE)
+  else(USE_STATIC_LIBS)
+    set(SPM_TCMALLOC_STATIC OFF CACHE BOOL "Link static library of TCMALLOC.")
+  endif(USE_STATIC_LIBS)
 
   add_subdirectory(./sentencepiece)
   include_directories(./sentencepiece)
