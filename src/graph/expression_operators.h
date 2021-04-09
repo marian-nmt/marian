@@ -488,10 +488,20 @@ Expr bdot(Expr a,
  */
 Expr affine(Expr a,
             Expr b,
-            Expr c,
+            Expr bias,
             bool transA = false,
             bool transB = false,
             float scalar = 1.f);
+
+/**
+ * As above, but efficiently applies relu transformation to output. For inference only.
+ */
+Expr affineWithRelu(Expr a,
+                    Expr b,
+                    Expr bias,
+                    bool transA = false,
+                    bool transB = false,
+                    float scalar = 1.f);
 
 /**
  * Computes the dot product of CSR-tensor @p A with @p B.

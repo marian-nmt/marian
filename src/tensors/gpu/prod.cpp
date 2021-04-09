@@ -11,9 +11,33 @@
 #include "tensors/gpu/cuda_helpers.h"
 // clang-format on
 
+#if CUDA_VERSION >= 11000
+#include <cublasLt.h>
+#endif
+
 namespace marian {
 
 namespace gpu {
+
+// It seems that the bias must be 8 byte aligned for the cublasLt epilogue to work. Therefore,
+// if the bias pointer is not 8 byte aligned, we do a normal matmul in cublasLt and invoke a 
+// custom epilogue kernel.
+static constexpr int REQUIRED_BIAS_ALIGNMENT = 8;  
+
+// Used to set preferences for cublasLt to filter out algos if matrices to not meet default 256 byte alignment
+int getAlignmentUpTo256(const void *ptr) {
+  uintptr_t addr = (uintptr_t)ptr;
+  int trailingZeros = 0;
+
+  for(int shiftAmt = 8, mask = 0xFF; shiftAmt > 0; shiftAmt /= 2, mask >>=shiftAmt) {
+    if ((addr & mask) == 0) {
+      trailingZeros += shiftAmt;
+      addr >>= shiftAmt;
+    }
+  }
+
+  return std::min(256, 1 << trailingZeros);
+}
 
 // The explicit version of matmult like cublasGemmEx choose their math mode based on the algorithm that
 // has been passed into the function call and seem to ignore setMathMode. Here we query the used math mode
@@ -411,6 +435,199 @@ void ProdBatched(marian::Tensor C,
     ABORT("ProdBatched not implemented for element type {}", C->type());
   }
 }
+
+#if CUDA_VERSION >= 11000 // Earlier versions of cublasLT do not support bias addition for fp32 and fp16.
+
+static cublasStatus_t cublasLtAffineHelper(cublasLtHandle_t ltHandle, cublasOperation_t transA, cublasOperation_t transB,
+                                           cudaDataType matrixType,
+                                           int m, int n, int k, const void *alpha, const void *A, int lda, const void *B,
+                                           int ldb, const void *beta, void *C, int ldc, const void* bias, 
+                                           void* workspace, size_t workspaceSize, bool do_relu, cudaStream_t stream)  {
+
+  cublasLtMatmulDesc_t operationDesc = NULL;
+  cublasLtMatrixLayout_t Adesc = NULL, Bdesc = NULL, Cdesc = NULL;
+  cublasLtMatmulPreference_t preference = NULL;
+
+  int returnedResults = 0;
+  cublasLtMatmulHeuristicResult_t heuristicResult = {};
+
+  cublasLtEpilogue_t epilogue = do_relu? CUBLASLT_EPILOGUE_RELU_BIAS: CUBLASLT_EPILOGUE_BIAS;
+  cublasComputeType_t computeType = matrixType == CUDA_R_32F? CUBLAS_COMPUTE_32F_FAST_16F: CUBLAS_COMPUTE_16F;
+
+  // If the bias is not aligned, just matmul and invoke custom epilogue later. 
+  // cublas fails with a misalignment error if this condition is not true.
+  if((uintptr_t)bias % REQUIRED_BIAS_ALIGNMENT != 0) {
+    epilogue = CUBLASLT_EPILOGUE_DEFAULT;
+  }
+
+  CUBLAS_CHECK(cublasLtMatmulDescCreate(&operationDesc, computeType, matrixType));
+  CUBLAS_CHECK(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transA, sizeof(transA)));
+  CUBLAS_CHECK(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transB, sizeof(transB)));
+  CUBLAS_CHECK(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
+  CUBLAS_CHECK(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_BIAS_POINTER, &bias, sizeof(bias)));
+
+  CUBLAS_CHECK(cublasLtMatrixLayoutCreate(&Adesc, matrixType, transA == CUBLAS_OP_N ? m : k, transA == CUBLAS_OP_N ? k : m, lda));
+  CUBLAS_CHECK(cublasLtMatrixLayoutCreate(&Bdesc, matrixType, transB == CUBLAS_OP_N ? k : n, transB == CUBLAS_OP_N ? n : k, ldb));
+  CUBLAS_CHECK(cublasLtMatrixLayoutCreate(&Cdesc, matrixType, m, n, ldc));
+
+  // I think we need to do this since we can slice matrices...
+  // The allocator always allocates on 256 byte boundaries but we have no guarantees about the alignment of a matrix slice so we filter out
+  // algorithms that would not work with matrices not aligned to 256 bytes.
+  int alignmentA = getAlignmentUpTo256(A);
+  int alignmentB = getAlignmentUpTo256(B);
+  int alignmentC = getAlignmentUpTo256(C);
+
+  CUBLAS_CHECK(cublasLtMatmulPreferenceCreate(&preference));
+  CUBLAS_CHECK(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES, &workspaceSize, sizeof(workspaceSize)));
+  CUBLAS_CHECK(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MIN_ALIGNMENT_A_BYTES, &alignmentA, sizeof(alignmentA)));
+  CUBLAS_CHECK(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MIN_ALIGNMENT_B_BYTES, &alignmentB, sizeof(alignmentB)));
+  CUBLAS_CHECK(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MIN_ALIGNMENT_C_BYTES, &alignmentC, sizeof(alignmentC)));
+  CUBLAS_CHECK(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MIN_ALIGNMENT_D_BYTES, &alignmentC, sizeof(alignmentC)));
+  CUBLAS_CHECK(cublasLtMatmulAlgoGetHeuristic(ltHandle, operationDesc, Adesc, Bdesc, Cdesc, Cdesc, preference, 1, &heuristicResult, &returnedResults));
+
+  cublasStatus_t opStatus = cublasLtMatmul(ltHandle, operationDesc, alpha, A, Adesc, B, Bdesc, beta, C, Cdesc, C, Cdesc, 
+                                           &heuristicResult.algo, workspace, workspaceSize, stream);
+  
+  if (preference) CUBLAS_CHECK(cublasLtMatmulPreferenceDestroy(preference));
+  if (Cdesc) CUBLAS_CHECK(cublasLtMatrixLayoutDestroy(Cdesc));
+  if (Bdesc) CUBLAS_CHECK(cublasLtMatrixLayoutDestroy(Bdesc));
+  if (Adesc) CUBLAS_CHECK(cublasLtMatrixLayoutDestroy(Adesc));
+  if (operationDesc) CUBLAS_CHECK(cublasLtMatmulDescDestroy(operationDesc));
+
+  return opStatus;
+}
+
+static cublasStatus_t cublasLtAffineTyped(cublasLtHandle_t ltHandle, cublasOperation_t transA, cublasOperation_t transB,
+                                          int m, int n, int k, const half *alpha, const half *A, int lda, const half *B,
+                                          int ldb, const half *beta, half *C, int ldc, const half* bias, 
+                                          half* workspace, size_t workspaceSizeBytes, bool do_relu, cudaStream_t stream) {
+  return cublasLtAffineHelper(ltHandle, transA, transB, CUDA_R_16F, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, bias, 
+                              workspace, workspaceSizeBytes, do_relu, stream);
+}
+
+static cublasStatus_t cublasLtAffineTyped(cublasLtHandle_t ltHandle, cublasOperation_t transA, cublasOperation_t transB,
+                                          int m, int n, int k, const float *alpha, const float *A, int lda, const float *B,
+                                          int ldb, const float *beta, float *C, int ldc, const float* bias, 
+                                          float* workspace, size_t workspaceSizeBytes,bool do_relu, cudaStream_t stream) {
+  
+  return cublasLtAffineHelper(ltHandle, transA, transB, CUDA_R_32F, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, bias, 
+                              workspace, workspaceSizeBytes, do_relu, stream);
+}
+
+template <typename T>
+void affineTyped(marian::Tensor C, Ptr<Allocator> allocator, const marian::Tensor& A, const marian::Tensor& B, const marian::Tensor& bias,
+                  bool transA, bool transB, T beta, T scalar, bool do_relu) {
+
+  CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
+  T alpha = scalar;
+    
+  int m = A->shape().elements() / A->shape().back();
+  int k = A->shape().back();
+  if(transA)
+    std::swap(m, k);
+
+  int l = B->shape().elements() / B->shape().back();
+  int n = B->shape().back();
+  if(transB)
+    std::swap(l, n);
+
+  int lda = A->shape().back();
+  int ldb = B->shape().back();
+  int ldc = B->shape().back();
+
+  size_t bias_size = bias->shape().elements();
+  ABORT_IF(n != bias_size, "The number of elements in the bias must match the number of columns in C");
+
+  if(transB)
+    ldc = B->shape().elements() / B->shape().back();
+
+  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto ltHandle = (cublasLtHandle_t)backend->getCublasHandle(); // A cublas handle encapsulates an lt handle
+
+  size_t numWorkSpaceElts = 8192; // Allows for cublasLt to perform split-K gemms. This is chosen to be at least
+                                  // 16 KiB for float16 which is large enough to prevent alloc failed errors
+  size_t workspaceSizeBytes = numWorkSpaceElts * sizeof(T);
+  IPtr<MemoryPiece> workspace = allocator->alloc<T>(numWorkSpaceElts);  
+
+  cudaStream_t stream = 0;
+  CUBLAS_CHECK(cublasGetStream(cublasHandle, &stream));
+
+
+  CUBLAS_CHECK(cublasLtAffineTyped(ltHandle, 
+                                   opB, 
+                                   opA, 
+                                   n, 
+                                   m, 
+                                   k, 
+                                   &alpha, 
+                                   B->data<T>(),
+                                   ldb,
+                                   A->data<T>(),
+                                   lda,
+                                   &beta,
+                                   C->data<T>(),
+                                   ldc,
+                                   bias->data<T>(),
+                                   workspace->data<T>(),
+                                   workspaceSizeBytes,
+                                   do_relu,
+                                   stream));
+  
+  allocator->free(workspace);
+}
+
+// This version is needed so that Windows doesn't complain when compiling CUDA < 11. Otherwise, the ifdef could be inside of one
+// definition of Affine.
+void Affine(marian::Tensor C, 
+            Ptr<Allocator> allocator, 
+            const marian::Tensor& A, 
+            const marian::Tensor& B, 
+            const marian::Tensor& bias,
+            bool transA, bool transB, float beta, float scalar, bool do_relu) {
+  // There is a bug in CUDA 11 where the bias pointer needs to be 8 byte aligned. This bug will be fix in a subsequent release. For now,
+  // we launch a custom epilogue if the bias does not meet the alignment requirement.           
+  if(C->type() == Type::float32) {
+    affineTyped<float>(C, allocator, A, B, bias, transA, transB, beta, scalar, do_relu);
+    if((uintptr_t)bias->data<float>() % REQUIRED_BIAS_ALIGNMENT != 0) {
+      BiasAdd(C, bias, do_relu);              
+    }
+#if COMPILE_FP16
+  } else if(C->type() == Type::float16) {
+    affineTyped<half>(C, allocator, A, B, bias, transA, transB, __float2half(beta), __float2half(scalar), do_relu);
+    if((uintptr_t)bias->data<half>() % REQUIRED_BIAS_ALIGNMENT != 0) {
+      BiasAdd(C, bias, do_relu);              
+    }
+#endif
+  } else {
+    ABORT("Affine not implemented for type {}", C->type());
+  }
+}
+
+#else
+
+void Affine(marian::Tensor C, 
+            Ptr<Allocator> /*allocator*/, 
+            const marian::Tensor& A, 
+            const marian::Tensor& B, 
+            const marian::Tensor& bias,
+            bool transA, bool transB, float beta, float scalar, bool do_relu) {
+             
+  if(C->type() == Type::float32) {
+    ProdTyped<float>(C, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
+  } else if(C->type() == Type::float16) {
+    ProdTyped<half>(C, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
+  } else {
+    ABORT("Prod not implemented for type {}", C->type());
+  }
+  BiasAdd(C, bias, do_relu);              
+}
+#endif
 
 }  // namespace gpu
 }  // namespace marian

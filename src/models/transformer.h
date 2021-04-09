@@ -396,18 +396,6 @@ public:
                           opt<int>("transformer-heads"), /*cache=*/false);
   }
 
-  static inline
-  std::function<Expr(Expr)> activationByName(const std::string& actName)
-  {
-    if (actName == "relu")
-      return (ActivationFunction*)relu;
-    else if (actName == "swish")
-      return (ActivationFunction*)swish;
-    else if (actName == "gelu")
-      return (ActivationFunction*)gelu;
-    ABORT("Invalid activation name '{}'", actName);
-  }
-
   Expr LayerFFN(std::string prefix, Expr input) const {
     int dimModel = input->shape()[-1];
 
@@ -415,9 +403,9 @@ public:
     auto opsPre = opt<std::string>("transformer-preprocess");
     auto output = preProcess(prefix + "_ffn", opsPre, input, dropProb);
 
+    auto actName = opt<std::string>("transformer-ffn-activation");
     int dimFfn = opt<int>("transformer-dim-ffn");
     int depthFfn = opt<int>("transformer-ffn-depth");
-    auto actFn = activationByName(opt<std::string>("transformer-ffn-activation"));
     float ffnDropProb
       = inference_ ? 0 : opt<float>("transformer-dropout-ffn");
 
@@ -427,12 +415,11 @@ public:
 
     // the stack of FF layers
     for(int i = 1; i < depthFfn; ++i)
-      output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actFn, ffnDropProb);
+      output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actName, ffnDropProb);
     output = denseInline(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel, initFn);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
-    output
-      = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);
+    output = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);
 
     return output;
   }
@@ -450,21 +437,21 @@ public:
     // FFN
     int dimAan   = opt<int>("transformer-dim-aan");
     int depthAan = opt<int>("transformer-aan-depth");
-    auto actFn = activationByName(opt<std::string>("transformer-aan-activation"));
+    auto actName = opt<std::string>("transformer-aan-activation");
     float aanDropProb = inference_ ? 0 : opt<float>("transformer-dropout-ffn");
 
     auto initFn = inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f);
 
     // the stack of AAN layers
     for(int i = 1; i < depthAan; ++i)
-      y = denseInline(y, prefix, /*suffix=*/std::to_string(i), dimAan, initFn, actFn, aanDropProb);
+      y = denseInline(y, prefix, /*suffix=*/std::to_string(i), dimAan, initFn, actName, aanDropProb);
     if(y->shape()[-1] != dimModel) // bring it back to the desired dimension if needed
       y = denseInline(y, prefix, std::to_string(depthAan), dimModel, initFn);
 
     bool noGate = opt<bool>("transformer-aan-nogate");
     if(!noGate) {
-      auto gi = denseInline(x, prefix, /*suffix=*/"i", dimModel, initFn, (ActivationFunction*)sigmoid);
-      auto gf = denseInline(y, prefix, /*suffix=*/"f", dimModel, initFn, (ActivationFunction*)sigmoid);
+      auto gi = denseInline(x, prefix, /*suffix=*/"i", dimModel, initFn, "sigmoid");
+      auto gf = denseInline(y, prefix, /*suffix=*/"f", dimModel, initFn, "sigmoid");
       y = gi * x + gf * y;
     }
 

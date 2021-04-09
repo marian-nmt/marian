@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Adds custom bias epilogue kernel.
+- Adds support for fusing relu and bias addition into gemms when using cuda 11.
 - Better suppression of unwanted output symbols, specifically "\n" from SentencePiece with byte-fallback. Can be deactivated with --allow-special
 - Display decoder time statistics with marian-decoder --stat-freq 10 ...
 - Support for MS-internal binary shortlist

@@ -32,6 +32,8 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
   Config::seed = 1234;
   auto graph = New<ExpressionGraph>();
+  
+  graph->setInference(true);
   graph->setDefaultElementType(floatType);
   graph->setDevice({0, device});
   graph->reserveWorkspaceMB(16);
@@ -539,15 +541,19 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     values.clear();
 
     std::vector<T> vA({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-    std::vector<T> vB({1, 2, 3, 4, 5, 6});
-    std::vector<T> vAff({24, 30, 51, 66, 78, 102, 105, 138});
+    std::vector<T> vB({1, -2, 3, 4, -5, 6});
+    std::vector<T> vAff({-6, 26, -9, 50, -12, 74, -15, 98});
+    std::vector<T> vAffRelu({0, 26, 0, 50, 0, 74, 0, 98});
 
     auto A = graph->param("A", {4, 3}, inits::fromVector(vA));
     auto B = graph->param("B", {3, 2}, inits::fromVector(vB));
-    auto C = graph->param("C", {4, 2}, inits::fromValue(2));
+    auto bias = graph->param("C", {1, 2}, inits::fromValue(2));
 
-    auto aff1 = affine(A, B, C);
-    auto aff2 = dot(A, B) + C;
+    auto aff1 = affine(A, B, bias);
+    auto aff2 = dot(A, B) + bias;
+
+    auto affRelu1 = affineWithRelu(A, B, bias);
+    auto affRelu2 = relu(dot(A, B) + bias);
 
     graph->forward();
 
@@ -558,6 +564,11 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     values2.clear();
     CHECK(aff2->shape() == aff1->shape());
     aff2->val()->get(values2);
+    CHECK(values2 == values);
+
+    affRelu1->val()->get(values);
+    affRelu2->val()->get(values2);
+    CHECK(values2 == vAffRelu);
     CHECK(values2 == values);
   }
 
