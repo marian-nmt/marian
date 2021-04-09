@@ -170,7 +170,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
                              /*suffix=*/"1",
                              ffnDim,
                              inits::glorotUniform(),
-                             (ActivationFunction*)relu,
+                             "relu",
                              ffnDropProb);
         f = denseInline(f, name + "_ffn", /*suffix=*/"2", inputDim);
         // add & norm

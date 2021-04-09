@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/definitions.h"
+#include "graph/expression_operators.h"
 #include "marian.h"
 
 #include "data/shortlist.h"
@@ -168,22 +170,37 @@ public:
 // --- a few layers with built-in parameters created on the fly, without proper object
 // @TODO: change to a proper layer object
 
+static inline std::function<Expr(Expr)> activationByName(const std::string& actName) {
+  if (actName == "relu")
+    return (ActivationFunction*)relu;
+  else if (actName == "swish")
+    return (ActivationFunction*)swish;
+  else if (actName == "gelu")
+    return (ActivationFunction*)gelu;
+  else if (actName == "") // return identity function if activation name is empty
+    return [](Expr x) { return x; };
+  ABORT("Invalid activation name '{}'", actName);
+}
+
 // like affine() but with built-in parameters, activation, and dropout
 static inline Expr denseInline(Expr x,
                                std::string prefix,
                                std::string suffix,
                                int outDim,
                                Ptr<inits::NodeInitializer> initFn = inits::glorotUniform(),
-                               const std::function<Expr(Expr)>& actFn = nullptr,
+                               std::string actName = "",
                                float dropProb = 0.0f) {
   auto graph = x->graph();
 
   auto W = graph->param(prefix + "_W" + suffix, {x->shape()[-1], outDim}, inits::glorotUniform());
   auto b = graph->param(prefix + "_b" + suffix, {1, outDim}, inits::zeros());
 
-  x = affine(x, W, b);
-  if(actFn)
-    x = actFn(x);
+  if(actName == "relu") {
+    x = affineWithRelu(x, W, b); // speed optimization for inference, @TODO: handle better in future layer framework
+  } else {
+    x = affine(x, W, b);
+    x = activationByName(actName)(x);
+  }
   x = dropout(x, dropProb);  // @TODO: check for infernce?
   return x;
 }

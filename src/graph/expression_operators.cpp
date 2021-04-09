@@ -1,4 +1,5 @@
 #include "graph/expression_operators.h"
+#include "common/definitions.h"
 #include "layers/constructors.h"
 
 #include "graph/node_operators.h"
@@ -518,7 +519,7 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
   return Expression<DotBatchedNodeOp>(a, b, transA, transB, scale);
 }
 
-static Expr affineDefault(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
+Expr affineDefault(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   // general version, MKL, CBlas or CUDA
 
   int rows = a->shape().elements() / a->shape()[-1];
@@ -575,6 +576,15 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
              aElementType, bElementType);
     return affineDefault(a, b, bias, transA, transB, scale);
   }
+}
+
+Expr affineWithRelu(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
+  auto graph = a->graph();
+  
+  if(graph->isInference() && graph->getDeviceId().type == DeviceType::gpu)
+    return Expression<AffineWithReluNodeOp>(a, b, bias, transA, transB, scale);
+  else
+    return relu(affine(a, b, bias, transA, transB, scale));
 }
 
 // @TODO: Not a great place to check this

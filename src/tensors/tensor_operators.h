@@ -106,6 +106,8 @@ DISPATCH8(Prod, marian::Tensor, const marian::Tensor&, const marian::Tensor&, bo
 DISPATCH8(ProdBatched, marian::Tensor, Ptr<Allocator>, const marian::Tensor, const marian::Tensor, bool, bool, float, float)
 DISPATCH9(CSRProd, marian::Tensor, Ptr<Allocator>, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float)
 
+DISPATCH10(Affine, marian::Tensor, Ptr<Allocator>, const marian::Tensor&, const marian::Tensor&, const marian::Tensor&, bool, bool, float, float, bool)
+
 DISPATCH2(Softmax, marian::Tensor, marian::Tensor)
 DISPATCH3(SoftmaxGrad, marian::Tensor, marian::Tensor, marian::Tensor)
 

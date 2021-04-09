@@ -266,17 +266,18 @@ public:
 
   NodeOps forwardOps() override {
     using namespace functional;
-
+    
     return {
-      NodeOp(
-          Prod(val_,
-               child(0)->val(),
-               child(1)->val(),
-               transA_,
-               transB_,
-               0.f,
-               scalar_);
-          Prod(val_, child(3)->val(), child(2)->val(), false, false, 1.f, 1.f))
+      NodeOp(Affine(val_,
+                    graph()->allocator(),
+                    child(0)->val(),
+                    child(1)->val(),
+                    child(2)->val(),
+                    transA_,
+                    transB_,
+                    0.f,
+                    scalar_,
+                    /*doRelu=*/false))
     };
   }
 
@@ -323,8 +324,7 @@ public:
                       false,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(
-              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
       };
 
     if(transA_ && !transB_)
@@ -343,8 +343,7 @@ public:
                       false,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(
-              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
       };
 
     if(transA_ && transB_)
@@ -363,8 +362,7 @@ public:
                       true,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(
-              child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
       };
 
     return {
@@ -382,8 +380,7 @@ public:
                     false,
                     1.0,
                     scalar_, computeTypeB)),
-        NodeOp(Prod(
-            child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+        NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
     };
   }
 
@@ -412,6 +409,97 @@ public:
     return true;
   }
 
+};
+
+class AffineWithReluNodeOp : public NaryNodeOp {
+private:
+  friend class SerializationHelpers;
+  bool transA_;
+  bool transB_;
+  float scalar_;
+
+public:
+  AffineWithReluNodeOp(Expr a, 
+                       Expr b, 
+                       Expr bias,
+                       bool transA,
+                       bool transB,
+                       float scalar)
+      : NaryNodeOp({a, b, bias}, newShape(a, b, transA, transB)),
+        transA_(transA),
+        transB_(transB),
+        scalar_(scalar) {
+    ABORT_IF(!graph()->isInference() || graph()->getDeviceId().type != DeviceType::gpu,
+             "AffineWithReluNodeOp currently only supported for inference on GPU");
+  }
+
+  Shape newShape(Expr a, Expr b, bool transA, bool transB) {
+    auto shapeA = a->shape();
+    if(transA) {
+      shapeA.set(shapeA.size() - 2, a->shape()[shapeA.size() - 1]);
+      shapeA.set(shapeA.size() - 1, a->shape()[shapeA.size() - 2]);
+    }
+
+    auto shapeB = b->shape();
+    if(transB) {
+      shapeB.set(shapeB.size() - 2, b->shape()[shapeB.size() - 1]);
+      shapeB.set(shapeB.size() - 1, b->shape()[shapeB.size() - 2]);
+    }
+
+    Shape outShape = shapeA;
+    outShape.set(outShape.size() - 1, shapeB[shapeB.size() - 1]);
+    ABORT_IF(shapeA[shapeA.size() - 1] != shapeB[shapeB.size() - 2],
+             "Matrix product requires inner dimensions to match in {}{} * {}{}", std::string(shapeA), transA, std::string(shapeB), transB);
+    return outShape;
+  }
+
+  NodeOps forwardOps() override {
+    ABORT_IF(!graph()->isInference() || graph()->getDeviceId().type != DeviceType::gpu,
+             "AffineWithReluNodeOp currently only supported for inference on GPU");
+    
+    return {
+      NodeOp(Affine(val_,
+                    graph()->allocator(),
+                    child(0)->val(),
+                    child(1)->val(),
+                    child(2)->val(),
+                    transA_,
+                    transB_,
+                    0.f,
+                    scalar_,
+                    /*doRelu=*/true))
+    };
+  }
+
+  NodeOps backwardOps() override {
+    ABORT("AffineWithReluNodeOp cannot be used for training??");
+    return {};
+  }
+
+  const std::string type() override { return "affineWithRelu"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, transA_);
+    util::hash_combine(seed, transB_);
+    util::hash_combine(seed, scalar_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<AffineWithReluNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(transA_ != cnode->transA_)
+      return false;
+    if(transB_ != cnode->transB_)
+      return false;
+    if(scalar_ != cnode->scalar_)
+      return false;
+    return true;
+  }
 };
 
 class DotBatchedNodeOp : public NaryNodeOp {
