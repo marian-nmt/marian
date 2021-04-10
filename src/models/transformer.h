@@ -176,6 +176,8 @@ public:
       // layer normalization
       else if (op == 'n')
         output = layerNorm(output, prefix, "_pre");
+      else if (op == 'r')
+        output = rmsNorm(output, prefix, "_pre");
       else
         ABORT("Unknown pre-processing operation '{}'", op);
     }
@@ -201,6 +203,8 @@ public:
       // layer normalization
       else if(op == 'n')
         output = layerNorm(output, prefix);
+      else if(op == 'r')
+        output = rmsNorm(output, prefix);
       else
         ABORT("Unknown pre-processing operation '{}'", op);
     }

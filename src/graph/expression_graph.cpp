@@ -208,8 +208,15 @@ void ExpressionGraph::backward(bool reset, float clipValue) {
     }
 
     if(v->trainable() && v->marked_for_debug()) {
-      LOG(info, "Debug Grad: {} op={}", v->debug_message(), v->type());
-      LOG(info, v->grad()->debug());
+      Logger log = spdlog::get("general");
+      if(log) {
+        LOG(info, "Debug Grad: {} op={}", v->debug_message(), v->type());
+        LOG(info, v->grad()->debug());
+      }
+      else {
+        std::cerr << "Debug Grad: " << v->debug_message() << " op=" << v->type() << std::endl;
+        std::cerr << v->grad()->debug() << std::endl;
+      }
     }
 
     if(v->trainable() && clipValue != 0) {

@@ -300,6 +300,49 @@ void tests(DeviceType device, Type floatType = Type::float32) {
 
   }
 
+  SECTION("RMS normalization") {
+    graph->clear();
+    values.clear();
+
+    std::vector<T> init = {
+      2.88794374, 4.67853451, 3.96257305, 3.28433037,
+      0.37778997, 0.67662024, 4.24959183, 1.23910618,
+      0.68929380, 2.00369596, 4.38251686, 1.75624943,
+      4.96126175, 3.01947117, 4.72057724, 2.23017120
+    };
+
+    auto a1 = graph->param("test1", {2, 2, 4}, inits::fromVector(init));
+    auto a2 = graph->param("test2", {2, 2, 4}, inits::fromVector(init));
+    auto gamma = graph->param("gamma", {1, 4}, inits::ones());
+    
+    auto rms = rmsNorm(a1, gamma, nullptr, 1e-5f);
+    auto rms2 = gamma * (a2 / sqrt(mean(a2 * a2, /*axis=*/-1) + 1e-5f));
+
+    auto top = sum(flatten(rms + rms2));
+
+    graph->forward();
+    graph->backward();
+
+    CHECK(rms->shape() == Shape({2, 2, 4}));
+
+    std::vector<T> values2;
+
+    // compare values of rms and rms2 to make sure forward computation is correct
+    rms->val()->get(values);
+    rms2->val()->get(values2);
+
+    CHECK( std::equal(values.begin(), values.end(),
+                      values2.begin(), floatApprox) );
+
+    // compare adjoints of a1 and a2 (parameters) to makes sure gradient computation is correct
+    a1->grad()->get(values);
+    a2->grad()->get(values2);
+
+    CHECK( std::equal(values.begin(), values.end(),
+                      values2.begin(), floatApprox) );
+  
+  }
+
   SECTION("reductions") {
     graph->clear();
     values.clear();

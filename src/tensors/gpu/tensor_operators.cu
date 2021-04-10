@@ -2303,6 +2303,273 @@ void LayerNormalizationGrad(Ptr<Allocator> allocator,
   allocator->free(tempOnesMemory);
 }
 
+template <typename T, typename AccType = float>
+__global__ void gRMSNormalization(T* out,
+                                  const T* in,
+                                  const T* gamma,
+                                  const T* beta,
+                                  int rows,
+                                  int cols,
+                                  AccType eps = 1e-9) {
+  extern __shared__ uint8_t _sharedBytes[];
+  AccType* _shareAccType = (AccType*)_sharedBytes;
+
+  AccType N = cols;
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      T* yRow       = out + j * cols;
+      const T* xRow =  in + j * cols;
+
+      AccType* _sqSum = _shareAccType;
+
+      _sqSum[threadIdx.x] = (AccType)0.0f;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          AccType xv = (AccType)xRow[id];
+          _sqSum[threadIdx.x] += xv * xv;
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      AccType rms = functional::Ops<AccType>::sqrt(_sqSum[0] / N + eps); // all AccType
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          AccType gammav  = (AccType)gamma[id];
+          AccType xv      = (AccType)xRow[id];
+          AccType betav   = beta ? (AccType)beta[id] : (AccType)0.f;
+          AccType rmsNorm = xv / rms;
+          AccType y       = gammav * rmsNorm + betav;
+          yRow[id]        = (T)y;
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+void RMSNormalization(Tensor out,
+                      Tensor in,
+                      Tensor gamma,
+                      Tensor beta,
+                      float eps) {
+  cudaSetDevice(out->getDeviceId().no);
+
+  int rows = in->shape().elements() / in->shape().back();
+  int cols = in->shape().back();
+
+  int blocks = std::min(MAX_BLOCKS, (int)rows);
+  int threads = std::min(MAX_THREADS, (int)cols);
+  int shared = threads * sizeof(float);
+
+  if(out->type() == Type::float32) {
+    gRMSNormalization<float, float><<<blocks, threads, shared>>>(out->data<float>(),
+                                                                 in->data<float>(),
+                                                                 gamma->data<float>(),
+                                                                 beta ? beta->data<float>() : nullptr,
+                                                                 rows,
+                                                                 cols,
+                                                                 eps);
+#if COMPILE_FP16
+  } else if (out->type() == Type::float16) {
+    gRMSNormalization<half, float><<<blocks, threads, shared>>>(out->data<half>(),
+                                                                in->data<half>(),
+                                                                gamma->data<half>(),
+                                                                beta ? beta->data<half>() : nullptr,
+                                                                rows,
+                                                                cols,
+                                                                eps);
+#endif
+  } else {
+    ABORT("RMSNormalization not implemented for type {}", out->type());
+  }
+}
+
+template <typename T, typename AccType = float>
+__global__ void gRMSNormalizationGrad(T* gradX,
+                                      T* gradGamma,
+                                      T* adj,
+                                      T* y,
+                                      T* x,
+                                      T* gamma,
+                                      T* beta,
+                                      int rows,
+                                      int cols,
+                                      AccType eps = 1e-9) {
+  extern __shared__ uint8_t sharedBytes[];
+  AccType* shared = (AccType*)sharedBytes;
+
+  AccType N = cols;
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      AccType* sum_adj_r = shared;  // sum of gradient coming in times layerNorm from value
+      AccType* sum_sqr   = shared + blockDim.x;  // sum of x^2
+
+      const T* xRow   =   x + j * cols;
+      const T* yRow   =   y + j * cols;
+      const T* adjRow = adj + j * cols;
+
+      sum_adj_r[threadIdx.x] = (AccType)0.0f;
+      sum_sqr[threadIdx.x]   = (AccType)0.0f;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          AccType xv     = xRow[id];
+          AccType yv     = yRow[id];
+          AccType betav  = beta ? (AccType)beta[id] : (AccType)0.f;
+          AccType gammav = (AccType)gamma[id];
+          AccType adjv   = adjRow[id];
+          AccType rv     = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+
+          sum_adj_r[threadIdx.x] += adjv * rv;
+          sum_sqr[threadIdx.x]   += xv * xv;
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          sum_adj_r[threadIdx.x] += sum_adj_r[threadIdx.x + skip]; // Accumulates in AccType
+          sum_sqr[threadIdx.x]   += sum_sqr[threadIdx.x   + skip]; // Accumulates in AccType
+        }
+        len = (len + 1) >> 1;
+      }
+
+      __syncthreads();
+      AccType rms = functional::Ops<AccType>::sqrt(sum_sqr[0] / N + eps);
+      __syncthreads();
+
+      // Jacobian of RMS norm
+      // J = [ \frac{1}{N * rms} (N\delta_{ij} - RN_i RN_j) ]_{ij}
+      // J * a = dC/dx_i = ( N a_i - RN_i \sum_j RN_j a_j ) / (N * rms)
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+          AccType xv      = xRow[id];
+          AccType gammav  = (AccType)gamma[id];
+          AccType adjv    = adjRow[id];
+          AccType rmsNorm = xv / rms;
+
+          AccType gradNorm = N * adjv - rmsNorm * sum_adj_r[0];
+          gradNorm        /= N * rms; 
+
+          AccType gradXv = gammav * gradNorm;
+
+          // Keep RMSN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. This wil also clip inf. 
+          // @TODO: to be fixed and removed.
+          AccType sign = functional::Ops<AccType>::sgn(gradXv);
+          AccType cutoff = (AccType)1000.f; // @TODO: expose this somehow as an option? or better: make obsolete.
+          gradXv = functional::Ops<AccType>::abs(gradXv) > cutoff ? sign * cutoff : gradXv; // if gradXv is NaN the value return is NaN too because NaN > value is false.
+
+          // @TODO: frankly, this is embarrasing and should rather be removed or optional? It does help for low precision computation though. Maybe turn into option?
+          gradXv = isnan(gradXv) ? 0.f : gradXv; // turn NaN into 0.
+
+          T* gradXRow      = gradX     + j * cols;
+          gradXRow[id]    += (T)(gradXv);
+
+          T* gradGammaRow  = gradGamma + j * cols;
+          // assignment is correct here as this gets summed up
+          // in the next kernel via matrix product
+          gradGammaRow[id] = (T)(adjv * rmsNorm);
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+void RMSNormalizationGrad(Ptr<Allocator> allocator,
+                          Tensor gradX,
+                          Tensor gradGamma,
+                          Tensor gradBeta,
+                          Tensor adj,
+                          Tensor y,
+                          Tensor x,
+                          Tensor gamma,
+                          Tensor beta,
+                          float eps) {
+  cudaSetDevice(adj->getDeviceId().no);
+  int rows = y->shape().elements() / y->shape()[-1];
+  int cols = y->shape()[-1];
+
+  int threads = std::min(MAX_THREADS, cols);
+  int blocks = std::min(MAX_BLOCKS, rows);
+
+  auto tempGradGammaMemory = allocator->alloc(adj->memory()->size());
+  Tensor tempGradGamma = TensorBase::New(tempGradGammaMemory, adj->shape(), adj->type(), adj->getBackend());
+  tempGradGamma->set(0.f);
+
+  auto tempOnesMemory = allocator->alloc(rows * sizeOf(adj->type()));
+  Tensor tempOnes = TensorBase::New(tempOnesMemory, Shape({1, rows}), adj->type(), adj->getBackend());
+  tempOnes->set(1.f);
+
+  if(gradX->type() == Type::float32) {
+    int shared = sizeof(float) * threads * 2;
+    gRMSNormalizationGrad<float, float><<<blocks, threads, shared>>>(
+      gradX->data<float>(),
+      tempGradGamma->data<float>(),
+      adj->data<float>(),
+      y->data<float>(),
+      x->data<float>(),
+      gamma->data<float>(),
+      (beta) ? beta->data<float>() : nullptr,
+      rows,
+      cols,
+      eps);
+#if COMPILE_FP16
+  } else if (gradX->type() == Type::float16) {
+    // accumulate in float
+    int shared = sizeof(float) * threads * 2;
+    gRMSNormalizationGrad<half, float><<<blocks, threads, shared>>>(
+      gradX->data<half>(),
+      tempGradGamma->data<half>(),
+      adj->data<half>(),
+      y->data<half>(),
+      x->data<half>(),
+      gamma->data<half>(),
+      (beta) ? beta->data<half>() : nullptr,
+      rows,
+      cols,
+      eps);
+#endif
+  } else {
+    ABORT("RMSNormalizationGrad not implemented for type {}", gradX->type());
+  }
+
+  // We use this go get rid of the atomicAdd and perform a reduce of the gradients afterwards.
+  // This is much faster for fp16 which seems to have a broken atomicAdd implementation.
+  // We reduce bias gradients with a matrix multiply, but use a 32-bit compute type. 
+  // This preserves precision with larger batches where all batch entries reduce into a single vector.
+  // See also AffineNodeOp where we do the same for biases
+  gpu::Prod(gradGamma, tempOnes, tempGradGamma, false, false, 1, 1, Type::float32); // beta set to one to add
+
+  if(gradBeta) // dC/dbeta = adj - inverse broadcasting (reduction)
+    gpu::Prod(gradBeta, tempOnes, adj, false, false, 1, 1, Type::float32); // beta set to one to add
+
+  allocator->free(tempGradGammaMemory);
+  allocator->free(tempOnesMemory);
+}
+
+
 template <bool add, typename T>
 __global__ void gShift(T* out,
                        const T* in,

@@ -916,6 +916,18 @@ Expr weighted_average(Expr in, Expr weights, int ax = 0);
 Expr layerNorm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
 
 /**
+ * Applies RMS normalization over the last dimension. 
+ * 
+ * See: Biao Zhang; Rico Sennrich (2019). Root Mean Square Layer Normalization. 
+ * In Advances in Neural Information Processing Systems 32. Vancouver, Canada.
+ * @f[
+   \frac{x}{\sqrt{\frac{1}{N}\sum x^2 + \mathrm{eps}}} \times \gamma + \beta
+ * @f]
+ * @see RMSNormalizationOp
+ */
+Expr rmsNorm(Expr x, Expr gamma, Expr beta = nullptr, float eps = 1e-9);
+
+/**
  * Highway transformation.
  * Computes the highway tranform on @p y and @p x as gated by @p t:
  * @f$ \operatorname{sigmoid}(t) y + (1-\operatorname{sigmoid}(t)) x @f$
