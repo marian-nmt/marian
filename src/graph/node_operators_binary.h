@@ -1369,6 +1369,64 @@ private:
   float eps_;
 };
 
+// RMS norm along last axis
+struct RMSNormalizationOp : public NaryNodeOp {
+public:
+  RMSNormalizationOp(const std::vector<Expr>& nodes, float eps = 1e-9)
+      : NaryNodeOp(nodes), eps_(eps) {
+    // @TODO: dimension check
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(
+        RMSNormalization(val_,
+                         child(0)->val(),
+                         child(1)->val(),
+                         (children_.size() == 3) ? child(2)->val() : nullptr,
+                         eps_))};
+  }
+
+  // @BUGBUG: backward has not been tested for broadcasting gamma/beta
+  NodeOps backwardOps() override {
+    return {NodeOp(
+      RMSNormalizationGrad(
+        graph()->allocator(),
+        child(0)->grad(),
+        child(1)->grad(),
+        (children_.size() == 3) ? child(2)->grad() : nullptr,
+        adj_,
+        val_,
+        child(0)->val(),
+        child(1)->val(),
+        (children_.size() == 3) ? child(2)->val() : nullptr,
+        eps_))};
+  }
+
+  const std::string type() override { return "rms_normalization"; }
+
+  virtual size_t hash() override {
+    size_t seed = NaryNodeOp::hash();
+    util::hash_combine(seed, eps_);
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<RMSNormalizationOp>(node);
+    if(!cnode)
+      return false;
+    if(eps_ != cnode->eps_)
+      return false;
+    return true;
+  }
+
+private:
+  friend class SerializationHelpers; // @TODO: use the same name for this as SqrtNodeOp
+  float eps_;
+};
+
+
 struct HighwayNodeOp : public NaryNodeOp {
   HighwayNodeOp(const std::vector<Expr>& nodes) : NaryNodeOp(nodes) {}
 

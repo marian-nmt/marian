@@ -212,4 +212,10 @@ static inline Expr layerNorm(Expr x, std::string prefix, std::string suffix = st
   return marian::layerNorm(x, scale, bias, 1e-6f);
 }
 
+static inline Expr rmsNorm(Expr x, std::string prefix, std::string suffix = std::string()) {
+  int dimModel = x->shape()[-1];
+  auto scale = x->graph()->param(prefix + "_rms_scale" + suffix, {1, dimModel}, inits::ones());
+  return marian::rmsNorm(x, scale, nullptr, 1e-6f);
+}
+
 }  // namespace marian
