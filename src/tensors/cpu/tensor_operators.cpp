@@ -261,12 +261,12 @@ void TransposeFirst3In4(Tensor out, Tensor in, const std::vector<int>& vAxis) {
 
   // find the mapping between the transposed output dimensional indices (oi, oj, ok)
   // and original input dimensional indices (i, j, k)
-  int oi, oj, ok;
 #pragma omp parallel for
   for(int k = 0; k < l1; ++k) {
     int shift = k * l2 * l3;
     for(int j = 0; j < l2; ++j) {
       for(int i = 0; i < l3; ++i) {
+        int oi, oj, ok;
         if(vAxis[0] == 0) {
           if(vAxis[1] == 1) {
             oi = i; oj = j; ok = k;
