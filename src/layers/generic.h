@@ -192,7 +192,7 @@ static inline Expr denseInline(Expr x,
                                float dropProb = 0.0f) {
   auto graph = x->graph();
 
-  auto W = graph->param(prefix + "_W" + suffix, {x->shape()[-1], outDim}, inits::glorotUniform());
+  auto W = graph->param(prefix + "_W" + suffix, {x->shape()[-1], outDim}, initFn);
   auto b = graph->param(prefix + "_b" + suffix, {1, outDim}, inits::zeros());
 
   if(actName == "relu") {
