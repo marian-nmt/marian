@@ -244,7 +244,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Tie all embedding layers and output layer");
   cli.add<bool>("--output-omit-bias",
       "Do not use a bias vector in decoder output layer");
-  
+
   // Transformer options
   cli.add<int>("--transformer-heads",
       "Number of heads in multi-head attention (transformer)",
@@ -529,13 +529,13 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
       "Window size over which the exponential average of the gradient norm is recorded (for logging and scaling). "
       "After this many updates about 90% of the mass of the exponential average comes from these updates",
       100);
-  cli.add<std::vector<std::string>>("--dynamic-gradient-scaling", 
+  cli.add<std::vector<std::string>>("--dynamic-gradient-scaling",
       "Re-scale gradient to have average gradient norm if (log) gradient norm diverges from average by arg1 sigmas. "
       "If arg2 = \"log\" the statistics are recorded for the log of the gradient norm else use plain norm")
       ->implicit_val("2.f log");
-  cli.add<bool>("--check-gradient-nan", 
+  cli.add<bool>("--check-gradient-nan",
       "Skip parameter update in case of NaNs in gradient");
-  cli.add<bool>("--normalize-gradient", 
+  cli.add<bool>("--normalize-gradient",
       "Normalize gradient by multiplying with no. devices / total labels (not recommended and to be removed in the future)");
 
   cli.add<std::vector<std::string>>("--train-embedder-rank",
@@ -574,6 +574,10 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for  arg  consecutive validation steps",
      10);
+  cli.add<std::string>("--early-stopping-on",
+      "Decide if early stopping should take into account first, all, or any validation metrics"
+      "Possible values: first, all, any",
+      "first");
 
   // decoding options
   cli.add<size_t>("--beam-size,-b",
@@ -586,7 +590,7 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Maximum target length as source length times factor",
       3);
   cli.add<float>("--word-penalty",
-      "Subtract (arg * translation length) from translation score ");
+      "Subtract (arg * translation length) from translation score");
   cli.add<bool>("--allow-unk",
       "Allow unknown words to appear in output");
   cli.add<bool>("--n-best",

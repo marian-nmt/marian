@@ -447,7 +447,7 @@ SacreBleuValidator::SacreBleuValidator(std::vector<Ptr<Vocab>> vocabs, Ptr<Optio
 
   ABORT_IF(computeChrF_ && useWordIds_, "Cannot compute ChrF on word ids"); // should not really happen, but let's check.
 
-  if(computeChrF_) // according to SacreBLEU implementation this is the default for ChrF, 
+  if(computeChrF_) // according to SacreBLEU implementation this is the default for ChrF,
     order_ = 6;    // we compute stats over character ngrams up to length 6
 
   // @TODO: remove, only used for saving?
@@ -613,12 +613,12 @@ void SacreBleuValidator::updateStats(std::vector<float>& stats,
   LOG_VALID_ONCE(info, "First sentence's tokens as scored:");
   LOG_VALID_ONCE(info, "  Hyp: {}", utils::join(decode(cand, /*addEOS=*/false)));
   LOG_VALID_ONCE(info, "  Ref: {}", utils::join(decode(ref,  /*addEOS=*/false)));
-  
+
   if(useWordIds_)
     updateStats(stats, cand, ref);
   else
     updateStats(stats, decode(cand, /*addEOS=*/false), decode(ref, /*addEOS=*/false));
-  
+
 }
 
 // Re-implementation of BLEU metric from SacreBLEU
@@ -627,7 +627,7 @@ float SacreBleuValidator::calcBLEU(const std::vector<float>& stats) {
   for(int i = 0; i < order_; ++i) {
     float commonNgrams     = stats[statsPerOrder * i + 0];
     float hypothesesNgrams = stats[statsPerOrder * i + 1];
-    
+
     if(commonNgrams == 0.f)
       return 0.f;
     logbleu += std::log(commonNgrams) - std::log(hypothesesNgrams);
@@ -653,7 +653,7 @@ float SacreBleuValidator::calcChrF(const std::vector<float>& stats) {
     float commonNgrams     = stats[statsPerOrder * i + 0];
     float hypothesesNgrams = stats[statsPerOrder * i + 1];
     float referencesNgrams = stats[statsPerOrder * i + 2];
-    
+
     if(hypothesesNgrams > 0 && referencesNgrams > 0) {
         avgPrecision += commonNgrams / hypothesesNgrams;
         avgRecall    += commonNgrams / referencesNgrams;
@@ -666,10 +666,10 @@ float SacreBleuValidator::calcChrF(const std::vector<float>& stats) {
 
   avgPrecision /= effectiveOrder;
   avgRecall    /= effectiveOrder;
-  
+
   if(avgPrecision + avgRecall == 0.f)
     return 0.f;
-  
+
   auto betaSquare = beta * beta;
   auto score = (1.f + betaSquare) * (avgPrecision * avgRecall) / ((betaSquare * avgPrecision) + avgRecall);
   return score * 100.f; // we multiply by 100 which is usually not done for ChrF, but this makes it more comparable to BLEU
