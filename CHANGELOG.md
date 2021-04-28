@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Developer documentation framework based on Sphinx+Doxygen+Breathe+Exhale
 - Expresion graph documentation (#788)
 - Graph operators documentation (#801)
+- Remove unused variable from expression graph
 
 ## [1.10.0] - 2021-02-06
 
