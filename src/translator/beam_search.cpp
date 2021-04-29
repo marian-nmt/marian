@@ -84,11 +84,11 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
 
     // map wordIdx to word
     auto prevBeamHypIdx = beamHypIdx; // back pointer
-    std::cerr << "currentBatchIdx=" << currentBatchIdx 
+    /*std::cerr << "currentBatchIdx=" << currentBatchIdx 
           << " origBatchIdx=" << origBatchIdx 
           << " beamHypIdx=" << beamHypIdx 
           << " prevBeamHypIdx=" << prevBeamHypIdx
-          << std::endl;
+          << std::endl;*/
 
     auto prevHyp = beam[prevBeamHypIdx];
     Word word;
@@ -99,7 +99,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       // For factored decoding, the word is built over multiple decoding steps,
       // starting with the lemma, then adding factors one by one.
       if (factorGroup == 0) {
-        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(currentBatchIdx, prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
+        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(origBatchIdx, prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
         std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
         //LOG(info, "{} + {} ({}) -> {} -> {}",
         //    factoredVocab->decode(prevHyp->tracebackWords()),
@@ -120,7 +120,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       }
     }
     else if (shortlist)
-      word = Word::fromWordIndex(shortlist->reverseMap(currentBatchIdx, prevBeamHypIdx, wordIdx));
+      word = Word::fromWordIndex(shortlist->reverseMap(origBatchIdx, prevBeamHypIdx, wordIdx));
     else
       word = Word::fromWordIndex(wordIdx);
 

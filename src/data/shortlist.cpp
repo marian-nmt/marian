@@ -140,9 +140,10 @@ LSHShortlist::LSHShortlist(int k, int nbits)
 #define BLAS_FOUND 1
 
 WordIndex LSHShortlist::reverseMap(size_t batchIdx, size_t beamIdx, int idx) const {
-  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
+  std::cerr << "\nbatchIdx=" << batchIdx << " beamIdx=" << beamIdx << " idx=" << idx << std::endl;
+  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
   int currBeamSize = indicesExpr_->shape()[1];
-  std::cerr << "currBeamSize=" << currBeamSize << std::endl;
+  //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
   std::cerr << "indices_=" << indices_.size() << std::endl;
   idx = (k_ * currBeamSize) * batchIdx + k_ * beamIdx + idx;
   std::cerr << "idx=" << idx << std::endl;
