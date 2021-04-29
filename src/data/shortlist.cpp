@@ -156,8 +156,8 @@ WordIndex LSHShortlist::tryForwardMap(size_t beamIdx, WordIndex wIdx) const {
 }
 
 Expr LSHShortlist::getIndicesExpr(int batchSize, int currBeamSize) const {
-  std::cerr << "batchSize=" << batchSize << " currBeamSize=" << currBeamSize << std::endl;
-  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << " " << indicesExpr_->val() << std::endl;
+  //std::cerr << "batchSize=" << batchSize << " currBeamSize=" << currBeamSize << std::endl;
+  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << " " << indicesExpr_->val() << std::endl;
   assert(indicesExpr_->shape()[0] == batchSize);
   assert(indicesExpr_->shape()[1] == currBeamSize);
   return indicesExpr_;

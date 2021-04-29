@@ -36,12 +36,12 @@ protected:
                         Expr lemmaEt,
                         Expr indicesExprBC,
                         int k);
+  const std::vector<WordIndex>& indices() const;
 public:
   static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
 
   Shortlist(const std::vector<WordIndex>& indices);
 
-  const std::vector<WordIndex>& indices() const;
   virtual WordIndex reverseMap(size_t beamIdx, int idx) const;
   virtual WordIndex tryForwardMap(size_t beamIdx, WordIndex wIdx) const;
 
