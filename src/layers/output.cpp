@@ -66,11 +66,9 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       return affineOrDot(x, W, b, transA, transB);
   };
 
-  if(shortlist_ && !cachedShortWt_) {  // shortlisted versions of parameters are cached within one
+  if(shortlist_ && !shortlist_->getCachedShortWt()) {  // shortlisted versions of parameters are cached within one
                                        // batch, then clear()ed
-    cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
-    if(hasBias_)
-      cachedShortb_ = index_select(b_, -1, shortlist_->indices());
+    shortlist_->filter(input, Wt_, isLegacyUntransposedW, b_, lemmaEt_);
   }
 
   if(factoredVocab_) {
@@ -93,8 +91,8 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       // slice this group's section out of W_
       Expr factorWt, factorB;
       if(g == 0 && shortlist_) {
-        factorWt = cachedShortWt_;
-        factorB = cachedShortb_;
+        factorWt = shortlist_->getCachedShortWt();
+        factorB = shortlist_->getCachedShortb();
       } else {
         factorWt = slice(
             Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
@@ -240,10 +238,13 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         }
 #endif
         // re-embedding lookup, soft-indexed by softmax
-        if(shortlist_ && !cachedShortLemmaEt_)  // short-listed version of re-embedding matrix
-          cachedShortLemmaEt_ = index_select(lemmaEt_, -1, shortlist_->indices());
+        Expr cachedShortLemmaEt;
+        if(shortlist_)  // short-listed version of re-embedding matrix
+          cachedShortLemmaEt = shortlist_->getCachedShortLemmaEt();
+        else
+          cachedShortLemmaEt = lemmaEt_;
         auto e = dot(factorSoftmax,
-                     cachedShortLemmaEt_ ? cachedShortLemmaEt_ : lemmaEt_,
+                     cachedShortLemmaEt,
                      false,
                      true);  // [B... x L]
         // project it back to regular hidden dim
@@ -265,8 +266,8 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     return Logits(std::move(allLogits), factoredVocab_);
   } else if(shortlist_) {
     return Logits(affineOrLSH(input,
-                              cachedShortWt_,
-                              cachedShortb_,
+                              shortlist_->getCachedShortWt(),
+                              shortlist_->getCachedShortb(),
                               false,
                               /*transB=*/isLegacyUntransposedW ? false : true));
   } else {

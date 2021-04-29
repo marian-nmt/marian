@@ -19,9 +19,6 @@ private:
   bool isLegacyUntransposedW{false};  // legacy-model emulation: W is stored in non-transposed form
   bool hasBias_{true};
 
-  Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
-  Expr cachedShortb_;   // these match the current value of shortlist_
-  Expr cachedShortLemmaEt_;
   Ptr<FactoredVocab> factoredVocab_;
 
   // optional parameters set/updated after construction
@@ -49,8 +46,6 @@ public:
       ABORT_IF(shortlist.get() != shortlist_.get(),
                "Output shortlist cannot be changed except after clear()");
     else {
-      ABORT_IF(cachedShortWt_ || cachedShortb_ || cachedShortLemmaEt_,
-               "No shortlist but cached parameters??");
       shortlist_ = shortlist;
     }
     // cachedShortWt_ and cachedShortb_ will be created lazily inside apply()
@@ -60,9 +55,6 @@ public:
   // cachedShortWt_ etc. in the graph's short-term cache
   void clear() override final {
     shortlist_ = nullptr;
-    cachedShortWt_ = nullptr;
-    cachedShortb_ = nullptr;
-    cachedShortLemmaEt_ = nullptr;
   }
 
   Logits applyAsLogits(Expr input) override final;

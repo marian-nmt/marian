@@ -42,6 +42,9 @@ public:
   WordIndex tryForwardMap(WordIndex wIdx);
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
+  virtual Expr getCachedShortWt() const { return cachedShortWt_; }
+  virtual Expr getCachedShortb() const { return cachedShortb_; }
+  virtual Expr getCachedShortLemmaEt() const { return cachedShortLemmaEt_; }
 };
 
 class ShortlistGenerator {
