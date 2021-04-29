@@ -96,11 +96,16 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
     for(size_t g = 1; g < numGroups; g++) {
       auto factorMaxima = max(logits_[g]->loss(),
                               -1);  // we cast since loss is likely ce-loss which has type float32
-      auto factorMasks = constant(
-          getFactorMasks(g, shortlist ? shortlist->indices() : std::vector<WordIndex>()));
-      sel = sel
-            + cast(factorMaxima, sel->value_type())
-                  * cast(factorMasks, sel->value_type());  // those lemmas that don't have a factor
+      Expr factorMasks;
+      if (!shortlist) {
+        factorMasks = constant(getFactorMasks(g, std::vector<WordIndex>()));
+      }
+      else {
+        factorMasks = constant(getFactorMasks(g, shortlist->indices()));
+      }
+      factorMaxima = cast(factorMaxima, sel->value_type());
+      factorMasks = cast(factorMasks, sel->value_type());
+      sel = sel + factorMaxima * factorMasks;  // those lemmas that don't have a factor
                                                            // get multiplied with 0
     }
   }
