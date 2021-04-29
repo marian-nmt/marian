@@ -80,6 +80,7 @@ private:
   }  // actually the same as constant(data) for this data type
   std::vector<float> getFactorMasks(size_t factorGroup,
                                     const std::vector<WordIndex>& indices) const;
+  std::vector<float> getFactorMasks2(int batchSize, int currBeamSize, size_t factorGroup, const std::vector<WordIndex>& indices) const;
 
 private:
   // members
