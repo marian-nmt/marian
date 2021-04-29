@@ -29,16 +29,56 @@ WordIndex Shortlist::tryForwardMap(WordIndex wIdx) {
 }
 
 void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
-  int k = indices_.size();
+  //if (indicesExpr_) return;
   int currBeamSize = input->shape()[0];
   int batchSize = input->shape()[2];
   std::cerr << "currBeamSize=" << currBeamSize << std::endl;
   std::cerr << "batchSize=" << batchSize << std::endl;
 
-  Expr indicesExprBC;
+  auto forward = [this](Expr out, const std::vector<Expr>& inputs) {
+    out->val()->set(indices_);
+  };
+
+  int k = indices_.size();
+  Shape kShape({k});
+  indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
+
+  Expr indicesExprBC = getIndicesExpr(batchSize, currBeamSize);
   broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExprBC, k);
 }
 
+Expr Shortlist::getIndicesExpr(int batchSize, int beamSize) const {
+  int k = indicesExpr_->shape()[0];
+  Expr ones = indicesExpr_->graph()->constant({batchSize, beamSize, 1}, inits::ones(), Type::float32);
+
+  Expr tmp = reshape(indicesExpr_, {1, k});
+  tmp = cast(tmp, Type::float32);
+
+  Expr out = ones * tmp;
+  //debug(out, "out.1");
+
+  auto forward = [](Expr out, const std::vector<Expr>& inputs) {
+    Expr in = inputs[0];
+    const Shape &shape = in->shape();
+    const float *inPtr = in->val()->data();
+    uint32_t *outPtr = out->val()->data<uint32_t>();
+
+    for (int i = 0; i < shape.elements(); ++i) {
+        const float &val = inPtr[i];
+        uint32_t valConv = (uint32_t)val;
+        uint32_t &valOut = outPtr[i];
+        valOut = valConv;
+        //std::cerr << val << " " << valConv << " " << valOut << std::endl;
+    }
+  };
+  out = lambda({out}, out->shape(), Type::uint32, forward);
+  //debug(out, "out.2");
+  //out = cast(out, Type::uint32);
+  //std::cerr << "getIndicesExpr.2=" << out->shape() << std::endl;
+  //out = reshape(out, {k});
+
+  return out;
+}
 
 void Shortlist::broadcast(Expr weights,
                           bool isLegacyUntransposedW,

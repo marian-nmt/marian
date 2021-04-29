@@ -21,7 +21,7 @@ namespace data {
 class Shortlist {
 protected:
   std::vector<WordIndex> indices_;    // // [packed shortlist index] -> word index, used to select columns from output embeddings
-
+  Expr indicesExpr_;
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
@@ -42,6 +42,7 @@ public:
   WordIndex tryForwardMap(WordIndex wIdx);
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
+  virtual Expr getIndicesExpr(int batchSize, int currBeamSize) const;
   virtual Expr getCachedShortWt() const { return cachedShortWt_; }
   virtual Expr getCachedShortb() const { return cachedShortb_; }
   virtual Expr getCachedShortLemmaEt() const { return cachedShortLemmaEt_; }
