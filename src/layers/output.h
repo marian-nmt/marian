@@ -7,7 +7,6 @@
 #include "marian.h"
 
 namespace marian {
-class LSH;
 
 namespace mlp {
 
@@ -28,7 +27,6 @@ private:
   // optional parameters set/updated after construction
   Expr tiedParam_;
   Ptr<data::Shortlist> shortlist_;
-  Ptr<LSH> lsh_;
 
   void lazyConstruct(int inputDim);
 

@@ -1,5 +1,6 @@
 #include "data/shortlist.h"
 #include "microsoft/shortlist/utils/ParameterTree.h"
+#include "marian.h"
 
 namespace marian {
 namespace data {
@@ -12,6 +13,48 @@ const T* get(const void*& current, size_t num = 1) {
   return ptr;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+Shortlist::Shortlist(const std::vector<WordIndex>& indices)
+  : indices_(indices) {}
+
+const std::vector<WordIndex>& Shortlist::indices() const { return indices_; }
+WordIndex Shortlist::reverseMap(int idx) { return indices_[idx]; }
+
+WordIndex Shortlist::tryForwardMap(WordIndex wIdx) {
+  auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
+  if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
+    return (int)std::distance(indices_.begin(), first); // return coordinate if found
+  else
+    return npos;                                        // return npos if not found, @TODO: replace with std::optional once we switch to C++17?
+}
+
+void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
+  int k = indices_.size();
+  int currBeamSize = input->shape()[0];
+  int batchSize = input->shape()[2];
+  std::cerr << "currBeamSize=" << currBeamSize << std::endl;
+  std::cerr << "batchSize=" << batchSize << std::endl;
+
+  Expr indicesExprBC;
+  broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExprBC, k);
+}
+
+
+void Shortlist::broadcast(Expr weights,
+                          bool isLegacyUntransposedW,
+                          Expr b,
+                          Expr lemmaEt,
+                          Expr indicesExprBC,
+                          int k) {
+  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indices());
+  if (b) {
+    cachedShortb_ = index_select(b, -1, indices());
+  }
+  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indices());
+  return;
+                          
+}
+//////////////////////////////////////////////////////////////////////////////////////
 QuicksandShortlistGenerator::QuicksandShortlistGenerator(Ptr<Options> options,
                                                          Ptr<const Vocab> srcVocab,
                                                          Ptr<const Vocab> trgVocab,
