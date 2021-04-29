@@ -62,8 +62,19 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       return dot(x, W, transA, transB);
   };
 
-  auto affineOrLSH = [this, affineOrDot](Expr x, Expr W, Expr b, bool transA, bool transB) {
-      return affineOrDot(x, W, b, transA, transB);
+  auto affineShortlist = [this, affineOrDot](Expr x, Expr W, Expr b, bool transA, bool transB) {
+    //std::cerr << "x=" << x->shape() << std::endl;
+    //std::cerr << "W=" << W->shape() << std::endl;
+    //std::cerr << "transA=" << transA << " transB=" << transB << std::endl;
+    
+    Expr ret = x * W;
+    ret = sum(ret, 3);
+    //const Shape &retShape = ret->shape();
+    //std::cerr << "ret.1=" << retShape << std::endl;
+    ret = transpose(ret, {0, 3, 2, 1});
+    //ret = reshape(ret, {retShape[0], 1, 1, retShape[2]});
+    //std::cerr << "ret.2=" << ret->shape() << std::endl;
+    return ret;
   };
 
   if(shortlist_) {  // shortlisted versions of parameters are cached within one
@@ -164,20 +175,22 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a
       // matrix
       Expr factorLogits;
-      if(g == 0)
-        factorLogits = affineOrLSH(
+      if(g == 0 && shortlist_) {
+        factorLogits = affineShortlist(
             input1,
             factorWt,
             factorB,
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
-      else
+      }
+      else {
         factorLogits = affineOrDot(
             input1,
             factorWt,
             factorB,
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
+      }
 
       // optionally add lemma-dependent bias
       if(Plemma) {  // [B... x U0]
@@ -272,14 +285,14 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     }
     return Logits(std::move(allLogits), factoredVocab_);
   } else if(shortlist_) {
-    return Logits(affineOrLSH(input,
+    return Logits(affineOrDot(input,
                               shortlist_->getCachedShortWt(),
                               shortlist_->getCachedShortb(),
                               false,
                               /*transB=*/isLegacyUntransposedW ? false : true));
   } else {
     return Logits(
-        affineOrLSH(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
+        affineOrDot(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
   }
 }
 
