@@ -15,6 +15,10 @@
 #include <algorithm>
 #include <limits>
 
+namespace faiss {
+  struct IndexLSH;
+}
+
 namespace marian {
 namespace data {
 
@@ -38,8 +42,8 @@ public:
   Shortlist(const std::vector<WordIndex>& indices);
 
   const std::vector<WordIndex>& indices() const;
-  WordIndex reverseMap(int idx);
-  WordIndex tryForwardMap(WordIndex wIdx);
+  virtual WordIndex reverseMap(size_t beamIdx, int idx) const;
+  virtual WordIndex tryForwardMap(size_t beamIdx, WordIndex wIdx) const;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
   virtual Expr getIndicesExpr(int batchSize, int currBeamSize) const;
@@ -61,6 +65,35 @@ public:
   }
 };
 
+///////////////////////////////////////////////////////////////////////////////////
+class LSHShortlist: public Shortlist {
+private:
+  int k_;
+  int nbits_;
+
+  static Ptr<faiss::IndexLSH> index_;
+
+public:
+  LSHShortlist(int k, int nbits);
+  virtual WordIndex reverseMap(size_t beamIdx, int idx) const override;
+  virtual WordIndex tryForwardMap(size_t beamIdx, WordIndex wIdx) const override;
+
+  virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
+  virtual Expr getIndicesExpr(int batchSize,int currBeamSize) const override;
+
+};
+
+class LSHShortlistGenerator : public ShortlistGenerator {
+private:
+  int k_;
+  int nbits_;
+
+public:
+  LSHShortlistGenerator(int k, int nbits);
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
+};
+
+///////////////////////////////////////////////////////////////////////////////////
 
 // Intended for use during training in the future, currently disabled
 #if 0
@@ -345,6 +378,7 @@ unless the extension is *.bin for which the Microsoft legacy binary shortlist is
 Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  Ptr<const Vocab> srcVocab,
                                                  Ptr<const Vocab> trgVocab,
+                                                 const std::vector<int> &lshOpts,
                                                  size_t srcIdx = 0,
                                                  size_t trgIdx = 1,
                                                  bool shared = false);
