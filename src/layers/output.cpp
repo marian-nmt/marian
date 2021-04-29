@@ -66,7 +66,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       return affineOrDot(x, W, b, transA, transB);
   };
 
-  if(shortlist_ && !shortlist_->getCachedShortWt()) {  // shortlisted versions of parameters are cached within one
+  if(shortlist_) {  // shortlisted versions of parameters are cached within one
                                        // batch, then clear()ed
     shortlist_->filter(input, Wt_, isLegacyUntransposedW, b_, lemmaEt_);
   }
@@ -241,12 +241,19 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         Expr cachedShortLemmaEt;
         if(shortlist_)  // short-listed version of re-embedding matrix
           cachedShortLemmaEt = shortlist_->getCachedShortLemmaEt();
-        else
-          cachedShortLemmaEt = lemmaEt_;
-        auto e = dot(factorSoftmax,
-                     cachedShortLemmaEt,
-                     false,
-                     true);  // [B... x L]
+        else {
+          const Shape &s = lemmaEt_->shape();
+          cachedShortLemmaEt = reshape(lemmaEt_, {1, s[0], 1, s[1]});
+        }
+        //std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
+        //std::cerr << "cachedShortLemmaEt=" << cachedShortLemmaEt->shape() << std::endl;
+        Expr e = factorSoftmax * cachedShortLemmaEt;
+        //std::cerr << "e.1=" << e->shape() << std::endl;
+        e = sum(e, 3);
+        //std::cerr << "e.2=" << e->shape() << std::endl;
+        e = transpose(e, {0, 3, 2, 1});
+        //std::cerr << "e.3=" << e->shape() << std::endl;
+
         // project it back to regular hidden dim
         int inputDim = input1->shape()[-1];
         auto name = options_->get<std::string>("prefix");

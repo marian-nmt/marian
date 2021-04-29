@@ -86,21 +86,34 @@ void Shortlist::broadcast(Expr weights,
                           Expr lemmaEt,
                           Expr indicesExprBC,
                           int k) {
-  ///*
-  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indices());
-  if (b) {
-    cachedShortb_ = index_select(b, -1, indices());
-  }
-  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indices());
-  return;
-  //*/
   int batchSize = indicesExprBC->shape()[0];
   int currBeamSize = indicesExprBC->shape()[1];
   //int numHypos = batchSize * currBeamSize;
   //std::cerr << "batchSize=" << batchSize << std::endl;
   //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
+  ///*
+  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indices());
+  if (b) {
+    cachedShortb_ = index_select(b, -1, indices());
+  }
+  std::cerr << "lemmaEt=" << lemmaEt->shape() << std::endl;
+  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indices());
+  std::cerr << "cachedShortLemmaEt_=" << cachedShortLemmaEt_->shape() << std::endl;
+
+
   indicesExprBC = reshape(indicesExprBC, {indicesExprBC->shape().elements()});
-  //std::cerr << "indicesExprBC.2=" << indicesExprBC->shape() << std::endl;
+  std::cerr << "indicesExprBC.2=" << indicesExprBC->shape() << std::endl;
+
+  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprBC);
+  std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
+  cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {cachedShortLemmaEt_->shape()[0], batchSize, currBeamSize, k});
+  std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
+  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {2, 0, 1, 3});
+  std::cerr << "cachedShortLemmaEt.3_=" << cachedShortLemmaEt_->shape() << std::endl;                         
+
+  return;
+  //*/
+
 
   cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExprBC);
   //std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
@@ -114,12 +127,6 @@ void Shortlist::broadcast(Expr weights,
     cachedShortb_ = index_select(b, -1, indicesExprBC);
     cachedShortb_ = reshape(cachedShortb_, {currBeamSize, k, batchSize, cachedShortb_->shape()[1]}); // not tested
   }
-  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprBC);
-  //std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
-  cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {batchSize, currBeamSize, k, cachedShortLemmaEt_->shape()[0]});
-  //std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
-  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {1, 3, 0, 2});
-  //std::cerr << "cachedShortLemmaEt.3_=" << cachedShortLemmaEt_->shape() << std::endl;                         
 }
 //////////////////////////////////////////////////////////////////////////////////////
 QuicksandShortlistGenerator::QuicksandShortlistGenerator(Ptr<Options> options,
