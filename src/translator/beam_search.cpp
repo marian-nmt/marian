@@ -50,7 +50,6 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
     const auto beamHypIdx      = (key / vocabSize) % nBestBeamSize;
     const auto currentBatchIdx = (key / vocabSize) / nBestBeamSize;
     const auto origBatchIdx    = reverseBatchIdxMap.empty() ? currentBatchIdx : reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
-
     bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx] && factorGroup == 0;
     
     WordIndex wordIdx;
@@ -85,6 +84,12 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
 
     // map wordIdx to word
     auto prevBeamHypIdx = beamHypIdx; // back pointer
+    std::cerr << "currentBatchIdx=" << currentBatchIdx 
+          << " origBatchIdx=" << origBatchIdx 
+          << " beamHypIdx=" << beamHypIdx 
+          << " prevBeamHypIdx=" << prevBeamHypIdx
+          << std::endl;
+
     auto prevHyp = beam[prevBeamHypIdx];
     Word word;
     // If short list has been set, then wordIdx is an index into the short-listed word set,
@@ -94,7 +99,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       // For factored decoding, the word is built over multiple decoding steps,
       // starting with the lemma, then adding factors one by one.
       if (factorGroup == 0) {
-        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
+        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(currentBatchIdx, prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
         std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
         //LOG(info, "{} + {} ({}) -> {} -> {}",
         //    factoredVocab->decode(prevHyp->tracebackWords()),
@@ -115,7 +120,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       }
     }
     else if (shortlist)
-      word = Word::fromWordIndex(shortlist->reverseMap(prevBeamHypIdx, wordIdx));
+      word = Word::fromWordIndex(shortlist->reverseMap(currentBatchIdx, prevBeamHypIdx, wordIdx));
     else
       word = Word::fromWordIndex(wordIdx);
 
@@ -308,7 +313,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
       suppressed.erase(std::remove_if(suppressed.begin(), 
                                       suppressed.end(), 
                                       [&](WordIndex i) { 
-                                        return shortlist->tryForwardMap(3343, i) == data::Shortlist::npos; // TODO beamIdx
+                                        return shortlist->tryForwardMap(4545, 3343, i) == data::Shortlist::npos; // TODO beamIdx
                                       }),
                        suppressed.end());
     

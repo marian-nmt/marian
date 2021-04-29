@@ -22,9 +22,9 @@ Shortlist::Shortlist(const std::vector<WordIndex>& indices)
   : indices_(indices) {}
 
 const std::vector<WordIndex>& Shortlist::indices() const { return indices_; }
-WordIndex Shortlist::reverseMap(size_t beamIdx, int idx) const { return indices_[idx]; }
+WordIndex Shortlist::reverseMap(size_t batchIdx, size_t beamIdx, int idx) const { return indices_[idx]; }
 
-WordIndex Shortlist::tryForwardMap(size_t beamIdx, WordIndex wIdx) const {
+WordIndex Shortlist::tryForwardMap(size_t batchIdx, size_t beamIdx, WordIndex wIdx) const {
   auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
   if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
     return (int)std::distance(indices_.begin(), first); // return coordinate if found
@@ -139,13 +139,18 @@ LSHShortlist::LSHShortlist(int k, int nbits)
 
 #define BLAS_FOUND 1
 
-WordIndex LSHShortlist::reverseMap(size_t beamIdx, int idx) const {
-  idx = k_ * beamIdx + idx;
+WordIndex LSHShortlist::reverseMap(size_t batchIdx, size_t beamIdx, int idx) const {
+  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
+  int currBeamSize = indicesExpr_->shape()[1];
+  std::cerr << "currBeamSize=" << currBeamSize << std::endl;
+  std::cerr << "indices_=" << indices_.size() << std::endl;
+  idx = (k_ * currBeamSize) * batchIdx + k_ * beamIdx + idx;
+  std::cerr << "idx=" << idx << std::endl;
   assert(idx < indices_.size());
   return indices_[idx]; 
 }
 
-WordIndex LSHShortlist::tryForwardMap(size_t beamIdx, WordIndex wIdx) const {
+WordIndex LSHShortlist::tryForwardMap(size_t batchIdx, size_t beamIdx, WordIndex wIdx) const {
   //utils::Debug(indices_, "LSHShortlist::tryForwardMap indices_");
   auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
   bool found = first != indices_.end();
