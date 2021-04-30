@@ -23,7 +23,6 @@ Shortlist::Shortlist(const std::vector<WordIndex>& indices)
 
 Shortlist::~Shortlist() {}
 
-const std::vector<WordIndex>& Shortlist::indices() const { return indices_; }
 WordIndex Shortlist::reverseMap(int , int , int idx) const { return indices_[idx]; }
 
 WordIndex Shortlist::tryForwardMap(int , int , WordIndex wIdx) const {

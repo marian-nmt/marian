@@ -36,7 +36,6 @@ protected:
                         Expr lemmaEt,
                         Expr indicesExprBC,
                         int k);
-  const std::vector<WordIndex>& indices() const;
 public:
   static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
 
