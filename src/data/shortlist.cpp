@@ -138,7 +138,7 @@ LSHShortlist::LSHShortlist(int k, int nbits)
   */
 }
 
-#define BLAS_FOUND 1
+//#define BLAS_FOUND 1
 
 WordIndex LSHShortlist::reverseMap(int batchIdx, int beamIdx, int idx) const {
   //std::cerr << "\nbatchIdx=" << batchIdx << " beamIdx=" << beamIdx << " idx=" << idx << std::endl;
