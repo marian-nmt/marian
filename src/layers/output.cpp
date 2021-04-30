@@ -62,7 +62,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       return dot(x, W, transA, transB);
   };
 
-  auto affineShortlist = [this, affineOrDot](Expr x, Expr W, Expr b, bool transA, bool transB) {
+  auto affineShortlist = [this, affineOrDot](Expr x, Expr W, Expr b, bool , bool ) {
     //std::cerr << "x=" << x->shape() << std::endl;
     //std::cerr << "W=" << W->shape() << std::endl;
     //std::cerr << "transA=" << transA << " transB=" << transB << std::endl;
