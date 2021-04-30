@@ -240,7 +240,7 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
   return res;
 }
 
-std::vector<float> Logits::getFactorMasks2(int batchSize, int currBeamSize, size_t factorGroup, const std::vector<WordIndex>& indices)
+std::vector<float> Logits::getFactorMasks2(int , int currBeamSize, size_t factorGroup, const std::vector<WordIndex>& indices)
     const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
   size_t n
       = indices.empty()
