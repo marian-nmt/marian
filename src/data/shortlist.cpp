@@ -203,7 +203,8 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
                    distances.data(), ids.data());
     
     indices_.clear();
-    for(auto id : ids) {
+    for(auto iter = ids.begin(); iter != ids.end(); ++iter) {
+      faiss::Index::idx_t id = *iter;
       indices_.push_back((WordIndex)id);
     }
 
