@@ -92,7 +92,7 @@ void Shortlist::broadcast(Expr weights,
                           Expr lemmaEt,
                           Expr indicesExprBC,
                           int k) {
-  std::cerr << "indicesExprBC.0=" << indicesExprBC->shape() << std::endl;
+  //std::cerr << "indicesExprBC.0=" << indicesExprBC->shape() << std::endl;
   int batchSize = indicesExprBC->shape()[0];
   int currBeamSize = indicesExprBC->shape()[1];
   //int numHypos = batchSize * currBeamSize;
@@ -142,13 +142,13 @@ LSHShortlist::LSHShortlist(int k, int nbits)
 #define BLAS_FOUND 1
 
 WordIndex LSHShortlist::reverseMap(int batchIdx, int beamIdx, int idx) const {
-  std::cerr << "\nbatchIdx=" << batchIdx << " beamIdx=" << beamIdx << " idx=" << idx << std::endl;
+  //std::cerr << "\nbatchIdx=" << batchIdx << " beamIdx=" << beamIdx << " idx=" << idx << std::endl;
   //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
   int currBeamSize = indicesExpr_->shape()[1];
   //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
-  std::cerr << "indices_=" << indices_.size() << std::endl;
+  //std::cerr << "indices_=" << indices_.size() << std::endl;
   idx = (k_ * currBeamSize) * batchIdx + k_ * beamIdx + idx;
-  std::cerr << "idx=" << idx << std::endl;
+  //std::cerr << "idx=" << idx << std::endl;
   assert(idx < indices_.size());
   return indices_[idx]; 
 }

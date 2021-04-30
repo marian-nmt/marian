@@ -102,17 +102,14 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
       }
       else {
         //std::cerr << "sel=" << sel->shape() << std::endl;
-        int currBeamSize = sel->shape()[0];
-        int batchSize = sel->shape()[2];
-
-        auto forward = [this, g, currBeamSize, batchSize](Expr out, const std::vector<Expr>& inputs) {
-          std::vector<WordIndex> indices;
+        auto forward = [this, g](Expr out, const std::vector<Expr>& inputs) {
           Expr lastIndices = inputs[0];
-          lastIndices->val()->get(indices);
-          std::vector<float> masks = getFactorMasks2(batchSize, currBeamSize, g, indices);
+          std::vector<float> masks = getFactorMasks2(g, lastIndices);
           out->val()->set(masks);
         };
 
+        int currBeamSize = sel->shape()[0];
+        int batchSize = sel->shape()[2];
         Expr lastIndices = shortlist->getIndicesExpr(batchSize, currBeamSize);
         //std::cerr << "lastIndices=" << lastIndices->shape() << std::endl;
         factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
@@ -240,8 +237,15 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
   return res;
 }
 
-std::vector<float> Logits::getFactorMasks2(int , int currBeamSize, size_t factorGroup, const std::vector<WordIndex>& indices)
+std::vector<float> Logits::getFactorMasks2(size_t factorGroup, Expr indicesExpr)
     const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
+  std::cerr << "indicesExpr=" << indicesExpr->shape() << std::endl;
+  //int batchSize
+  int currBeamSize = indicesExpr->shape()[1];
+  std::vector<WordIndex> indices;
+  indicesExpr->val()->get(indices);
+
+  std::cerr << "indices=" << indices.size() << std::endl;
   size_t n
       = indices.empty()
             ? (factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first)
