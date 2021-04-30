@@ -225,7 +225,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
   broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExpr_, k_);
 
 #else
-  query; values;
+  input; weights; isLegacyUntransposedW; b; lemmaEt;
   ABORT("LSH output layer requires a CPU BLAS library");
 #endif
 }
