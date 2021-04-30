@@ -104,7 +104,7 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         //std::cerr << "sel=" << sel->shape() << std::endl;
         auto forward = [this, g](Expr out, const std::vector<Expr>& inputs) {
           Expr lastIndices = inputs[0];
-          std::vector<float> masks = getFactorMasks2(g, lastIndices);
+          std::vector<float> masks = getFactorMasksMultiDim(g, lastIndices);
           out->val()->set(masks);
         };
 
@@ -113,7 +113,7 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         Expr lastIndices = shortlist->getIndicesExpr(batchSize, currBeamSize);
         //std::cerr << "lastIndices=" << lastIndices->shape() << std::endl;
         factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
-        //std::cerr << "factorMasks.1=" << factorMasks->shape() << std::endl;
+        std::cerr << "factorMasks.1=" << factorMasks->shape() << std::endl;
         factorMasks = transpose(factorMasks, {1, 0, 2});
         //std::cerr << "factorMasks.2=" << factorMasks->shape() << std::endl;
 
@@ -237,11 +237,13 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
   return res;
 }
 
-std::vector<float> Logits::getFactorMasks2(size_t factorGroup, Expr indicesExpr)
+std::vector<float> Logits::getFactorMasksMultiDim(size_t factorGroup, Expr indicesExpr)
     const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
   std::cerr << "indicesExpr=" << indicesExpr->shape() << std::endl;
   //int batchSize
+  int batchSize = indicesExpr->shape()[0];
   int currBeamSize = indicesExpr->shape()[1];
+  int numHypos = batchSize * currBeamSize;
   std::vector<WordIndex> indices;
   indicesExpr->val()->get(indices);
 
@@ -249,15 +251,16 @@ std::vector<float> Logits::getFactorMasks2(size_t factorGroup, Expr indicesExpr)
   size_t n
       = indices.empty()
             ? (factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first)
-            : indices.size() / currBeamSize;
+            : indices.size() / numHypos;
   std::vector<float> res;
-  res.reserve(currBeamSize * n);
+  res.reserve(numHypos * n);
+  std::cerr << "n=" << n << std::endl;
 
   // @TODO: we should rearrange lemmaHasFactorGroup as vector[groups[i] of float; then move this
   // into FactoredVocab
-  for (size_t currBeam = 0; currBeam < currBeamSize; ++currBeam) {
+  for (size_t hypoIdx = 0; hypoIdx < numHypos; ++hypoIdx) {
     for(size_t i = 0; i < n; i++) {
-      size_t idx = currBeam * n + i;
+      size_t idx = hypoIdx * n + i;
       size_t lemma = indices.empty() ? i : (indices[idx] - factoredVocab_->getGroupRange(0).first);
       res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
     }
