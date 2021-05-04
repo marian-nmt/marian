@@ -325,6 +325,16 @@ if(CUDA_FOUND)
     option(COMPILE_AMPERE  "Compile GPU version with SM80 support" ON)
     LIST(APPEND COMPUTE -Wno-deprecated-gpu-targets)
   endif()
+  if(CUDA_VERSION VERSION_EQUAL "11.1" OR CUDA_VERSION VERSION_GREATER "11.1")
+    option(COMPILE_KEPLER      "Compile GPU version with SM35 support" OFF) # deprecated for CUDA 11
+    option(COMPILE_MAXWELL     "Compile GPU version with SM50 support" OFF) # deprecated for CUDA 11
+    option(COMPILE_PASCAL      "Compile GPU version with SM60 support" ON)
+    option(COMPILE_VOLTA       "Compile GPU version with SM70 support" ON)
+    option(COMPILE_TURING      "Compile GPU version with SM75 support" ON)
+    option(COMPILE_AMPERE      "Compile GPU version with SM80 support" ON)
+    option(COMPILE_AMPERE_RTX  "Compile GPU version with SM86 support" ON)
+    LIST(APPEND COMPUTE -Wno-deprecated-gpu-targets)
+  endif()
 
   if(COMPILE_KEPLER)
     message(STATUS "Compiling code for Kepler GPUs")
@@ -353,6 +363,12 @@ if(CUDA_FOUND)
         message(STATUS "Compiling code for Ampere GPUs")
         LIST(APPEND COMPUTE -gencode=arch=compute_80,code=sm_80; -gencode=arch=compute_80,code=compute_80) # Ampere GPUs
     endif(COMPILE_AMPERE)
+  endif()
+  if(CUDA_VERSION VERSION_EQUAL "11.1" OR CUDA_VERSION VERSION_GREATER "11.1")
+    if(COMPILE_AMPERE_RTX)
+        message(STATUS "Compiling code for Ampere RTX GPUs")
+        LIST(APPEND COMPUTE -gencode=arch=compute_86,code=sm_86; -gencode=arch=compute_86,code=compute_86) # Ampere RTX GPUs
+    endif(COMPILE_AMPERE_RTX)
   endif()
 
   if(USE_STATIC_LIBS)
