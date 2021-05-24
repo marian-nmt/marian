@@ -4,6 +4,8 @@
 #include "common/utils.h"
 #include "common/filesystem.h"
 
+#include <set>
+
 namespace marian {
 
 bool ConfigValidator::has(const std::string& key) const {
@@ -129,6 +131,11 @@ void ConfigValidator::validateOptionsTraining() const {
                && !get<std::vector<std::string>>("valid-sets").empty(),
            errorMsg);
 
+  // check if --early-stopping-on has proper value
+  std::set<std::string> supportedStops = {"first", "all", "any"};
+  ABORT_IF(supportedStops.find(get<std::string>("early-stopping-on")) == supportedStops.end(),
+           "Supported options for --early-stopping-on are: first, all, any");
+
   // validations for learning rate decaying
   ABORT_IF(get<float>("lr-decay") > 1.f, "Learning rate decay factor greater than 1.0 is unusual");
 
@@ -145,7 +152,7 @@ void ConfigValidator::validateOptionsTraining() const {
   // validate ULR options
   ABORT_IF((has("ulr") && get<bool>("ulr") && (get<std::string>("ulr-query-vectors") == ""
                                                || get<std::string>("ulr-keys-vectors") == "")),
-           "ULR enablign requires query and keys vectors specified with --ulr-query-vectors and "
+           "ULR requires query and keys vectors specified with --ulr-query-vectors and "
            "--ulr-keys-vectors option");
 
   // validate model quantization

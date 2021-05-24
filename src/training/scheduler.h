@@ -28,7 +28,7 @@ private:
   // (regardless if it's the 1st or nth epoch and if it's a new or continued training),
   // which indicates the end of the training data stream from STDIN
   bool endOfStdin_{false};  // true at the end of the epoch if training from STDIN;
- 
+
   // @TODO: figure out how to compute this with regard to updates as well, although maybe harder since no final value
   // determine scheduled LR decay factor (--lr-decay-inv-sqrt option)
   float getScheduledLRDecayFactor(const TrainingState& state) const {
@@ -133,7 +133,7 @@ public:
   Scheduler(Ptr<Options> options, Ptr<TrainingState> state, Ptr<IMPIWrapper> mpi = nullptr)
       : options_(options), state_(state), mpi_(mpi),
         gradientNormAvgWindow_(options_->get<size_t>("gradient-norm-average-window", 100)) {
-  
+
     // parse logical-epoch parameters
     auto logicalEpochStr = options->get<std::vector<std::string>>("logical-epoch", {"1e", "0"});
     ABORT_IF(logicalEpochStr.empty(), "Logical epoch information is missing?");
@@ -174,7 +174,7 @@ public:
       size_t progress = state_->getProgressIn(mbWarmup.unit); // number of updates/labels processed
       auto progressRatio = (double)progress / (double)mbWarmup.n; // where are we relatively within target warm-up period
       // if unit is labels, then account for the fact that our increment itself is not constant
-#if 1  // this seems to hurt convergence quite a bit compared to when updates is used     
+#if 1  // this seems to hurt convergence quite a bit compared to when updates is used
       if (mbWarmup.unit == SchedulingUnit::trgLabels)
         progressRatio = std::sqrt(progressRatio);
 #endif
@@ -207,7 +207,7 @@ public:
     if(saveAndExitRequested()) // via SIGTERM
       return false;
 
-#if 1  // @TODO: to be removed once we deprecate after-epochs and after-batches   
+#if 1  // @TODO: to be removed once we deprecate after-epochs and after-batches
     // stop if it reached the maximum number of epochs
     size_t stopAfterEpochs = options_->get<size_t>("after-epochs");
     if(stopAfterEpochs > 0 && calculateLogicalEpoch() > stopAfterEpochs)
@@ -231,10 +231,9 @@ public:
       }
     }
 
-    // stop if the first validator did not improve for a given number of checks
+    // stop if the first/all/any validators did not improve for a given number of checks
     size_t stopAfterStalled = options_->get<size_t>("early-stopping");
-    if(stopAfterStalled > 0 && !validators_.empty()
-       && stalled() >= stopAfterStalled)
+    if(stopAfterStalled > 0 && stalled() >= stopAfterStalled)
       return false;
 
     // stop if data streaming from STDIN is stopped
@@ -297,12 +296,11 @@ public:
        || (!state_->enteredNewPeriodOf(options_->get<std::string>("valid-freq")) && !isFinal)) // not now
       return;
 
-    bool firstValidator = true;
+    size_t stalledPrev = stalled();
     for(auto validator : validators_) {
       if(!validator)
         continue;
 
-      size_t stalledPrev = validator->stalled();
       float value = 0;
       if(!mpi_ || mpi_->isMainProcess()) {
         // We run validation only in the main process, but this is risky with MPI.
@@ -330,32 +328,58 @@ public:
       if(mpi_) {
         // collect and broadcast validation result to all processes and bring validator up-to-date
         mpi_->bCast(&value, 1, IMPIWrapper::getDataType(&value));
-        
+
         // @TODO: add function to validator?
         mpi_->bCast(&validator->stalled(), 1, IMPIWrapper::getDataType(&validator->stalled()));
         mpi_->bCast(&validator->lastBest(), 1, IMPIWrapper::getDataType(&validator->lastBest()));
       }
 
-      if(firstValidator)
-        state_->validBest = value;
-
       state_->validators[validator->type()]["last-best"] = validator->lastBest();
       state_->validators[validator->type()]["stalled"]   = validator->stalled();
-
-      // notify training observers if the first validator did not improve
-      if(firstValidator && validator->stalled() > stalledPrev)
-        state_->newStalled(validator->stalled());
-      firstValidator = false;
     }
+
+    // notify training observers about stalled validation
+    size_t stalledNew = stalled();
+    if(stalledNew > stalledPrev)
+      state_->newStalled(stalledNew);
 
     state_->validated = true;
   }
 
+  // Returns the proper number of stalled validation w.r.t. early-stopping-on
   size_t stalled() {
+    std::string stopOn = options_->get<std::string>("early-stopping-on");
+    if(stopOn == "any")
+      return stalledMax();
+    if(stopOn == "all")
+      return stalledMin();
+    return stalled1st();
+  }
+
+  // Returns the number of stalled validations for the first validator
+  size_t stalled1st() {
     if(!validators_.empty())
       if(validators_[0])
         return validators_[0]->stalled();
     return 0;
+  }
+
+  // Returns the largest number of stalled validations across validators or 0 if there are no validators
+  size_t stalledMax() {
+    size_t max = 0;
+    for(auto validator : validators_)
+      if(validator && validator->stalled() > max)
+        max = validator->stalled();
+    return max;
+  }
+
+  // Returns the lowest number of stalled validations across validators or 0 if there are no validators
+  size_t stalledMin() {
+    size_t min = std::numeric_limits<std::size_t>::max();
+    for(auto validator : validators_)
+      if(validator && validator->stalled() < min)
+        min = validator->stalled();
+    return min == std::numeric_limits<std::size_t>::max() ? 0 : min;
   }
 
   void update(StaticLoss rationalLoss, Ptr<data::Batch> batch) {
@@ -397,8 +421,8 @@ public:
 
     if(gradientNorm) {
       size_t range = std::min(gradientNormAvgWindow_, state_->batches);
-      float alpha = 2.f / (float)(range + 1); 
-      
+      float alpha = 2.f / (float)(range + 1);
+
       float delta = gradientNorm - state_->gradientNormAvg;
       state_->gradientNormAvg = state_->gradientNormAvg + alpha * delta;
       state_->gradientNormVar = (1.0f - alpha) * (state_->gradientNormVar + alpha * delta * delta);
@@ -440,7 +464,7 @@ public:
             formatLogicalEpoch(),
             state_->batches,
             utils::withCommas(state_->samplesEpoch),
-            formatLoss(lossType, dispLabelCounts, batchLabels, state_), 
+            formatLoss(lossType, dispLabelCounts, batchLabels, state_),
             timer_.elapsed(),
             state_->wordsDisp / timer_.elapsed(),
             state_->gradientNormAvg);
@@ -627,7 +651,8 @@ public:
 
           if(options_->get<bool>("lr-decay-repeat-warmup")) {
             LOG(info, "Restarting learning rate warmup");
-            state.warmupStart.n = state.getProgressIn(SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
+            state.warmupStart.n = state.getProgressIn(
+                SchedulingParameter::parse(options_->get<std::string>("lr-warmup")).unit);
           }
         }
       }
