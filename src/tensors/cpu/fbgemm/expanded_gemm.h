@@ -138,15 +138,18 @@ struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
   int nrow_;
   int ncol_;
   uint64_t packsize_;
+  float quantizeRange_;
 
   FbgemmPacked8PackNodeOp(Expr a,
                           PackMatrix packMat,
                           marian::Type packType,
-                          bool transpose)
-      : UnaryNodeOp(a, newShape(a, transpose), Type::uint8),
+                          bool transpose,
+                          float quantizeRange)
+      : UnaryNodeOp(a, newShape(a, packType, transpose), Type::uint8),
         packMat_(packMat),
         packType_(packType),
-        transpose_(transpose) {
+        transpose_(transpose),
+        quantizeRange_(quantizeRange){
     if(packMat != PackMatrix::B)
       ABORT("Only prepacking of B (weight matrix) is supported");
     if(!memoize_)
@@ -161,7 +164,8 @@ struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
                                      transpose_,
                                      nrow_,
                                      ncol_,
-                                     packsize_))
+                                     packsize_,
+                                     quantizeRange_))
     };
 #else // USE_FBGEMM
     ABORT("FbgemmPacked8PackNodeOp can only be used with FBGEMM enabled.");
@@ -177,13 +181,19 @@ struct FbgemmPacked8PackNodeOp : public UnaryNodeOp {
   const std::string type() override { return "packMatInt8"; }
 
 #if USE_FBGEMM
-  Shape newShape(Expr a, bool transpose) {
-    fbgemmPacked8PackInfo(a->shape(), packType_, transpose, nrow_, ncol_, packsize_);
+  Shape newShape(Expr a, marian::Type packType, bool transpose) {
+    fbgemmPacked8PackInfo(
+        a->shape(),
+        packType,
+        transpose,
+        nrow_,
+        ncol_,
+        packsize_);
     Shape outShape({(int)packsize_});
     return outShape;
   }
 #else
-  Shape newShape(Expr /*a*/, bool /*transpose*/) {
+  Shape newShape(Expr /*a*/, marian::Type /*packType*/, bool /*transpose*/) {
     ABORT("Packed GEMM requires a build with USE_FBGEMM enabled");
     return Shape();
   }
@@ -282,10 +292,17 @@ private:
   size_t k_;
   bool transA_;
   bool transB_;
+  Type elementType_;
 
 public:
- FbgemmPacked8AffineNodeOp(const std::vector<Expr>& nodes, Shape bShape, bool transA, bool transB, float /*scalar*/)
-   : NaryNodeOp(nodes, newShape(nodes[0], bShape, transA, transB), Type::float32)/*, scalar_(scalar) */ {
+  FbgemmPacked8AffineNodeOp(Type elementType,
+                            const std::vector<Expr>& nodes,
+                            Shape bShape,
+                            bool transA,
+                            bool transB,
+                            float /*scalar*/)
+      : NaryNodeOp(nodes, newShape(nodes[0], bShape, transA, transB), Type::float32),
+        elementType_(elementType) {
     transA_ = transA;
     transB_ = transB;
     m_ = nodes[0]->shape().elements() / nodes[0]->shape()[-1];
@@ -324,7 +341,8 @@ public:
 #if USE_FBGEMM
     // Do addBias only if it has a bias term
     if (children().size() > 2) {
-      nodeOps = { NodeOp(fbgemmPacked8Gemm(val_,
+      nodeOps = { NodeOp(fbgemmPacked8Gemm(elementType_,
+                                           val_,
                                            child(0)->val(),
                                            child(1)->val(),
                                            m_,
@@ -334,7 +352,8 @@ public:
                                            transB_);
                        marian::cpu::integer::AddBias(val_, child(2)->val())) };
     } else {
-      nodeOps = { NodeOp(fbgemmPacked8Gemm(val_,
+      nodeOps = { NodeOp(fbgemmPacked8Gemm(elementType_,
+                                           val_,
                                            child(0)->val(),
                                            child(1)->val(),
                                            m_,
@@ -358,39 +377,46 @@ public:
   const std::string type() override { return "gemmPacked8"; }
 };
 
-static inline Expr affine(Expr a, Expr b, Shape bShape, Expr c, bool transA, bool transB, float scalar) {
+static inline Expr affine(Type elementType,
+                          Expr a,
+                          Expr b,
+                          Shape bShape,
+                          Expr c,
+                          bool transA,
+                          bool transB,
+                          float scalar) {
   std::vector<Expr> nodes = {a, b, c};
-  Type elementType = b->value_type();
 
   if (elementType == Type::packed16)
     return Expression<FbgemmPacked16AffineNodeOp>(nodes, bShape, transA, transB, scalar);
   else if (isPacked(elementType) && sizeOf(elementType) == 1)
-    return Expression<FbgemmPacked8AffineNodeOp>(nodes, bShape, transA, transB, scalar);
+    return Expression<cpu::variant::FbgemmPacked8AffineNodeOp>(
+        elementType, nodes, bShape, transA, transB, scalar);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);
     return nullptr;
   }
 }
 
-static inline Expr pack(Type elementType, Expr a, PackMatrix packMat, bool transpose) {
+static inline Expr pack(Type elementType, Expr a, PackMatrix packMat, bool transpose, float quantizeRange = 0.f) {
   if (elementType == Type::packed16)
     return Expression<FbgemmPacked16PackNodeOp>(a, packMat, transpose);
   else if (isPacked(elementType) && sizeOf(elementType) == 1)
-    return Expression<FbgemmPacked8PackNodeOp>(a, packMat, elementType, transpose);
+    return Expression<cpu::variant::FbgemmPacked8PackNodeOp>(a, packMat, elementType, transpose, quantizeRange);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);
     return nullptr;
   }
 }
 
-static inline Expr dot(Expr a, Expr b, Shape bShape, bool transA, bool transB, float scalar) {
+static inline Expr dot(Type elementType, Expr a, Expr b, Shape bShape, bool transA, bool transB, float scalar) {
   std::vector<Expr> nodes = {a, b};
-  Type elementType = b->value_type();
 
   if (elementType == Type::packed16)
     return Expression<FbgemmPacked16AffineNodeOp>(nodes, bShape, transA, transB, scalar);
   else if (isPacked(elementType) && sizeOf(elementType) == 1)
-    return Expression<FbgemmPacked8AffineNodeOp>(nodes, bShape, transA, transB, scalar);
+    return Expression<cpu::variant::FbgemmPacked8AffineNodeOp>(
+        elementType, nodes, bShape, transA, transB, scalar);
   else {
     ABORT("Only int8 and fp16 are available. {}", elementType);
     return nullptr;

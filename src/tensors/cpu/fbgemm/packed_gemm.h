@@ -135,7 +135,8 @@ void fbgemmPacked16Gemm(marian::Tensor C,
 // k: the number of columns in A and rows in B
 // transA: transpose of A matrix
 // transB: transpose of B matrix
-void fbgemmPacked8Gemm(marian::Tensor C,
+void fbgemmPacked8Gemm(Type packType,
+                       marian::Tensor C,
                        const marian::Tensor A,
                        const marian::Tensor B,
                        const size_t m,
