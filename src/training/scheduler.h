@@ -511,7 +511,8 @@ public:
       state_->stalled      = 0;
       state_->maxStalled   = 0;
       for(const auto& validator : validators_) {
-        state_->validators[validator->type()]["stalled"] = 0;
+        if(state_->validators[validator->type()])
+          state_->validators[validator->type()]["stalled"] = 0;
       }
     }
 

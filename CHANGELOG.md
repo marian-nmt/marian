@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compute aligned memory sizes using exact sizing
 
 ### Fixed
+- Adding new validation metrics when training is restarted and --reset-valid-stalled is used
 - Missing depth-scaling in transformer FFN
 - Fixed an issue when loading intgemm16 models from unaligned memory.
 - Fix building marian with gcc 9.3+ and FBGEMM
