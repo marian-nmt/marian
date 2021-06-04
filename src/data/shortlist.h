@@ -29,7 +29,8 @@ protected:
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
-
+  bool done_;
+  
   virtual void broadcast(Expr weights,
                         bool isLegacyUntransposedW,
                         Expr b,

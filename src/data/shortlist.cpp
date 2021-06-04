@@ -19,7 +19,8 @@ const T* get(const void*& current, size_t num = 1) {
 
 //////////////////////////////////////////////////////////////////////////////////////
 Shortlist::Shortlist(const std::vector<WordIndex>& indices)
-  : indices_(indices) {}
+  : indices_(indices)
+  , done_(false) {}
 
 Shortlist::~Shortlist() {}
 
@@ -34,6 +35,10 @@ WordIndex Shortlist::tryForwardMap(int , int , WordIndex wIdx) const {
 }
 
 void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
+  if (done_) {
+    return;
+  }
+
   //if (indicesExpr_) return;
   int currBeamSize = input->shape()[0];
   int batchSize = input->shape()[2];
@@ -50,6 +55,7 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
 
   Expr indicesExprBC = getIndicesExpr(batchSize, currBeamSize);
   broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExprBC, k);
+  done_ = true;
 }
 
 Expr Shortlist::getIndicesExpr(int batchSize, int beamSize) const {
