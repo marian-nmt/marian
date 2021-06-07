@@ -264,34 +264,20 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         }
         else {
           const Shape &s = lemmaEt_->shape();
-          std::cerr << "lemmaEt_=" << lemmaEt_->shape() << std::endl;
+          //std::cerr << "lemmaEt_=" << lemmaEt_->shape() << std::endl;
           cachedShortLemmaEt = reshape(lemmaEt_, {1, 1, s[0], s[1]});
         }
-        std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
-        std::cerr << "cachedShortLemmaEt.2=" << cachedShortLemmaEt->shape() << std::endl;
-        /*
-        Expr e = factorSoftmax * cachedShortLemmaEt;
-        factorSoftmax= beam x 1 x batch x vocab 
-        cachedShortLemmaEt= 1 x 10 x 1 x vocab
-        e= beam x 10 x batch x vocab
-
-        std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
-        std::cerr << "cachedShortLemmaEt=" << cachedShortLemmaEt->shape() << std::endl;
-        std::cerr << "e=" << e->shape() << std::endl;
-        std::cerr << std::endl;
-        e = sum(e, 3);
-        //std::cerr << "e.2=" << e->shape() << std::endl;
-        e = transpose(e, {0, 3, 2, 1});
-        */
+        //std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
+        //std::cerr << "cachedShortLemmaEt.2=" << cachedShortLemmaEt->shape() << std::endl;
         factorSoftmax = transpose(factorSoftmax, {0, 2, 1, 3});
-        std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
+        //std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
 
         Expr e = bdot(factorSoftmax, cachedShortLemmaEt, false, true);
-        std::cerr << "e.1=" << e->shape() << std::endl;
+        //std::cerr << "e.1=" << e->shape() << std::endl;
         const Shape &eShape = e->shape();
         e = reshape(e, {eShape[0], 1, eShape[1], eShape[3]});
-        std::cerr << "e.3=" << e->shape() << std::endl;
-        std::cerr << std::endl;
+        //std::cerr << "e.3=" << e->shape() << std::endl;
+        //std::cerr << std::endl;
 
         // project it back to regular hidden dim
         int inputDim = input1->shape()[-1];
