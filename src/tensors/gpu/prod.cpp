@@ -347,25 +347,46 @@ void ProdBatchedTyped(marian::Tensor C,
   CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
   ComputeType alpha = scalar;
 
-  int batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
-  int batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
+  // determine meta-shape of bdot operation. Essentially treat the last two dimensions as single elements
+  // such that (..., m, k) x (..., k, n) -> (..., m, n) where ... is a broadcastable shape as in element-wise kernels.
 
-  int m = A->shape()[-2];
-  int k = A->shape()[-1];
+  auto aShape = A->shape();
+  auto bShape = B->shape();
+
+  // make sure both shape have the same number of dimensions via broadcasting
+  size_t maxLength = std::max(aShape.size(), bShape.size());
+  if(aShape.size() != bShape.size()) {
+    Shape ones(std::vector<int>(maxLength, 1));
+    aShape = Shape::broadcast({aShape, ones});
+    bShape = Shape::broadcast({bShape, ones});
+  }
+
+  // Create meta-shapes without last 2 dimensions
+  Shape aShapeMeta, bShapeMeta, cShapeMeta;
+  aShapeMeta.resize(maxLength - 2);
+  bShapeMeta.resize(maxLength - 2);
+  for(size_t i = 0; i < maxLength - 2; ++i) {
+    aShapeMeta.set(i, aShape[i]);
+    bShapeMeta.set(i, bShape[i]);
+  }
+  cShapeMeta = Shape::broadcast({aShapeMeta, bShapeMeta});
+
+  size_t m = aShape[-2];
+  size_t k = aShape[-1];
   if(transA)
     std::swap(m, k);
 
-  int l = B->shape()[-2];
-  int n = B->shape()[-1];
+  size_t l = bShape[-2];
+  size_t n = bShape[-1];
   if(transB)
     std::swap(l, n);
 
-  int lda = A->shape()[-1];
-  int ldb = B->shape()[-1];
-  int ldc = B->shape()[-1];
+  size_t lda = aShape[-1];
+  size_t ldb = bShape[-1];
+  size_t ldc = bShape[-1];
 
   if(transB)
-    ldc = B->shape()[-2];
+    ldc = bShape[-2];
 
   cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
   cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
@@ -374,18 +395,29 @@ void ProdBatchedTyped(marian::Tensor C,
   auto cublasHandle = backend->getCublasHandle();
   auto compute = backend->getCudaComputeCapability();
 
-  auto strideA = batchA == 1 ? 0 : m * k;
-  auto strideB = batchB == 1 ? 0 : n * k;
+  auto strideA = m * k;
+  auto strideB = n * k;
   auto strideC = n * m;
-  auto batchC = std::max(batchA, batchB);
+
+  auto batchC = cShapeMeta.elements();
+
+  // Convert to functional shapes to be able to map dimensions. @TODO merge this
+  functional::Shape aShapeMetaF = aShapeMeta;
+  functional::Shape bShapeMetaF = bShapeMeta;
+  functional::Shape cShapeMetaF = cShapeMeta;
 
   std::vector<const ElementType*> aptr;
   std::vector<const ElementType*> bptr;
   std::vector<ElementType*> cptr;
 
+  functional::Array<int, functional::Shape::size()> dims;
   for(int i = 0; i < batchC; i++) {
-    aptr.push_back(A->data<ElementType>() + (i % batchA) * strideA);
-    bptr.push_back(B->data<ElementType>() + (i % batchB) * strideB);
+    cShapeMetaF.dims(i, dims);
+    auto aIndex = aShapeMetaF.bindex(dims);
+    auto bIndex = bShapeMetaF.bindex(dims);
+
+    aptr.push_back(A->data<ElementType>() + aIndex * strideA);
+    bptr.push_back(B->data<ElementType>() + bIndex * strideB);
     cptr.push_back(C->data<ElementType>() + i * strideC);
   }
 

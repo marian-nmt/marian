@@ -529,11 +529,27 @@ public:
       shapeB.set(-1, b->shape()[-2]);
     }
 
-    Shape outShape = shapeA;
-    outShape.set(-1, shapeB[-1]);
     ABORT_IF(shapeA[-1] != shapeB[-2],
-             "Batched matrix product requires inner dimensions to match in {}{} * {}{}", std::string(shapeA), transA, std::string(shapeB), transB);
-    return outShape;
+             "Batched matrix product requires inner dimensions to match in {}{} * {}{}",
+             std::string(shapeA), transA, std::string(shapeB), transB);
+    
+    // create shapes for batch dimensions only
+    auto shapeBatchA = shapeA;
+    shapeBatchA.set(-1, 1);
+    shapeBatchA.set(-2, 1);
+    
+    auto shapeBatchB = shapeB;
+    shapeBatchB.set(-1, 1);
+    shapeBatchB.set(-2, 1);
+
+    // broadcast batch dimensions
+    auto shapeOut = Shape::broadcast({shapeBatchA, shapeBatchB});
+
+    // set non-batch dimensions in output
+    shapeOut.set(-1, shapeA[-2]);
+    shapeOut.set(-2, shapeB[-1]);
+    
+    return shapeOut;
   }
 
   NodeOps forwardOps() override {
