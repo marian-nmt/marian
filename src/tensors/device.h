@@ -15,8 +15,9 @@ protected:
   size_t size_{0};
   size_t alignment_;
 
-  size_t align(size_t size) {
-    return (size_t)(ceil(size / (float)alignment_) * alignment_);
+  size_t align(size_t size) const {
+    size_t over = size + alignment_ - 1;
+    return over - (over % alignment_);
   }
 
 public:

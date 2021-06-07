@@ -145,8 +145,6 @@ protected:  // (these are protected, not private, for ONNX exporting)
   Ptr<Tensors> tensors_;
 private:
 
-  std::unordered_map<size_t, std::vector<Expr>> memoized_;
-
   Type defaultElementType_{Type::float32};  // Type used for storing parameters, currently all parameters have to have the same type
 
   bool inferenceOnly_{false};               // a flag holds whether the graph is used for inference only
