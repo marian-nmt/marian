@@ -249,58 +249,31 @@ void ProdBatchedLegacy(marian::Tensor C,
 #if BLAS_FOUND
   float alpha = scalar;
 
-  // determine meta-shape of bdot operation. Essentially treat the last two dimensions as single elements
-  // such that (..., m, k) x (..., k, n) -> (..., m, n) where ... is a broadcastable shape as in element-wise kernels.
+  size_t batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
+  size_t batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
 
-  auto aShape = A->shape();
-  auto bShape = B->shape();
-
-  // make sure both shape have the same number of dimensions via broadcasting
-  size_t maxLength = std::max(aShape.size(), bShape.size());
-  if(aShape.size() != bShape.size()) {
-    Shape ones(std::vector<int>(maxLength, 1));
-    aShape = Shape::broadcast({aShape, ones});
-    bShape = Shape::broadcast({bShape, ones});
-  }
-
-  // Create meta-shapes without last 2 dimensions
-  Shape aShapeMeta, bShapeMeta, cShapeMeta;
-  aShapeMeta.resize(maxLength - 2);
-  bShapeMeta.resize(maxLength - 2);
-  for(size_t i = 0; i < maxLength - 2; ++i) {
-    aShapeMeta.set(i, aShape[i]);
-    bShapeMeta.set(i, bShape[i]);
-  }
-  cShapeMeta = Shape::broadcast({aShapeMeta, bShapeMeta});
-
-  size_t m = aShape[-2];
-  size_t k = aShape[-1];
+  size_t m = A->shape()[-2];
+  size_t k = A->shape()[-1];
   if(transA)
     std::swap(m, k);
 
-  size_t l = bShape[-2];
-  size_t n = bShape[-1];
+  size_t l = B->shape()[-2];
+  size_t n = B->shape()[-1];
   if(transB)
     std::swap(l, n);
 
-  size_t lda = aShape[-1];
-  size_t ldb = bShape[-1];
-  size_t ldc = bShape[-1];
+  size_t lda = A->shape()[-1];
+  size_t ldb = B->shape()[-1];
+  size_t ldc = B->shape()[-1];
 
   if(transB)
-    ldc = bShape[-2];
+    ldc = B->shape()[-2];
 
-  auto strideA = m * k;
-  auto strideB = n * k;
+  auto strideB = batchB == 1 ? 0 : n * k;
+  auto strideA = batchA == 1 ? 0 : m * k;
   auto strideC = n * m;
 
-  auto batchC = cShapeMeta.elements();
-
-  // Convert to functional shapes to be able to map dimensions. @TODO merge this
-  functional::Shape aShapeMetaF = aShapeMeta;
-  functional::Shape bShapeMetaF = bShapeMeta;
-  functional::Shape cShapeMetaF = cShapeMeta;
-
+  auto batchC = std::max(batchA, batchB);
 #if MKL_FOUND
   CBLAS_TRANSPOSE transA_forarr = CblasNoTrans;
   CBLAS_TRANSPOSE transB_forarr = CblasNoTrans;
@@ -339,14 +312,9 @@ void ProdBatchedLegacy(marian::Tensor C,
 
   // This loop initializes the array pointers in the same way as the for loop
   // in the normal sgemm version a few lines below
-  functional::Array<int, functional::Shape::size()> dims;
   for(size_t i = 0; i < batchC; ++i) {
-    cShapeMetaF.dims(i, dims);
-    auto aIndex = aShapeMetaF.bindex(dims);
-    auto bIndex = bShapeMetaF.bindex(dims);
-
-    a_array[i] = A->data() + aIndex * strideA;
-    b_array[i] = B->data() + bIndex * strideB;
+    a_array[i] = A->data() + (i % batchA) * strideA;
+    b_array[i] = B->data() + (i % batchB) * strideB;
     c_array[i] = C->data() + i * strideC;
   }
   cblas_sgemm_batch (CblasRowMajor,
@@ -366,21 +334,16 @@ void ProdBatchedLegacy(marian::Tensor C,
     group_count,
     &group_size[0]);
 #else
-  functional::Array<int, functional::Shape::size()> dims;
   for(size_t i = 0; i < batchC; ++i) {
-    cShapeMetaF.dims(i, dims);
-    auto aIndex = aShapeMetaF.bindex(dims);
-    auto bIndex = bShapeMetaF.bindex(dims);
-
     sgemm(transA,
           transB,
           (int)m,
           (int)n,
           (int)k,
           alpha,
-          A->data() + aIndex * strideA,
+          A->data() + (i % batchA) * strideA,
           (int)lda,
-          B->data() + bIndex * strideB,
+          B->data() + (i % batchB) * strideB,
           (int)ldb,
           beta,
           C->data() + i * strideC,
