@@ -478,6 +478,12 @@ Expr bdot(Expr a,
           bool transB = false,
           float scalar = 1.f);
 
+Expr bdot_legacy(Expr a,
+                 Expr b,
+                 bool transA = false,
+                 bool transB = false,
+                 float scalar = 1.f);
+
 /**
  * Performs an affine transformation.
  * Computes

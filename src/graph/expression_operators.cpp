@@ -519,6 +519,10 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scale) {
   return Expression<DotBatchedNodeOp>(a, b, transA, transB, scale);
 }
 
+Expr bdot_legacy(Expr a, Expr b, bool transA, bool transB, float scale) {
+  return Expression<DotBatchedLegacyNodeOp>(a, b, transA, transB, scale);
+}
+
 Expr affineDefault(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   // general version, MKL, CBlas or CUDA
 
