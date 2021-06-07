@@ -75,9 +75,12 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     */
     x = transpose(x, {0, 2, 1, 3});
     W = transpose(W, {0, 2, 1, 3});
+    //std::cerr << "x=" << x->shape() << std::endl;
+    //std::cerr << "W=" << W->shape() << std::endl;
     Expr ret = bdot(x, W, false, true);
 
     //std::cerr << "ret.2=" << ret->shape() << std::endl;
+    //std::cerr << std::endl;
     return ret;
   };
 
@@ -256,14 +259,17 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
 #endif
         // re-embedding lookup, soft-indexed by softmax
         Expr cachedShortLemmaEt;
-        if(shortlist_)  // short-listed version of re-embedding matrix
+        if(shortlist_) {  // short-listed version of re-embedding matrix
           cachedShortLemmaEt = shortlist_->getCachedShortLemmaEt();
+          cachedShortLemmaEt = transpose(cachedShortLemmaEt, {0, 2, 1, 3});
+        }
         else {
           const Shape &s = lemmaEt_->shape();
-          cachedShortLemmaEt = reshape(lemmaEt_, {1, s[0], 1, s[1]});
+          std::cerr << "lemmaEt_=" << lemmaEt_->shape() << std::endl;
+          cachedShortLemmaEt = reshape(lemmaEt_, {1, 1, s[0], s[1]});
         }
         std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
-        std::cerr << "cachedShortLemmaEt=" << cachedShortLemmaEt->shape() << std::endl;
+        std::cerr << "cachedShortLemmaEt.2=" << cachedShortLemmaEt->shape() << std::endl;
         /*
         Expr e = factorSoftmax * cachedShortLemmaEt;
         factorSoftmax= beam x 1 x batch x vocab 
@@ -279,9 +285,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         e = transpose(e, {0, 3, 2, 1});
         */
         factorSoftmax = transpose(factorSoftmax, {0, 2, 1, 3});
-        cachedShortLemmaEt = transpose(cachedShortLemmaEt, {0, 2, 1, 3});
         std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
-        std::cerr << "cachedShortLemmaEt=" << cachedShortLemmaEt->shape() << std::endl;
 
         Expr e = bdot(factorSoftmax, cachedShortLemmaEt, false, true);
         std::cerr << "e.1=" << e->shape() << std::endl;
