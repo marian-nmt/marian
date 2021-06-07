@@ -126,7 +126,7 @@ void Shortlist::broadcast(Expr weights,
   //std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
   cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {cachedShortLemmaEt_->shape()[0], batchSize, currBeamSize, k});
   //std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
-  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {2, 0, 1, 3});
+  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {2, 1, 0, 3});
   //std::cerr << "cachedShortLemmaEt.3_=" << cachedShortLemmaEt_->shape() << std::endl;                         
 }
 

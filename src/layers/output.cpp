@@ -261,7 +261,6 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         Expr cachedShortLemmaEt;
         if(shortlist_) {  // short-listed version of re-embedding matrix
           cachedShortLemmaEt = shortlist_->getCachedShortLemmaEt();
-          cachedShortLemmaEt = transpose(cachedShortLemmaEt, {0, 2, 1, 3});
         }
         else {
           const Shape &s = lemmaEt_->shape();
