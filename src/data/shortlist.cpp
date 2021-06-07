@@ -113,7 +113,7 @@ void Shortlist::broadcast(Expr weights,
   //std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
   cachedShortWt_ = reshape(cachedShortWt_, {batchSize, currBeamSize, k, cachedShortWt_->shape()[1]});
   //std::cerr << "cachedShortWt_.2=" << cachedShortWt_->shape() << std::endl;
-  cachedShortWt_ = transpose(cachedShortWt_, {1, 2, 0, 3});
+  cachedShortWt_ = transpose(cachedShortWt_, {1, 0, 2, 3});
   //std::cerr << "cachedShortWt_.3=" << cachedShortWt_->shape() << std::endl;
 
   if (b) {

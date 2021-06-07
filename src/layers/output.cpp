@@ -74,7 +74,6 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     ret = transpose(ret, {0, 3, 2, 1});
     */
     x = transpose(x, {0, 2, 1, 3});
-    W = transpose(W, {0, 2, 1, 3});
     //std::cerr << "x=" << x->shape() << std::endl;
     //std::cerr << "W=" << W->shape() << std::endl;
     Expr ret = bdot(x, W, false, true);
