@@ -536,7 +536,8 @@ void fbgemmPacked16Gemm(marian::Tensor C,
 // k: the number of columns in A and the number of rows in B
 // transA: whether A matrix is transposed or not
 // transB: whether B matrix is transposed or not
-void fbgemmPacked8Gemm(marian::Tensor C,
+void fbgemmPacked8Gemm(Type packType,
+                       marian::Tensor C,
                        const marian::Tensor A,
                        const marian::Tensor B,
                        const size_t m,
@@ -544,9 +545,6 @@ void fbgemmPacked8Gemm(marian::Tensor C,
                        const size_t k,
                        const int transA,
                        const int transB) {
-  // pack type
-  marian::Type packType = B->type();
-
   const fbgemm::BlockingFactors* params = getBlockingFactors(packType);
 
   // Check if the packed format matches with the available AVX instruction set in the machine
