@@ -54,6 +54,8 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
 
   Expr indicesExprBC = getIndicesExpr(batchSize, currBeamSize);
+  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
+  std::cerr << "indicesExprBC=" << indicesExprBC->shape() << std::endl;
   broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExprBC, k);
   done_ = true;
 }
@@ -111,17 +113,14 @@ void Shortlist::broadcast(Expr weights,
 
   std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
   std::cerr << "weights=" << weights->shape() << std::endl;
-  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExprBC);
+  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExpr_);
   std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
-  cachedShortWt_ = reshape(cachedShortWt_, {batchSize, currBeamSize, k, cachedShortWt_->shape()[1]});
-  std::cerr << "cachedShortWt_.2=" << cachedShortWt_->shape() << std::endl;
-  cachedShortWt_ = transpose(cachedShortWt_, {1, 0, 2, 3});
-  std::cerr << "cachedShortWt_.3=" << cachedShortWt_->shape() << std::endl;
+  cachedShortWt_ = reshape(cachedShortWt_, {1, 1, cachedShortWt_->shape()[0], cachedShortWt_->shape()[1]});
 
   if (b) {
     ABORT("Bias not yet tested");
-    cachedShortb_ = index_select(b, -1, indicesExprBC);
-    cachedShortb_ = reshape(cachedShortb_, {currBeamSize, k, batchSize, cachedShortb_->shape()[1]}); // not tested
+    cachedShortb_ = index_select(b, -1, indicesExpr_);
+    cachedShortb_ = reshape(cachedShortb_, {1, k, 1, cachedShortb_->shape()[1]}); // not tested
   }
 
   cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprBC);
