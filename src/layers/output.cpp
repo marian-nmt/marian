@@ -63,15 +63,15 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
   };
 
   auto affineShortlist = [](Expr x, Expr W, Expr b, bool , bool ) {
-    std::cerr << "x=" << x->shape() << std::endl;
-    std::cerr << "W=" << W->shape() << std::endl;
+    //std::cerr << "x=" << x->shape() << std::endl;
+    //std::cerr << "W=" << W->shape() << std::endl;
     x = transpose(x, {0, 2, 1, 3});
-    std::cerr << "x=" << x->shape() << std::endl;
-    std::cerr << "W=" << W->shape() << std::endl;
+    //std::cerr << "x=" << x->shape() << std::endl;
+    //std::cerr << "W=" << W->shape() << std::endl;
     Expr ret = bdot(x, W, false, true);
 
-    std::cerr << "ret.2=" << ret->shape() << std::endl;
-    std::cerr << std::endl;
+    //std::cerr << "ret.2=" << ret->shape() << std::endl;
+    //std::cerr << std::endl;
     return ret;
   };
 

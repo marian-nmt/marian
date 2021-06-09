@@ -31,11 +31,10 @@ protected:
   Expr cachedShortLemmaEt_;
   bool done_;
   
-  virtual void broadcast(Expr weights,
+  void broadcast(Expr weights,
                         bool isLegacyUntransposedW,
                         Expr b,
                         Expr lemmaEt,
-                        Expr indicesExprBC,
                         int k);
 public:
   static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
@@ -74,12 +73,12 @@ private:
 
   static Ptr<faiss::IndexLSH> index_;
 
-  virtual void broadcast(Expr weights,
+  void broadcast(Expr weights,
                         bool isLegacyUntransposedW,
                         Expr b,
                         Expr lemmaEt,
                         Expr indicesExprBC,
-                        int k) override;
+                        int k);
 
 public:
   LSHShortlist(int k, int nbits);

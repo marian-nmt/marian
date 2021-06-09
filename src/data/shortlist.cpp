@@ -35,15 +35,9 @@ WordIndex Shortlist::tryForwardMap(int , int , WordIndex wIdx) const {
 }
 
 void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
-  //if (done_) {
-  //  return;
-  //}
-
-  //if (indicesExpr_) return;
-  int currBeamSize = input->shape()[0];
-  int batchSize = input->shape()[2];
-  //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
-  //std::cerr << "batchSize=" << batchSize << std::endl;
+  if (done_) {
+    return;
+  }
 
   auto forward = [this](Expr out, const std::vector<Expr>& ) {
     out->val()->set(indices_);
@@ -53,10 +47,8 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
   Shape kShape({k});
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
 
-  Expr indicesExprBC = getIndicesExpr(batchSize, currBeamSize);
-  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
-  std::cerr << "indicesExprBC=" << indicesExprBC->shape() << std::endl;
-  broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExprBC, k);
+  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
+  broadcast(weights, isLegacyUntransposedW, b, lemmaEt, k);
   done_ = true;
 }
 
@@ -97,22 +89,12 @@ void Shortlist::broadcast(Expr weights,
                           bool isLegacyUntransposedW,
                           Expr b,
                           Expr lemmaEt,
-                          Expr indicesExprBC,
                           int k) {
-  //std::cerr << "indicesExprBC.0=" << indicesExprBC->shape() << std::endl;
-  int batchSize = indicesExprBC->shape()[0];
-  int currBeamSize = indicesExprBC->shape()[1];
-  //int numHypos = batchSize * currBeamSize;
-  //std::cerr << "batchSize=" << batchSize << std::endl;
-  //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
   //std::cerr << "isLegacyUntransposedW=" << isLegacyUntransposedW << std::endl;
   ABORT_IF(isLegacyUntransposedW, "Legacy untranspose W not yet tested");
 
-  indicesExprBC = reshape(indicesExprBC, {indicesExprBC->shape().elements()});
-  //std::cerr << "indicesExprBC.2=" << indicesExprBC->shape() << std::endl;
-
-  std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
-  std::cerr << "weights=" << weights->shape() << std::endl;
+  //std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
+  //std::cerr << "weights=" << weights->shape() << std::endl;
   cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExpr_);
   //std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
   cachedShortWt_ = reshape(cachedShortWt_, {1, 1, cachedShortWt_->shape()[0], cachedShortWt_->shape()[1]});
@@ -123,11 +105,11 @@ void Shortlist::broadcast(Expr weights,
     cachedShortb_ = reshape(cachedShortb_, {1, k, 1, cachedShortb_->shape()[1]}); // not tested
   }
 
-  std::cerr << "lemmaEt.1_=" << lemmaEt->shape() << std::endl;
+  //std::cerr << "lemmaEt.1_=" << lemmaEt->shape() << std::endl;
   cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExpr_);
-  std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
+  //std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
   cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {1, 1, cachedShortLemmaEt_->shape()[0], k});
-  std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
+  //std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
