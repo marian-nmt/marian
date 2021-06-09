@@ -74,6 +74,13 @@ private:
 
   static Ptr<faiss::IndexLSH> index_;
 
+  virtual void broadcast(Expr weights,
+                        bool isLegacyUntransposedW,
+                        Expr b,
+                        Expr lemmaEt,
+                        Expr indicesExprBC,
+                        int k) override;
+
 public:
   LSHShortlist(int k, int nbits);
   virtual WordIndex reverseMap(int batchIdx, int beamIdx, int idx) const override;
