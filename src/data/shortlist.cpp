@@ -161,6 +161,8 @@ Expr LSHShortlist::getIndicesExpr(int batchSize, int currBeamSize) const {
 
 void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
 #if BLAS_FOUND
+  static int c = 0;
+  std::cerr << "c=" << c++ << std::endl;
   ABORT_IF(input->graph()->getDeviceId().type == DeviceType::gpu,
            "LSH index (--output-approx-knn) currently not implemented for GPU");
 
