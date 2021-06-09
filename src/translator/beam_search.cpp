@@ -4,6 +4,7 @@
 #include "translator/helpers.h"
 #include "translator/nth_element.h"
 #include "data/shortlist.h"
+#include "common/utils.h"
 
 namespace marian {
 
@@ -19,6 +20,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
                          const std::vector<bool>& dropBatchEntries, // [origDimBatch] - empty source batch entries are marked with true, should be cleared after first use.
                          const std::vector<IndexType>& batchIdxMap) const { // [origBatchIdx -> currentBatchIdx]
   std::vector<float> align; // collects alignment information from the last executed time step
+  //utils::Debug(batchIdxMap, "batchIdxMap");
   if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
     align = scorers_[0]->getAlignment(); // [beam depth * max src length * current batch size] -> P(s|t); use alignments from the first scorer, even if ensemble,
 
@@ -99,7 +101,8 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       // For factored decoding, the word is built over multiple decoding steps,
       // starting with the lemma, then adding factors one by one.
       if (factorGroup == 0) {
-        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap((int) origBatchIdx, (int) prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
+        std::cerr << "currentBatchId=" << currentBatchIdx << " origBatchIdx=" << origBatchIdx << std::endl;
+        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap((int) currentBatchIdx, (int) prevBeamHypIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
         std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
         //LOG(info, "{} + {} ({}) -> {} -> {}",
         //    factoredVocab->decode(prevHyp->tracebackWords()),
