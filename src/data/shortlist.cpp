@@ -149,8 +149,9 @@ WordIndex LSHShortlist::tryForwardMap(int , int , WordIndex wIdx) const {
 Expr LSHShortlist::getIndicesExpr(int batchSize, int currBeamSize) const {
   assert(indicesExpr_->shape()[0] == currBeamSize);
   assert(indicesExpr_->shape()[1] == batchSize);
-  Expr ret = transpose(indicesExpr_, {1, 0, 2});
-  return ret;
+  return indicesExpr_;
+  //Expr ret = transpose(indicesExpr_, {1, 0, 2});
+  //return ret;
 }
 
 #define BLAS_FOUND 1

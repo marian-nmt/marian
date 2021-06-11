@@ -171,9 +171,11 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       // matrix
       Expr factorLogits;
       if(g == 0 && shortlist_) {
+        std::cerr << "affineShortlist.input1=" << input1->shape() << std::endl;
         Expr tmp = transpose(input1, {0, 2, 1, 3});
+        std::cerr << "tmp=" << tmp->shape() << std::endl;
         //std::cerr << "x=" << x->shape() << std::endl;
-        //std::cerr << "W=" << W->shape() << std::endl;
+        std::cerr << "affineShortlist.factorWt=" << factorWt->shape() << std::endl;
         factorLogits = affineShortlist(
             tmp,
             factorWt,
@@ -181,16 +183,18 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
         factorLogits = transpose(factorLogits, {0, 2, 1, 3});
+        std::cerr << "affineShortlist.factorLogits=" << factorLogits->shape() << std::endl << std::endl;
       }
       else {
-        //factorWt = transpose(factorWt, {1, 0, 2, 3});
-        //std::cerr << "affineOrDot.factorWt.2=" << factorWt->shape() << std::endl;
+        std::cerr << "affineOrDot.input1=" << input1->shape() << std::endl;
+        std::cerr << "affineOrDot.factorWt=" << factorWt->shape() << std::endl;
         factorLogits = affineOrDot(
             input1,
             factorWt,
             factorB,
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
+        std::cerr << "affineOrDot.factorLogits=" << factorLogits->shape() << std::endl << std::endl;
       }
 
       // optionally add lemma-dependent bias

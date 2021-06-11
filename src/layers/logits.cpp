@@ -120,11 +120,13 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         int currBeamSize = sel->shape()[0];
         int batchSize = sel->shape()[2];
         Expr lastIndices = shortlist->getIndicesExpr(batchSize, currBeamSize);
+        std::cerr << "lastIndices=" << lastIndices->shape() << std::endl;
         factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
-        factorMasks = transpose(factorMasks, {1, 0, 2});
-
+        std::cerr << "factorMasks.1=" << factorMasks->shape() << std::endl;
+        
         const Shape &s = factorMasks->shape();
         factorMasks = reshape(factorMasks, {s[0], 1, s[1], s[2]});
+        std::cerr << "factorMasks.3=" << factorMasks->shape() << std::endl;
       }
       factorMaxima = cast(factorMaxima, sel->value_type());
       factorMasks = cast(factorMasks, sel->value_type());
