@@ -54,34 +54,7 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
 
 Expr Shortlist::getIndicesExpr(int batchSize, int beamSize) const {
   int k = indicesExpr_->shape()[0];
-  Expr ones = indicesExpr_->graph()->constant({beamSize, batchSize, 1}, inits::ones(), Type::float32);
-
-  Expr tmp = reshape(indicesExpr_, {1, k});
-  tmp = cast(tmp, Type::float32);
-
-  Expr out = ones * tmp;
-  //debug(out, "out.1");
-
-  auto forward = [](Expr out, const std::vector<Expr>& inputs) {
-    Expr in = inputs[0];
-    const Shape &shape = in->shape();
-    const float *inPtr = in->val()->data();
-    uint32_t *outPtr = out->val()->data<uint32_t>();
-
-    for (int i = 0; i < shape.elements(); ++i) {
-        const float &val = inPtr[i];
-        uint32_t valConv = (uint32_t)val;
-        uint32_t &valOut = outPtr[i];
-        valOut = valConv;
-        //std::cerr << val << " " << valConv << " " << valOut << std::endl;
-    }
-  };
-  out = lambda({out}, out->shape(), Type::uint32, forward);
-  //debug(out, "out.2");
-  //out = cast(out, Type::uint32);
-  //std::cerr << "getIndicesExpr.2=" << out->shape() << std::endl;
-  //out = reshape(out, {k});
-
+  Expr out = reshape(indicesExpr_, {1, 1, k});
   return out;
 }
 
