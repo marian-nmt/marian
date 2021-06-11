@@ -54,7 +54,7 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
 
 Expr Shortlist::getIndicesExpr(int batchSize, int beamSize) const {
   int k = indicesExpr_->shape()[0];
-  Expr ones = indicesExpr_->graph()->constant({batchSize, beamSize, 1}, inits::ones(), Type::float32);
+  Expr ones = indicesExpr_->graph()->constant({beamSize, batchSize, 1}, inits::ones(), Type::float32);
 
   Expr tmp = reshape(indicesExpr_, {1, k});
   tmp = cast(tmp, Type::float32);
