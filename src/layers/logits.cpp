@@ -95,14 +95,12 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
   ABORT_IF(empty(), "Attempted to read out logits on empty Logits object");
 
   auto sel = logits_[groupIndex]->loss();  // [localBeamSize, 1, dimBatch, dimFactorVocab]
-  std::cerr << "sel.1=" << sel->shape() << std::endl;
 
   // normalize for decoding:
   //  - all secondary factors: subtract their max
   //  - lemma: add all maxes of applicable factors
   if(groupIndex > 0) {
     sel = sel - max(sel, -1);
-    std::cerr << "sel.2=" << sel->shape() << std::endl;
   } else {
     auto numGroups = getNumFactorGroups();
     for(size_t g = 1; g < numGroups; g++) {
@@ -113,7 +111,6 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         factorMasks = constant(getFactorMasks(g, std::vector<WordIndex>()));
       }
       else {
-        std::cerr << "sel.3=" << sel->shape() << std::endl;
         auto forward = [this, g](Expr out, const std::vector<Expr>& inputs) {
           Expr lastIndices = inputs[0];
           std::vector<float> masks = getFactorMasksMultiDim(g, lastIndices);
@@ -123,27 +120,18 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         int currBeamSize = sel->shape()[0];
         int batchSize = sel->shape()[2];
         Expr lastIndices = shortlist->getIndicesExpr(batchSize, currBeamSize);
-        std::cerr << "lastIndices=" << lastIndices->shape() << std::endl;
         factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
-        std::cerr << "factorMasks.1=" << factorMasks->shape() << std::endl;
         factorMasks = transpose(factorMasks, {1, 0, 2});
-        std::cerr << "factorMasks.2=" << factorMasks->shape() << std::endl;
 
         const Shape &s = factorMasks->shape();
         factorMasks = reshape(factorMasks, {s[0], 1, s[1], s[2]});
-        std::cerr << "factorMasks.3=" << factorMasks->shape() << std::endl;
       }
       factorMaxima = cast(factorMaxima, sel->value_type());
-      std::cerr << "factorMaxima=" << factorMaxima->shape() << std::endl;
       factorMasks = cast(factorMasks, sel->value_type());
-      std::cerr << "factorMasks.4=" << factorMasks->shape() << std::endl;
 
       Expr tmp = factorMaxima * factorMasks;
-      std::cerr << "tmp=" << tmp->shape() << std::endl;
-      std::cerr << "sel.4=" << sel->shape() << std::endl;
       sel = sel + tmp;  // those lemmas that don't have a factor
                                                            // get multiplied with 0
-      std::cerr << "sel.5=" << sel->shape() << std::endl;
     }
   }
 
