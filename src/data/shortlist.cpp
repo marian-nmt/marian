@@ -129,13 +129,18 @@ LSHShortlist::LSHShortlist(int k, int nbits)
 //#define BLAS_FOUND 1
 
 WordIndex LSHShortlist::reverseMap(int batchIdx, int beamIdx, int idx) const {
-  std::cerr << "\nbatchIdx=" << batchIdx << " beamIdx=" << beamIdx << " idx=" << idx << std::endl;
+  std::cerr << "\nbatchIdx=" << batchIdx 
+            << " beamIdx=" << beamIdx 
+            << " idx=" << idx 
+            << " k_=" << k_
+            << std::endl;
   std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
-  int currBatchSize = indicesExpr_->shape()[0];
-  int currBeamSize = indicesExpr_->shape()[1];
+  int currBeamSize = indicesExpr_->shape()[0];
+  int currBatchSize = indicesExpr_->shape()[1];
   std::cerr << "currBatchSize=" << currBatchSize << " currBeamSize=" << currBeamSize << std::endl;
   std::cerr << "indices_=" << indices_.size() << std::endl;
-  idx = (k_ * currBeamSize) * batchIdx + k_ * beamIdx + idx;
+  idx = (k_ * currBatchSize * beamIdx) + (k_ * batchIdx) + idx;
+  //idx = (k_ * currBeamSize * batchIdx) + (k_ * beamIdx) + idx;
   std::cerr << "idx=" << idx << std::endl;
   assert(idx < indices_.size());
   return indices_[idx]; 
@@ -152,12 +157,15 @@ WordIndex LSHShortlist::tryForwardMap(int , int , WordIndex wIdx) const {
 }
 
 Expr LSHShortlist::getIndicesExpr(int batchSize, int currBeamSize) const {
-  //std::cerr << "batchSize=" << batchSize << " currBeamSize=" << currBeamSize << std::endl;
-  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << " " << indicesExpr_->val() << std::endl;
-  assert(indicesExpr_->shape()[0] == batchSize);
-  assert(indicesExpr_->shape()[1] == currBeamSize);
-  return indicesExpr_;
+  std::cerr << "batchSize=" << batchSize << " currBeamSize=" << currBeamSize << std::endl;
+  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << " " << indicesExpr_->val() << std::endl;
+  assert(indicesExpr_->shape()[0] == currBeamSize);
+  assert(indicesExpr_->shape()[1] == batchSize);
+  Expr ret = transpose(indicesExpr_, {1, 0, 2});
+  return ret;
 }
+
+#define BLAS_FOUND 1
 
 void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
 #if BLAS_FOUND
@@ -186,6 +194,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
       index_->add(  vRows, values->val()->data<float>());
     }
 
+    std::cerr << "query=" << query->shape() << std::endl;
     int qRows = query->shape().elements() / dim;
     std::vector<float> distances(qRows * k_);
     std::vector<faiss::Index::idx_t> ids(qRows * k_);
@@ -207,8 +216,8 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
     out->val()->set(indices_);
   };
 
-  Shape kShape({batchSize, currBeamSize, k_});
-  //std::cerr << "kShape=" << kShape << std::endl;
+  Shape kShape({currBeamSize, batchSize, k_});
+  std::cerr << "kShape=" << kShape << std::endl;
 
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
   //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
@@ -227,9 +236,9 @@ void LSHShortlist::broadcast(Expr weights,
                           Expr lemmaEt,
                           Expr indicesExprBC,
                           int k) {
-  //std::cerr << "indicesExprBC.0=" << indicesExprBC->shape() << std::endl;
-  int batchSize = indicesExprBC->shape()[0];
-  int currBeamSize = indicesExprBC->shape()[1];
+  std::cerr << "indicesExprBC.0=" << indicesExprBC->shape() << std::endl;
+  int currBeamSize = indicesExprBC->shape()[0];
+  int batchSize = indicesExprBC->shape()[1];
   //int numHypos = batchSize * currBeamSize;
   //std::cerr << "batchSize=" << batchSize << std::endl;
   //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
@@ -239,14 +248,12 @@ void LSHShortlist::broadcast(Expr weights,
   indicesExprBC = reshape(indicesExprBC, {indicesExprBC->shape().elements()});
   //std::cerr << "indicesExprBC.2=" << indicesExprBC->shape() << std::endl;
 
-  //std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
-  //std::cerr << "weights=" << weights->shape() << std::endl;
+  std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
+  std::cerr << "weights=" << weights->shape() << std::endl;
   cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExprBC);
-  //std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
-  cachedShortWt_ = reshape(cachedShortWt_, {batchSize, currBeamSize, k, cachedShortWt_->shape()[1]});
-  //std::cerr << "cachedShortWt_.2=" << cachedShortWt_->shape() << std::endl;
-  cachedShortWt_ = transpose(cachedShortWt_, {1, 0, 2, 3});
-  //std::cerr << "cachedShortWt_.3=" << cachedShortWt_->shape() << std::endl;
+  std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
+  cachedShortWt_ = reshape(cachedShortWt_, {currBeamSize, batchSize, k, cachedShortWt_->shape()[1]});
+  std::cerr << "cachedShortWt_.2=" << cachedShortWt_->shape() << std::endl;
 
   if (b) {
     ABORT("Bias not yet tested");
