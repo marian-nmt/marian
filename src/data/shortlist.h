@@ -31,7 +31,7 @@ protected:
   Expr cachedShortLemmaEt_;
   bool done_;
   
-  void broadcast(Expr weights,
+  void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,
                         Expr b,
                         Expr lemmaEt,
@@ -73,7 +73,7 @@ private:
 
   static Ptr<faiss::IndexLSH> index_;
 
-  void broadcast(Expr weights,
+  void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,
                         Expr b,
                         Expr lemmaEt,
