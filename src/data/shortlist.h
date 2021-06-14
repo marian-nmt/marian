@@ -77,7 +77,6 @@ private:
                         bool isLegacyUntransposedW,
                         Expr b,
                         Expr lemmaEt,
-                        Expr indicesExprBC,
                         int k);
 
 public:

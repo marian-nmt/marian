@@ -177,10 +177,12 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
 
   Shape kShape({currBeamSize, batchSize, k_});
 
+  //std::cerr << "input=" << input->shape() << std::endl;
+  //std::cerr << "weights=" << weights->shape() << std::endl;
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
   //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
 
-  broadcast(weights, isLegacyUntransposedW, b, lemmaEt, indicesExpr_, k_);
+  broadcast(weights, isLegacyUntransposedW, b, lemmaEt, k_);
 
 #else
   input; weights; isLegacyUntransposedW; b; lemmaEt;
@@ -192,31 +194,39 @@ void LSHShortlist::broadcast(Expr weights,
                           bool isLegacyUntransposedW,
                           Expr b,
                           Expr lemmaEt,
-                          Expr indicesExprBC,
                           int k) {
-  int currBeamSize = indicesExprBC->shape()[0];
-  int batchSize = indicesExprBC->shape()[1];
+  std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
+  int currBeamSize = indicesExpr_->shape()[0];
+  int batchSize = indicesExpr_->shape()[1];
   //int numHypos = batchSize * currBeamSize;
   //std::cerr << "batchSize=" << batchSize << std::endl;
   //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
   //std::cerr << "isLegacyUntransposedW=" << isLegacyUntransposedW << std::endl;
   ABORT_IF(isLegacyUntransposedW, "Legacy untranspose W not yet tested");
 
-  indicesExprBC = reshape(indicesExprBC, {indicesExprBC->shape().elements()});
-  //std::cerr << "indicesExprBC.2=" << indicesExprBC->shape() << std::endl;
+  Expr indicesExprFlatten = reshape(indicesExpr_, {indicesExpr_->shape().elements()});
+  std::cerr << "indicesExprFlatten=" << indicesExprFlatten->shape() << std::endl;
 
-  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExprBC);
+  std::cerr << "weights=" << weights->shape() << std::endl;
+  cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExprFlatten);
+  std::cerr << "cachedShortWt.1_=" << cachedShortWt_->shape() << std::endl;
   cachedShortWt_ = reshape(cachedShortWt_, {currBeamSize, batchSize, k, cachedShortWt_->shape()[1]});
+  std::cerr << "cachedShortWt.2_=" << cachedShortWt_->shape() << std::endl;
 
   if (b) {
     ABORT("Bias not yet tested");
-    cachedShortb_ = index_select(b, -1, indicesExprBC);
+    cachedShortb_ = index_select(b, -1, indicesExprFlatten);
     cachedShortb_ = reshape(cachedShortb_, {currBeamSize, k, batchSize, cachedShortb_->shape()[1]}); // not tested
   }
 
-  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprBC);
-  cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {cachedShortLemmaEt_->shape()[0], batchSize, currBeamSize, k});
-  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {2, 1, 0, 3});
+  std::cerr << "lemmaEt=" << lemmaEt->shape() << std::endl;
+  int dim = lemmaEt->shape()[0];
+  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprFlatten);
+  std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
+  cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {dim, currBeamSize, batchSize, k});
+  std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
+  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {1, 2, 0, 3});
+  std::cerr << "cachedShortLemmaEt.3_=" << cachedShortLemmaEt_->shape() << std::endl;
 }
 
 LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits) 
