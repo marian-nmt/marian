@@ -101,7 +101,7 @@ LSHShortlist::LSHShortlist(int k, int nbits)
 
 //#define BLAS_FOUND 1
 
-WordIndex LSHShortlist::reverseMap(int batchIdx, int beamIdx, int idx) const {
+WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
   //int currBeamSize = indicesExpr_->shape()[0];
   int currBatchSize = indicesExpr_->shape()[1];
   idx = (k_ * currBatchSize * beamIdx) + (k_ * batchIdx) + idx;

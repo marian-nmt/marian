@@ -42,7 +42,7 @@ public:
   Shortlist(const std::vector<WordIndex>& indices);
   virtual ~Shortlist();
   
-  virtual WordIndex reverseMap(int batchIdx, int beamIdx, int idx) const;
+  virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const;
   virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
@@ -81,7 +81,7 @@ private:
 
 public:
   LSHShortlist(int k, int nbits);
-  virtual WordIndex reverseMap(int batchIdx, int beamIdx, int idx) const override;
+  virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const override;
   virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const override;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
