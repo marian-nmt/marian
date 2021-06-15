@@ -122,7 +122,8 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
         Expr lastIndices = shortlist->getIndicesExpr();
         assert(lastIndices->shape()[0] == currBeamSize || lastIndices->shape()[0] == 1);
         assert(lastIndices->shape()[1] == batchSize || lastIndices->shape()[1] == 1);
-
+        currBeamSize; currBeamSize;
+        
         factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
         
         const Shape &s = factorMasks->shape();
