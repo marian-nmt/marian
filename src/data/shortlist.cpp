@@ -52,7 +52,7 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
   done_ = true;
 }
 
-Expr Shortlist::getIndicesExpr(int batchSize, int beamSize) const {
+Expr Shortlist::getIndicesExpr() const {
   int k = indicesExpr_->shape()[0];
   Expr out = reshape(indicesExpr_, {1, 1, k});
   return out;
@@ -63,13 +63,8 @@ void Shortlist::createCachedTensors(Expr weights,
                           Expr b,
                           Expr lemmaEt,
                           int k) {
-  //std::cerr << "isLegacyUntransposedW=" << isLegacyUntransposedW << std::endl;
   ABORT_IF(isLegacyUntransposedW, "Legacy untranspose W not yet tested");
-
-  //std::cerr << "currBeamSize=" << currBeamSize << " batchSize=" << batchSize << std::endl;
-  //std::cerr << "weights=" << weights->shape() << std::endl;
   cachedShortWt_ = index_select(weights, isLegacyUntransposedW ? -1 : 0, indicesExpr_);
-  //std::cerr << "cachedShortWt_.1=" << cachedShortWt_->shape() << std::endl;
   cachedShortWt_ = reshape(cachedShortWt_, {1, 1, cachedShortWt_->shape()[0], cachedShortWt_->shape()[1]});
 
   if (b) {
@@ -78,11 +73,8 @@ void Shortlist::createCachedTensors(Expr weights,
     cachedShortb_ = reshape(cachedShortb_, {1, k, 1, cachedShortb_->shape()[1]}); // not tested
   }
 
-  //std::cerr << "lemmaEt.1_=" << lemmaEt->shape() << std::endl;
   cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExpr_);
-  //std::cerr << "cachedShortLemmaEt.1_=" << cachedShortLemmaEt_->shape() << std::endl;
   cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {1, 1, cachedShortLemmaEt_->shape()[0], k});
-  //std::cerr << "cachedShortLemmaEt.2_=" << cachedShortLemmaEt_->shape() << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -110,7 +102,6 @@ WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
 }
 
 WordIndex LSHShortlist::tryForwardMap(int , int , WordIndex wIdx) const {
-  //utils::Debug(indices_, "LSHShortlist::tryForwardMap indices_");
   auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
   bool found = first != indices_.end();
   if(found && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
@@ -119,12 +110,8 @@ WordIndex LSHShortlist::tryForwardMap(int , int , WordIndex wIdx) const {
     return npos;                                        // return npos if not found, @TODO: replace with std::optional once we switch to C++17?
 }
 
-Expr LSHShortlist::getIndicesExpr(int batchSize, int currBeamSize) const {
-  assert(indicesExpr_->shape()[0] == currBeamSize);
-  assert(indicesExpr_->shape()[1] == batchSize);
+Expr LSHShortlist::getIndicesExpr() const {
   return indicesExpr_;
-  //Expr ret = transpose(indicesExpr_, {1, 0, 2});
-  //return ret;
 }
 
 #define BLAS_FOUND 1
@@ -176,11 +163,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
   };
 
   Shape kShape({currBeamSize, batchSize, k_});
-
-  //std::cerr << "input=" << input->shape() << std::endl;
-  //std::cerr << "weights=" << weights->shape() << std::endl;
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
-  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
 
   createCachedTensors(weights, isLegacyUntransposedW, b, lemmaEt, k_);
 
@@ -197,10 +180,6 @@ void LSHShortlist::createCachedTensors(Expr weights,
                           int k) {
   int currBeamSize = indicesExpr_->shape()[0];
   int batchSize = indicesExpr_->shape()[1];
-  //int numHypos = batchSize * currBeamSize;
-  //std::cerr << "batchSize=" << batchSize << std::endl;
-  //std::cerr << "currBeamSize=" << currBeamSize << std::endl;
-  //std::cerr << "isLegacyUntransposedW=" << isLegacyUntransposedW << std::endl;
   ABORT_IF(isLegacyUntransposedW, "Legacy untranspose W not yet tested");
 
   Expr indicesExprFlatten = reshape(indicesExpr_, {indicesExpr_->shape().elements()});

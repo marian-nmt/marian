@@ -46,7 +46,7 @@ public:
   virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
-  virtual Expr getIndicesExpr(int batchSize, int currBeamSize) const;
+  virtual Expr getIndicesExpr() const;
   virtual Expr getCachedShortWt() const { return cachedShortWt_; }
   virtual Expr getCachedShortb() const { return cachedShortb_; }
   virtual Expr getCachedShortLemmaEt() const { return cachedShortLemmaEt_; }
@@ -85,7 +85,7 @@ public:
   virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const override;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
-  virtual Expr getIndicesExpr(int batchSize,int currBeamSize) const override;
+  virtual Expr getIndicesExpr() const override;
 
 };
 
