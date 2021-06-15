@@ -62,6 +62,9 @@ public:
   size_t size() const;
 
   // number of vocabulary items
+  size_t lemmaSize() const;
+
+  // number of vocabulary items
   std::string type() const;
 
   // return EOS symbol id

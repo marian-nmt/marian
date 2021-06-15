@@ -70,7 +70,7 @@ class LSHShortlist: public Shortlist {
 private:
   int k_;
   int nbits_;
-
+  size_t lemmaSize_;
   static Ptr<faiss::IndexLSH> index_;
 
   void createCachedTensors(Expr weights,
@@ -80,7 +80,7 @@ private:
                         int k);
 
 public:
-  LSHShortlist(int k, int nbits);
+  LSHShortlist(int k, int nbits, size_t lemmaSize);
   virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const override;
   virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const override;
 
@@ -93,9 +93,9 @@ class LSHShortlistGenerator : public ShortlistGenerator {
 private:
   int k_;
   int nbits_;
-
+  size_t lemmaSize_;
 public:
-  LSHShortlistGenerator(int k, int nbits);
+  LSHShortlistGenerator(int k, int nbits, size_t lemmaSize);
   Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
 };
 

@@ -88,9 +88,9 @@ void Shortlist::createCachedTensors(Expr weights,
 ///////////////////////////////////////////////////////////////////////////////////
 Ptr<faiss::IndexLSH> LSHShortlist::index_;
 
-LSHShortlist::LSHShortlist(int k, int nbits)
+LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
 : Shortlist(std::vector<WordIndex>()) 
-, k_(k), nbits_(nbits) {
+, k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
   //std::cerr << "LSHShortlist" << std::endl;
   /*
   for (int i = 0; i < k_; ++i) {
@@ -149,9 +149,8 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
       index_.reset(new faiss::IndexLSH(dim, nbits_, 
                                        /*rotate=*/dim != nbits_, 
                                        /*train_thesholds*/false));
-      int vRows = 32121; //47960; //values->shape().elements() / dim;
-      index_->train(vRows, values->val()->data<float>());
-      index_->add(  vRows, values->val()->data<float>());
+      index_->train(lemmaSize_, values->val()->data<float>());
+      index_->add(  lemmaSize_, values->val()->data<float>());
     }
 
     int qRows = query->shape().elements() / dim;
@@ -220,13 +219,13 @@ void LSHShortlist::createCachedTensors(Expr weights,
   cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {1, 2, 0, 3});
 }
 
-LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits) 
-  : k_(k), nbits_(nbits) {
+LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits, size_t lemmaSize) 
+  : k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
   //std::cerr << "LSHShortlistGenerator" << std::endl;
 }
 
 Ptr<Shortlist> LSHShortlistGenerator::generate(Ptr<data::CorpusBatch> batch) const {
-  return New<LSHShortlist>(k_, nbits_);
+  return New<LSHShortlist>(k_, nbits_, lemmaSize_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -359,7 +358,8 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  size_t trgIdx,
                                                  bool shared) {
   if (lshOpts.size() == 2) {
-    return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1]);
+    size_t lemmaSize = trgVocab->lemmaSize();
+    return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1], lemmaSize);
   }
   else {                                                   
     std::vector<std::string> vals = options->get<std::vector<std::string>>("shortlist");

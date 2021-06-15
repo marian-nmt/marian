@@ -63,8 +63,9 @@ public:
     auto srcVocab = corpus_->getVocabs()[0];
 
     std::vector<int> lshOpts = options_->get<std::vector<int>>("output-approx-knn");
-    if (lshOpts.size() == 2 || options_->hasAndNotEmpty("shortlist"))
+    if (lshOpts.size() == 2 || options_->hasAndNotEmpty("shortlist")) {
       shortlistGenerator_ = data::createShortlistGenerator(options_, srcVocab, trgVocab_, lshOpts, 0, 1, vocabs.front() == vocabs.back());
+    }
 
     auto devices = Config::getDevices(options_);
     numDevices_ = devices.size();

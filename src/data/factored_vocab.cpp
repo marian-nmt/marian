@@ -244,6 +244,10 @@ void FactoredVocab::rCompleteVocab(std::vector<size_t>& factorIndices, size_t g)
   }
 }
 
+size_t FactoredVocab::lemmaSize() const {
+  return lemmaSize_;
+}
+
 void FactoredVocab::constructGroupInfoFromFactorVocab() {
   // form groups
   size_t numGroups = groupPrefixes_.size();
@@ -270,6 +274,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
         groupRanges_[g].second = u + 1;
     groupCounts[g]++;
   }
+  lemmaSize_ = groupCounts[0];
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
     LOG(info, "[vocab] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
     if (groupCounts[g] == 0) { // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
