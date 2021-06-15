@@ -114,8 +114,6 @@ Expr LSHShortlist::getIndicesExpr() const {
   return indicesExpr_;
 }
 
-#define BLAS_FOUND 1
-
 void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
 #if BLAS_FOUND
   ABORT_IF(input->graph()->getDeviceId().type == DeviceType::gpu,
