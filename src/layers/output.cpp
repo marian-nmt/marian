@@ -56,12 +56,12 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
   lazyConstruct(input->shape()[-1]);
 
   auto affineOrDot = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
-    /*
+    
     std::cerr << "affineOrDot.x=" << x->shape() << std::endl;
     std::cerr << "affineOrDot.W=" << W->shape() << std::endl;
     std::cerr << "affineOrDot.b=" << b->shape() << std::endl;
     std::cerr << "affineOrDot.transA=" << transA << " transB=" << transB << std::endl;
-    */
+    
     if(b)
       return affine(x, W, b, transA, transB);
     else
@@ -78,8 +78,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     ABORT_IF(!(!transA && transB), "Must be transA==0 and transB==1");
     ABORT_IF(b, "affineShortlist not tested with bias");
     Expr ret = bdot(x, W, transA, transB);
-
-    //std::cerr << "ret.2=" << ret->shape() << std::endl;
+    //std::cerr << "ret=" << ret->shape() << std::endl;
     //std::cerr << std::endl;
     return ret;
   };
