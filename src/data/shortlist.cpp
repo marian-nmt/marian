@@ -83,7 +83,6 @@ Ptr<faiss::IndexLSH> LSHShortlist::index_;
 LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
 : Shortlist(std::vector<WordIndex>()) 
 , k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
-  std::cerr << "LSHShortlist lemmaSize_=" << lemmaSize_ << std::endl;
   /*
   for (int i = 0; i < k_; ++i) {
     indices_.push_back(i);
@@ -190,10 +189,12 @@ void LSHShortlist::createCachedTensors(Expr weights,
     cachedShortb_ = reshape(cachedShortb_, {currBeamSize, k, batchSize, cachedShortb_->shape()[1]}); // not tested
   }
 
-  int dim = lemmaEt->shape()[0];
-  cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprFlatten);
-  cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {dim, currBeamSize, batchSize, k});
-  cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {1, 2, 0, 3});
+  if (lemmaEt) {
+    int dim = lemmaEt->shape()[0];
+    cachedShortLemmaEt_ = index_select(lemmaEt, -1, indicesExprFlatten);
+    cachedShortLemmaEt_ = reshape(cachedShortLemmaEt_, {dim, currBeamSize, batchSize, k});
+    cachedShortLemmaEt_ = transpose(cachedShortLemmaEt_, {1, 2, 0, 3});
+  }
 }
 
 LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits, size_t lemmaSize) 
