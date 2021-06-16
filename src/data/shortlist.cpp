@@ -83,7 +83,7 @@ Ptr<faiss::IndexLSH> LSHShortlist::index_;
 LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
 : Shortlist(std::vector<WordIndex>()) 
 , k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
-  //std::cerr << "LSHShortlist" << std::endl;
+  std::cerr << "LSHShortlist lemmaSize_=" << lemmaSize_ << std::endl;
   /*
   for (int i = 0; i < k_; ++i) {
     indices_.push_back(i);

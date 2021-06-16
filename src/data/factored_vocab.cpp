@@ -265,7 +265,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
   }
   // determine group index ranges
   groupRanges_.resize(numGroups, { SIZE_MAX, (size_t)0 });
-  std::vector<int> groupCounts(numGroups); // number of group members
+  std::vector<int> groupCounts(numGroups, 0); // number of group members
   for (WordIndex u = 0; u < factorVocabSize; u++) { // determine ranges; these must be non-overlapping, verified via groupCounts
     auto g = factorGroups_[u];
     if (groupRanges_[g].first > u)

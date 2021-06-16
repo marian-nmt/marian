@@ -184,7 +184,7 @@ void ProdBatched(marian::Tensor C,
   // This loop initializes the array pointers in the same way as the for loop
   // in the normal sgemm version a few lines below
   functional::Array<int, functional::Shape::size()> dims;
-  for(size_t i = 0; i < batchC; ++i) {
+  for(int i = 0; i < batchC; ++i) {
     cShapeMetaF.dims(i, dims);
     auto aIndex = aShapeMetaF.bindex(dims);
     auto bIndex = bShapeMetaF.bindex(dims);
