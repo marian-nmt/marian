@@ -184,9 +184,9 @@ void LSHShortlist::createCachedTensors(Expr weights,
   cachedShortWt_ = reshape(cachedShortWt_, {currBeamSize, batchSize, k, cachedShortWt_->shape()[1]});
 
   if (b) {
-    ABORT("Bias not yet tested");
+    ABORT("Bias not supported with LSH");
     cachedShortb_ = index_select(b, -1, indicesExprFlatten);
-    cachedShortb_ = reshape(cachedShortb_, {currBeamSize, k, batchSize, cachedShortb_->shape()[1]}); // not tested
+    cachedShortb_ = reshape(cachedShortb_, {currBeamSize, batchSize, k, cachedShortb_->shape()[0]}); // not tested
   }
 
   if (lemmaEt) {
