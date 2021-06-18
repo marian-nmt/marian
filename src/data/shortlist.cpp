@@ -24,9 +24,9 @@ Shortlist::Shortlist(const std::vector<WordIndex>& indices)
 
 Shortlist::~Shortlist() {}
 
-WordIndex Shortlist::reverseMap(int , int , int idx) const { return indices_[idx]; }
+WordIndex Shortlist::reverseMap(int /*beamIdx*/, int /*batchIdx*/, int idx) const { return indices_[idx]; }
 
-WordIndex Shortlist::tryForwardMap(int , int , WordIndex wIdx) const {
+WordIndex Shortlist::tryForwardMap(WordIndex wIdx) const {
   auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
   if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
     return (int)std::distance(indices_.begin(), first); // return coordinate if found
@@ -83,14 +83,7 @@ Ptr<faiss::IndexLSH> LSHShortlist::index_;
 LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
 : Shortlist(std::vector<WordIndex>()) 
 , k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
-  /*
-  for (int i = 0; i < k_; ++i) {
-    indices_.push_back(i);
-  }
-  */
 }
-
-//#define BLAS_FOUND 1
 
 WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
   //int currBeamSize = indicesExpr_->shape()[0];
@@ -98,15 +91,6 @@ WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
   idx = (k_ * currBatchSize * beamIdx) + (k_ * batchIdx) + idx;
   assert(idx < indices_.size());
   return indices_[idx]; 
-}
-
-WordIndex LSHShortlist::tryForwardMap(int , int , WordIndex wIdx) const {
-  auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
-  bool found = first != indices_.end();
-  if(found && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
-    return (int)std::distance(indices_.begin(), first); // return coordinate if found
-  else
-    return npos;                                        // return npos if not found, @TODO: replace with std::optional once we switch to C++17?
 }
 
 Expr LSHShortlist::getIndicesExpr() const {
@@ -128,7 +112,6 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
     int dim = values->shape()[-1];
 
     if(!index_) {
-      //std::cerr << "build lsh index" << std::endl;
       LOG(info, "Building LSH index for vector dim {} and with hash size {} bits", dim, nbits_);
       index_.reset(new faiss::IndexLSH(dim, nbits_, 
                                        /*rotate=*/dim != nbits_, 
@@ -199,7 +182,6 @@ void LSHShortlist::createCachedTensors(Expr weights,
 
 LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits, size_t lemmaSize) 
   : k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
-  //std::cerr << "LSHShortlistGenerator" << std::endl;
 }
 
 Ptr<Shortlist> LSHShortlistGenerator::generate(Ptr<data::CorpusBatch> batch) const {

@@ -247,8 +247,6 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
 
 std::vector<float> Logits::getFactorMasksMultiDim(size_t factorGroup, Expr indicesExpr)
     const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
-  //std::cerr << "indicesExpr=" << indicesExpr->shape() << std::endl;
-  //int batchSize
   int batchSize = indicesExpr->shape()[0];
   int currBeamSize = indicesExpr->shape()[1];
   int numHypos = batchSize * currBeamSize;

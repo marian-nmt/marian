@@ -63,7 +63,7 @@ std::string findReplace(const std::string& in, const std::string& what, const st
 double parseDouble(std::string s);
 double parseNumber(std::string s);
 
-
+// prints vector values with a custom label.
 template<class T>
 void Debug(const T *arr, size_t size, const std::string &str) {
   std::cerr << str << ":" << size << ": ";

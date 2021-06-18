@@ -29,7 +29,7 @@ protected:
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
-  bool done_;
+  bool done_; // used by batch-level shortlist. Only initialize with 1st call then skip all subsequent calls for same batch
   
   void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,
@@ -43,7 +43,7 @@ public:
   virtual ~Shortlist();
   
   virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const;
-  virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const;
+  virtual WordIndex tryForwardMap(WordIndex wIdx) const;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
   virtual Expr getIndicesExpr() const;
@@ -66,12 +66,14 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
+// implements SLIDE for faster inference. 
+// https://arxiv.org/pdf/1903.03129.pdf
 class LSHShortlist: public Shortlist {
 private:
-  int k_;
-  int nbits_;
-  size_t lemmaSize_;
-  static Ptr<faiss::IndexLSH> index_;
+  int k_; // number of candidates returned from each input 
+  int nbits_; // length of hash
+  size_t lemmaSize_; // vocab size
+  static Ptr<faiss::IndexLSH> index_; // LSH index to store all possible candidates
 
   void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,
@@ -82,7 +84,6 @@ private:
 public:
   LSHShortlist(int k, int nbits, size_t lemmaSize);
   virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const override;
-  virtual WordIndex tryForwardMap(int batchIdx, int beamIdx, WordIndex wIdx) const override;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
   virtual Expr getIndicesExpr() const override;

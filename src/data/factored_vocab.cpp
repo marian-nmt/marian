@@ -274,7 +274,10 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
         groupRanges_[g].second = u + 1;
     groupCounts[g]++;
   }
+
+  // required by LSH shortlist
   lemmaSize_ = groupCounts[0];
+  
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
     LOG(info, "[vocab] Factor group '{}' has {} members", groupPrefixes_[g], groupCounts[g]);
     if (groupCounts[g] == 0) { // factor group is unused  --@TODO: once this is not hard-coded, this is an error condition
