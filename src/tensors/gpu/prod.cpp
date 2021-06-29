@@ -371,19 +371,19 @@ void ProdBatchedTyped(marian::Tensor C,
   }
   cShapeMeta = Shape::broadcast({aShapeMeta, bShapeMeta});
 
-  size_t m = aShape[-2];
-  size_t k = aShape[-1];
+  int m = aShape[-2];
+  int k = aShape[-1];
   if(transA)
     std::swap(m, k);
 
-  size_t l = bShape[-2];
-  size_t n = bShape[-1];
+  int l = bShape[-2];
+  int n = bShape[-1];
   if(transB)
     std::swap(l, n);
 
-  size_t lda = aShape[-1];
-  size_t ldb = bShape[-1];
-  size_t ldc = bShape[-1];
+  int lda = aShape[-1];
+  int ldb = bShape[-1];
+  int ldc = bShape[-1];
 
   if(transB)
     ldc = bShape[-2];
@@ -395,11 +395,11 @@ void ProdBatchedTyped(marian::Tensor C,
   auto cublasHandle = backend->getCublasHandle();
   auto compute = backend->getCudaComputeCapability();
 
-  auto strideA = m * k;
-  auto strideB = n * k;
-  auto strideC = n * m;
+  int strideA = m * k;
+  int strideB = n * k;
+  int strideC = n * m;
 
-  auto batchC = cShapeMeta.elements();
+  int batchC = cShapeMeta.elements();
 
   // Convert to functional shapes to be able to map dimensions. @TODO merge this
   functional::Shape aShapeMetaF = aShapeMeta;
