@@ -696,6 +696,15 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use approximate knn search in output layer (currently only in transformer)")
      ->implicit_val("100 1024");
 
+  // parameters for on-line quantization
+  cli.add<bool>("--optimize",
+      "Optimize the graph on-the-fly", false);
+  cli.add<std::string>("--gemm-type,-g",
+     "GEMM Type to be used for on-line quantization/packing: float32, packed16, packed8", "float32");
+  cli.add<float>("--quantize-range",
+     "Range for the on-line quantiziation of weight matrix in multiple of this range and standard deviation, 0.0 means min/max quantization",
+     0.f);
+
 #if 0 // @TODO: Ask Hany if there are any decoding-time options
   // add ULR settings
   addSuboptionsULR(cli);
@@ -746,6 +755,15 @@ void ConfigParser::addOptionsScoring(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision for inference, set parameter type in expression graph",
       {"float32"});
+
+  // parameters for on-line quantization
+  cli.add<bool>("--optimize",
+      "Optimize the graph on-the-fly", false);
+  cli.add<std::string>("--gemm-type,-g",
+     "GEMM Type to be used for on-line quantization/packing: float32, packed16, packed8", "float32");
+  cli.add<float>("--quantize-range",
+     "Range for the on-line quantiziation of weight matrix in multiple of this range and standard deviation, 0.0 means min/max quantization",
+     0.f);
 
   cli.switchGroup(previous_group);
   // clang-format on

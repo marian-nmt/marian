@@ -177,6 +177,8 @@ static inline std::function<Expr(Expr)> activationByName(const std::string& actN
     return (ActivationFunction*)swish;
   else if (actName == "gelu")
     return (ActivationFunction*)gelu;
+  else if (actName == "sigmoid")
+    return (ActivationFunction*)sigmoid;
   else if (actName == "") // return identity function if activation name is empty
     return [](Expr x) { return x; };
   ABORT("Invalid activation name '{}'", actName);
