@@ -74,6 +74,7 @@ private:
   int nbits_; // length of hash
   size_t lemmaSize_; // vocab size
   static Ptr<faiss::IndexLSH> index_; // LSH index to store all possible candidates
+  static std::mutex mutex_;
 
   void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,
