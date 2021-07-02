@@ -75,7 +75,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     std::cerr << "affineShortlist.b=" << b->shape() << std::endl;
     std::cerr << "affineShortlist.transA=" << transA << " transB=" << transB << std::endl;
     */
-    ABORT_IF(!(!transA && transB), "Must be transA==0 and transB==1");
+    ABORT_IF(!(!transA && transB), "affineShortlist. Must be transA==0 and transB==1");
     ABORT_IF(b, "affineShortlist not tested with bias");
     Expr ret = bdot(x, W, transA, transB);
     //std::cerr << "ret=" << ret->shape() << std::endl;
@@ -83,8 +83,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     return ret;
   };
 
-  if(shortlist_) {  // shortlisted versions of parameters are cached within one
-                                       // batch, then clear()ed
+  if(shortlist_) {
     shortlist_->filter(input, Wt_, isLegacyUntransposedW, b_, lemmaEt_);
   }
 

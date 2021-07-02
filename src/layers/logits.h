@@ -77,7 +77,7 @@ private:
   }  // actually the same as constant(data) for this data type
   std::vector<float> getFactorMasks(size_t factorGroup,
                                     const std::vector<WordIndex>& indices) const;
-  std::vector<float> getFactorMasksMultiDim(size_t factorGroup, Expr indicesExpr) const;
+  std::vector<float> getFactorMasks(size_t factorGroup, Expr indicesExpr) const; // same as above but separate indices for each batch and beam 
 
 private:
   // members

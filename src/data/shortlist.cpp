@@ -320,7 +320,8 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  size_t srcIdx,
                                                  size_t trgIdx,
                                                  bool shared) {
-  if (lshOpts.size() == 2) {
+  if (lshOpts.size()) {
+    assert(lshOpts.size() == 2);
     size_t lemmaSize = trgVocab->lemmaSize();
     return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1], lemmaSize);
   }

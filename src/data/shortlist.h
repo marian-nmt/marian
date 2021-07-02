@@ -66,8 +66,6 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
-// implements SLIDE for faster inference. 
-// https://arxiv.org/pdf/1903.03129.pdf
 class LSHShortlist: public Shortlist {
 private:
   int k_; // number of candidates returned from each input 
