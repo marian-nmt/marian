@@ -129,7 +129,11 @@ std::string Vocab::surfaceForm(const Words& sentence) const {
 // number of vocabulary items
 size_t Vocab::size() const { return vImpl_->size(); }
 
-// number of vocabulary items
+size_t Vocab::lemmaSize() const {
+  return vImpl_->lemmaSize();
+}
+
+// type of vocabulary items
 std::string Vocab::type() const { return vImpl_->type(); }
 
 // return EOS symbol id

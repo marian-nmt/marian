@@ -2,7 +2,6 @@
 #include "common/timer.h"
 #include "data/factored_vocab.h"
 #include "layers/loss.h"
-#include "layers/lsh.h"
 
 namespace marian {
 namespace mlp {
@@ -11,13 +10,6 @@ namespace mlp {
   // We must construct lazily since we won't know tying nor input dim in constructor.
   if(Wt_)
     return;
-
-  // this option is only set in the decoder
-  if(!lsh_ && options_->hasAndNotEmpty("output-approx-knn")) {
-    auto k = opt<std::vector<int>>("output-approx-knn")[0];
-    auto nbits = opt<std::vector<int>>("output-approx-knn")[1];
-    lsh_ = New<LSH>(k, nbits);
-  }
 
   auto name = options_->get<std::string>("prefix");
   auto numOutputClasses = options_->get<int>("dim");
@@ -64,27 +56,35 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
   lazyConstruct(input->shape()[-1]);
 
   auto affineOrDot = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
+    /*
+    std::cerr << "affineOrDot.x=" << x->shape() << std::endl;
+    std::cerr << "affineOrDot.W=" << W->shape() << std::endl;
+    std::cerr << "affineOrDot.b=" << b->shape() << std::endl;
+    std::cerr << "affineOrDot.transA=" << transA << " transB=" << transB << std::endl;
+    */
     if(b)
       return affine(x, W, b, transA, transB);
     else
       return dot(x, W, transA, transB);
   };
 
-  auto affineOrLSH = [this, affineOrDot](Expr x, Expr W, Expr b, bool transA, bool transB) {
-    if(lsh_) {
-      ABORT_IF(transA, "Transposed query not supported for LSH");
-      ABORT_IF(!transB, "Untransposed indexed matrix not supported for LSH");
-      return lsh_->apply(x, W, b);  // knows how to deal with undefined bias
-    } else {
-      return affineOrDot(x, W, b, transA, transB);
-    }
+  auto affineShortlist = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
+    /*
+    std::cerr << "affineShortlist.x=" << x->shape() << std::endl;
+    std::cerr << "affineShortlist.W=" << W->shape() << std::endl;
+    std::cerr << "affineShortlist.b=" << b->shape() << std::endl;
+    std::cerr << "affineShortlist.transA=" << transA << " transB=" << transB << std::endl;
+    */
+    ABORT_IF(!(!transA && transB), "affineShortlist. Must be transA==0 and transB==1");
+    ABORT_IF(b, "affineShortlist not tested with bias");
+    Expr ret = bdot(x, W, transA, transB);
+    //std::cerr << "ret=" << ret->shape() << std::endl;
+    //std::cerr << std::endl;
+    return ret;
   };
 
-  if(shortlist_ && !cachedShortWt_) {  // shortlisted versions of parameters are cached within one
-                                       // batch, then clear()ed
-    cachedShortWt_ = index_select(Wt_, isLegacyUntransposedW ? -1 : 0, shortlist_->indices());
-    if(hasBias_)
-      cachedShortb_ = index_select(b_, -1, shortlist_->indices());
+  if(shortlist_) {
+    shortlist_->filter(input, Wt_, isLegacyUntransposedW, b_, lemmaEt_);
   }
 
   if(factoredVocab_) {
@@ -107,8 +107,8 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       // slice this group's section out of W_
       Expr factorWt, factorB;
       if(g == 0 && shortlist_) {
-        factorWt = cachedShortWt_;
-        factorB = cachedShortb_;
+        factorWt = shortlist_->getCachedShortWt();
+        factorB = shortlist_->getCachedShortb();
       } else {
         factorWt = slice(
             Wt_, isLegacyUntransposedW ? -1 : 0, Slice((int)range.first, (int)range.second));
@@ -180,20 +180,24 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       // @TODO: b_ should be a vector, not a matrix; but shotlists use cols() in, which requires a
       // matrix
       Expr factorLogits;
-      if(g == 0)
-        factorLogits = affineOrLSH(
-            input1,
+      if(g == 0 && shortlist_) {
+        Expr tmp = transpose(input1, {0, 2, 1, 3});
+        factorLogits = affineShortlist(
+            tmp,
             factorWt,
             factorB,
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
-      else
+        factorLogits = transpose(factorLogits, {0, 2, 1, 3});
+      }
+      else {
         factorLogits = affineOrDot(
             input1,
             factorWt,
             factorB,
             false,
             /*transB=*/isLegacyUntransposedW ? false : true);  // [B... x U] factor logits
+      }
 
       // optionally add lemma-dependent bias
       if(Plemma) {  // [B... x U0]
@@ -207,6 +211,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         auto b = dot(Plemma, lemmaBt, false, true);  // [B... x U]
         factorLogits = factorLogits + b;
       }
+      //std::cerr << "factorLogits=" << factorLogits->shape() << std::endl;
       allLogits[g] = New<RationalLoss>(factorLogits, nullptr);
       // optionally add a soft embedding of lemma back to create some lemma dependency
       // @TODO: if this works, move it into lazyConstruct
@@ -254,12 +259,28 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
         }
 #endif
         // re-embedding lookup, soft-indexed by softmax
-        if(shortlist_ && !cachedShortLemmaEt_)  // short-listed version of re-embedding matrix
-          cachedShortLemmaEt_ = index_select(lemmaEt_, -1, shortlist_->indices());
-        auto e = dot(factorSoftmax,
-                     cachedShortLemmaEt_ ? cachedShortLemmaEt_ : lemmaEt_,
-                     false,
-                     true);  // [B... x L]
+        Expr cachedShortLemmaEt;
+        if(shortlist_) {  // short-listed version of re-embedding matrix
+          cachedShortLemmaEt = shortlist_->getCachedShortLemmaEt();
+        }
+        else {
+          const Shape &s = lemmaEt_->shape();
+          //std::cerr << "lemmaEt_=" << lemmaEt_->shape() << std::endl;
+          cachedShortLemmaEt = reshape(lemmaEt_, {1, 1, s[0], s[1]});
+        }
+        //std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
+        //std::cerr << "cachedShortLemmaEt.2=" << cachedShortLemmaEt->shape() << std::endl;
+        factorSoftmax = transpose(factorSoftmax, {0, 2, 1, 3});
+        //std::cerr << "factorSoftmax=" << factorSoftmax->shape() << std::endl;
+        //std::cerr << "cachedShortLemmaEt.2=" << cachedShortLemmaEt->shape() << std::endl;
+
+        Expr e = bdot(factorSoftmax, cachedShortLemmaEt, false, true);
+        //std::cerr << "e.1=" << e->shape() << std::endl;
+        const Shape &eShape = e->shape();
+        e = reshape(e, {eShape[0], 1, eShape[1], eShape[3]});
+        //std::cerr << "e.3=" << e->shape() << std::endl;
+        //std::cerr << std::endl;
+
         // project it back to regular hidden dim
         int inputDim = input1->shape()[-1];
         auto name = options_->get<std::string>("prefix");
@@ -278,14 +299,14 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     }
     return Logits(std::move(allLogits), factoredVocab_);
   } else if(shortlist_) {
-    return Logits(affineOrLSH(input,
-                              cachedShortWt_,
-                              cachedShortb_,
+    return Logits(affineOrDot(input,
+                              shortlist_->getCachedShortWt(),
+                              shortlist_->getCachedShortb(),
                               false,
                               /*transB=*/isLegacyUntransposedW ? false : true));
   } else {
     return Logits(
-        affineOrLSH(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
+        affineOrDot(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
   }
 }
 

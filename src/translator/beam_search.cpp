@@ -4,6 +4,7 @@
 #include "translator/helpers.h"
 #include "translator/nth_element.h"
 #include "data/shortlist.h"
+#include "common/utils.h"
 
 namespace marian {
 
@@ -50,7 +51,6 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
     const auto beamHypIdx      = (key / vocabSize) % nBestBeamSize;
     const auto currentBatchIdx = (key / vocabSize) / nBestBeamSize;
     const auto origBatchIdx    = reverseBatchIdxMap.empty() ? currentBatchIdx : reverseBatchIdxMap[currentBatchIdx]; // map currentBatchIdx back into original position within starting maximal batch size, required to find correct beam
-
     bool dropHyp = !dropBatchEntries.empty() && dropBatchEntries[origBatchIdx] && factorGroup == 0;
     
     WordIndex wordIdx;
@@ -94,7 +94,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       // For factored decoding, the word is built over multiple decoding steps,
       // starting with the lemma, then adding factors one by one.
       if (factorGroup == 0) {
-        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap(wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
+        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap((int) prevBeamHypIdx, (int) currentBatchIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
         std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
         //LOG(info, "{} + {} ({}) -> {} -> {}",
         //    factoredVocab->decode(prevHyp->tracebackWords()),
@@ -115,7 +115,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       }
     }
     else if (shortlist)
-      word = Word::fromWordIndex(shortlist->reverseMap(wordIdx));
+      word = Word::fromWordIndex(shortlist->reverseMap((int) prevBeamHypIdx, (int) origBatchIdx, wordIdx));
     else
       word = Word::fromWordIndex(wordIdx);
 
@@ -308,7 +308,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
       suppressed.erase(std::remove_if(suppressed.begin(), 
                                       suppressed.end(), 
                                       [&](WordIndex i) { 
-                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos; 
+                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos;
                                       }),
                        suppressed.end());
     

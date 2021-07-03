@@ -8,6 +8,15 @@ Logits::Logits(Expr logits)
     : Logits(New<RationalLoss>(logits, nullptr)) {
 }  // single-output constructor from Expr only (RationalLoss has no count)
 
+Logits::Logits(Ptr<RationalLoss> logits) {  // single-output constructor
+  logits_.push_back(logits);
+}
+
+Logits::Logits(std::vector<Ptr<RationalLoss>>&& logits,
+        Ptr<FactoredVocab> embeddingFactorMapping)  // factored-output constructor
+    : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {
+}
+
 Ptr<ExpressionGraph> Logits::graph() const {
   ABORT_IF(logits_.empty(), "Empty logits object??");
   return logits_.front()->loss()->graph();
@@ -53,6 +62,7 @@ Expr Logits::applyLossFunction(
     auto factorIndices = indices(maskedFactoredLabels.indices);       // [B... flattened] factor-label indices, or 0 if factor does not apply
     auto factorMask    = constant(maskedFactoredLabels.masks);        // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
     auto factorLogits  = logits_[g];                                  // [B... * Ug] label-wise loss values (not aggregated yet)
+    //std::cerr << "g=" << g << " factorLogits->loss()=" << factorLogits->loss()->shape() << std::endl;
     // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
     auto factorLoss    = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
     // clang-format on
@@ -96,12 +106,33 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
     for(size_t g = 1; g < numGroups; g++) {
       auto factorMaxima = max(logits_[g]->loss(),
                               -1);  // we cast since loss is likely ce-loss which has type float32
-      auto factorMasks = constant(
-          getFactorMasks(g, shortlist ? shortlist->indices() : std::vector<WordIndex>()));
-      sel = sel
-            + cast(factorMaxima, sel->value_type())
-                  * cast(factorMasks, sel->value_type());  // those lemmas that don't have a factor
-                                                           // get multiplied with 0
+      Expr factorMasks;
+      if (!shortlist) {
+        factorMasks = constant(getFactorMasks(g, std::vector<WordIndex>()));
+      }
+      else {
+        auto forward = [this, g](Expr out, const std::vector<Expr>& inputs) {
+          Expr lastIndices = inputs[0];
+          std::vector<float> masks = getFactorMasks(g, lastIndices);
+          out->val()->set(masks);
+        };
+
+        //int currBeamSize = sel->shape()[0];
+        //int batchSize = sel->shape()[2];
+        Expr lastIndices = shortlist->getIndicesExpr();
+        //assert(lastIndices->shape()[0] == currBeamSize || lastIndices->shape()[0] == 1);
+        //assert(lastIndices->shape()[1] == batchSize || lastIndices->shape()[1] == 1);
+        
+        factorMasks = lambda({lastIndices}, lastIndices->shape(), Type::float32, forward);  
+        
+        const Shape &s = factorMasks->shape();
+        factorMasks = reshape(factorMasks, {s[0], 1, s[1], s[2]});
+      }
+      factorMaxima = cast(factorMaxima, sel->value_type());
+      factorMasks = cast(factorMasks, sel->value_type());
+
+      Expr tmp = factorMaxima * factorMasks;
+      sel = sel + tmp;  // those lemmas that don't have a factor
     }
   }
 
@@ -210,6 +241,35 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
   for(size_t i = 0; i < n; i++) {
     auto lemma = indices.empty() ? i : (indices[i] - factoredVocab_->getGroupRange(0).first);
     res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+  }
+  return res;
+}
+
+std::vector<float> Logits::getFactorMasks(size_t factorGroup, Expr indicesExpr)
+    const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
+  int batchSize = indicesExpr->shape()[0];
+  int currBeamSize = indicesExpr->shape()[1];
+  int numHypos = batchSize * currBeamSize;
+  std::vector<WordIndex> indices;
+  indicesExpr->val()->get(indices);
+
+  //std::cerr << "indices=" << indices.size() << std::endl;
+  size_t n
+      = indices.empty()
+            ? (factoredVocab_->getGroupRange(0).second - factoredVocab_->getGroupRange(0).first)
+            : indices.size() / numHypos;
+  std::vector<float> res;
+  res.reserve(numHypos * n);
+  //std::cerr << "n=" << n << std::endl;
+
+  // @TODO: we should rearrange lemmaHasFactorGroup as vector[groups[i] of float; then move this
+  // into FactoredVocab
+  for (size_t hypoIdx = 0; hypoIdx < numHypos; ++hypoIdx) {
+    for(size_t i = 0; i < n; i++) {
+      size_t idx = hypoIdx * n + i;
+      size_t lemma = indices.empty() ? i : (indices[idx] - factoredVocab_->getGroupRange(0).first);
+      res.push_back((float)factoredVocab_->lemmaHasFactorGroup(lemma, factorGroup));
+    }
   }
   return res;
 }

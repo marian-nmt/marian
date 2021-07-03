@@ -347,6 +347,139 @@ void ProdBatchedTyped(marian::Tensor C,
   CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
   ComputeType alpha = scalar;
 
+  // determine meta-shape of bdot operation. Essentially treat the last two dimensions as single elements
+  // such that (..., m, k) x (..., k, n) -> (..., m, n) where ... is a broadcastable shape as in element-wise kernels.
+
+  auto aShape = A->shape();
+  auto bShape = B->shape();
+
+  // make sure both shape have the same number of dimensions via broadcasting
+  size_t maxLength = std::max(aShape.size(), bShape.size());
+  if(aShape.size() != bShape.size()) {
+    Shape ones(std::vector<int>(maxLength, 1));
+    aShape = Shape::broadcast({aShape, ones});
+    bShape = Shape::broadcast({bShape, ones});
+  }
+
+  // Create meta-shapes without last 2 dimensions
+  Shape aShapeMeta, bShapeMeta, cShapeMeta;
+  aShapeMeta.resize(maxLength - 2);
+  bShapeMeta.resize(maxLength - 2);
+  for(size_t i = 0; i < maxLength - 2; ++i) {
+    aShapeMeta.set(i, aShape[i]);
+    bShapeMeta.set(i, bShape[i]);
+  }
+  cShapeMeta = Shape::broadcast({aShapeMeta, bShapeMeta});
+
+  int m = aShape[-2];
+  int k = aShape[-1];
+  if(transA)
+    std::swap(m, k);
+
+  int l = bShape[-2];
+  int n = bShape[-1];
+  if(transB)
+    std::swap(l, n);
+
+  int lda = aShape[-1];
+  int ldb = bShape[-1];
+  int ldc = bShape[-1];
+
+  if(transB)
+    ldc = bShape[-2];
+
+  cublasOperation_t opA = transA ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t opB = transB ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+  auto backend = std::static_pointer_cast<gpu::Backend>(C->getBackend());
+  auto cublasHandle = backend->getCublasHandle();
+  auto compute = backend->getCudaComputeCapability();
+
+  int strideA = m * k;
+  int strideB = n * k;
+  int strideC = n * m;
+
+  int batchC = cShapeMeta.elements();
+
+  // Convert to functional shapes to be able to map dimensions. @TODO merge this
+  functional::Shape aShapeMetaF = aShapeMeta;
+  functional::Shape bShapeMetaF = bShapeMeta;
+  functional::Shape cShapeMetaF = cShapeMeta;
+
+  std::vector<const ElementType*> aptr;
+  std::vector<const ElementType*> bptr;
+  std::vector<ElementType*> cptr;
+
+  functional::Array<int, functional::Shape::size()> dims;
+  for(int i = 0; i < batchC; i++) {
+    cShapeMetaF.dims(i, dims);
+    auto aIndex = aShapeMetaF.bindex(dims);
+    auto bIndex = bShapeMetaF.bindex(dims);
+
+    aptr.push_back(A->data<ElementType>() + aIndex * strideA);
+    bptr.push_back(B->data<ElementType>() + bIndex * strideB);
+    cptr.push_back(C->data<ElementType>() + i * strideC);
+  }
+
+  // auto fails here from weird reason
+  IPtr<MemoryPiece> mp_aptr = allocator->alloc<const ElementType*>(aptr.size());
+  CudaCopy(aptr.data(), aptr.data() + aptr.size(), mp_aptr->data<const ElementType*>());
+
+  IPtr<MemoryPiece> mp_bptr = allocator->alloc<const ElementType*>(bptr.size());
+  CudaCopy(bptr.data(), bptr.data() + bptr.size(), mp_bptr->data<const ElementType*>());
+
+  IPtr<MemoryPiece> mp_cptr = allocator->alloc<ElementType*>(cptr.size());
+  CudaCopy(cptr.data(), cptr.data() + cptr.size(), mp_cptr->data<ElementType*>());
+
+  setTensorMode(cublasHandle);
+  TypedGemm<ElementType, ComputeType>::batchedGemm(cublasHandle, compute,
+                                                   opB, opA,
+                                                   n, m, k,
+                                                   &alpha,
+                                                   mp_bptr->data<const ElementType*>(), ldb,
+                                                   mp_aptr->data<const ElementType*>(), lda,
+                                                   &beta,
+                                                   mp_cptr->data<ElementType*>(), ldc,
+                                                   batchC);
+  unsetTensorMode(cublasHandle);
+
+  allocator->free(mp_aptr);
+  allocator->free(mp_bptr);
+  allocator->free(mp_cptr);
+}
+
+// @TODO: add version with compute type for completeness
+void ProdBatched(marian::Tensor C,
+                 Ptr<Allocator> allocator,
+                 const marian::Tensor A,
+                 const marian::Tensor B,
+                 bool transA,
+                 bool transB,
+                 float beta,
+                 float scalar) {
+  if(C->type() == Type::float32) {
+    ProdBatchedTyped<float, float>(C, allocator, A, B, transA, transB, beta, scalar);
+#if COMPILE_FP16
+  } else if(C->type() == Type::float16) { // not a *.cu file
+    ProdBatchedTyped<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+#endif
+  } else {
+    ABORT("ProdBatched not implemented for element type {}", C->type());
+  }
+}
+
+template <typename ElementType, typename ComputeType>
+void ProdBatchedTypedLegacy(marian::Tensor C,                 
+                            Ptr<Allocator> allocator,
+                            const marian::Tensor A,
+                            const marian::Tensor B,
+                            bool transA,
+                            bool transB,
+                            ComputeType beta,
+                            ComputeType scalar) {
+  CUDA_CHECK(cudaSetDevice((int)C->getDeviceId().no));
+  ComputeType alpha = scalar;
+
   int batchA = A->shape().elements() / (A->shape()[-1] * A->shape()[-2]);
   int batchB = B->shape().elements() / (B->shape()[-1] * B->shape()[-2]);
 
@@ -417,24 +550,25 @@ void ProdBatchedTyped(marian::Tensor C,
 }
 
 // @TODO: add version with compute type for completeness
-void ProdBatched(marian::Tensor C,
-                 Ptr<Allocator> allocator,
-                 const marian::Tensor A,
-                 const marian::Tensor B,
-                 bool transA,
-                 bool transB,
-                 float beta,
-                 float scalar) {
+void ProdBatchedLegacy(marian::Tensor C,
+                       Ptr<Allocator> allocator,
+                       const marian::Tensor A,
+                       const marian::Tensor B,
+                       bool transA,
+                       bool transB,
+                       float beta,
+                       float scalar) {
   if(C->type() == Type::float32) {
-    ProdBatchedTyped<float, float>(C, allocator, A, B, transA, transB, beta, scalar);
+    ProdBatchedTypedLegacy<float, float>(C, allocator, A, B, transA, transB, beta, scalar);
 #if COMPILE_FP16
   } else if(C->type() == Type::float16) { // not a *.cu file
-    ProdBatchedTyped<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+    ProdBatchedTypedLegacy<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
 #endif
   } else {
-    ABORT("ProdBatched not implemented for element type {}", C->type());
+    ABORT("ProdBatchedLegacy not implemented for element type {}", C->type());
   }
 }
+
 
 #if CUDA_VERSION >= 11000 // Earlier versions of cublasLT do not support bias addition for fp32 and fp16.
 

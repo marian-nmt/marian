@@ -17,14 +17,11 @@ class RationalLoss;
 class Logits {
 public:
   Logits() {}
-  explicit Logits(Ptr<RationalLoss> logits) {  // single-output constructor
-    logits_.push_back(logits);
-  }
-  explicit Logits(
-      Expr logits);  // single-output constructor from Expr only (RationalLoss has no count)
+  explicit Logits(Ptr<RationalLoss> logits);  // single-output constructor
+  explicit Logits(Expr logits);  // single-output constructor from Expr only (RationalLoss has no count)
   Logits(std::vector<Ptr<RationalLoss>>&& logits,
-         Ptr<FactoredVocab> embeddingFactorMapping)  // factored-output constructor
-      : logits_(std::move(logits)), factoredVocab_(embeddingFactorMapping) {}
+         Ptr<FactoredVocab> embeddingFactorMapping);  // factored-output constructor
+
   Expr getLogits() const;  // assume it holds logits: get them, possibly aggregating over factors
   Expr getFactoredLogits(
       size_t groupIndex,
@@ -80,6 +77,7 @@ private:
   }  // actually the same as constant(data) for this data type
   std::vector<float> getFactorMasks(size_t factorGroup,
                                     const std::vector<WordIndex>& indices) const;
+  std::vector<float> getFactorMasks(size_t factorGroup, Expr indicesExpr) const; // same as above but separate indices for each batch and beam 
 
 private:
   // members

@@ -15,30 +15,41 @@
 #include <algorithm>
 #include <limits>
 
+namespace faiss {
+  struct IndexLSH;
+}
+
 namespace marian {
 namespace data {
 
 class Shortlist {
-private:
+protected:
   std::vector<WordIndex> indices_;    // // [packed shortlist index] -> word index, used to select columns from output embeddings
-
+  Expr indicesExpr_;
+  Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
+  Expr cachedShortb_;   // these match the current value of shortlist_
+  Expr cachedShortLemmaEt_;
+  bool initialized_; // used by batch-level shortlist. Only initialize with 1st call then skip all subsequent calls for same batch
+  
+  void createCachedTensors(Expr weights,
+                           bool isLegacyUntransposedW,
+                           Expr b,
+                           Expr lemmaEt,
+                           int k);
 public:
   static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
 
-  Shortlist(const std::vector<WordIndex>& indices)
-    : indices_(indices) {}
+  Shortlist(const std::vector<WordIndex>& indices);
+  virtual ~Shortlist();
+  
+  virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const;
+  virtual WordIndex tryForwardMap(WordIndex wIdx) const;
 
-  const std::vector<WordIndex>& indices() const { return indices_; }
-  WordIndex reverseMap(int idx) { return indices_[idx]; }
-
-  WordIndex tryForwardMap(WordIndex wIdx) {
-    auto first = std::lower_bound(indices_.begin(), indices_.end(), wIdx);
-    if(first != indices_.end() && *first == wIdx)         // check if element not less than wIdx has been found and if equal to wIdx
-      return (int)std::distance(indices_.begin(), first); // return coordinate if found
-    else
-      return npos;                                        // return npos if not found, @TODO: replace with std::optional once we switch to C++17?
-  }
-
+  virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt);
+  virtual Expr getIndicesExpr() const;
+  virtual Expr getCachedShortWt() const { return cachedShortWt_; }
+  virtual Expr getCachedShortb() const { return cachedShortb_; }
+  virtual Expr getCachedShortLemmaEt() const { return cachedShortLemmaEt_; }
 };
 
 class ShortlistGenerator {
@@ -54,6 +65,43 @@ public:
   }
 };
 
+///////////////////////////////////////////////////////////////////////////////////
+// faster inference inspired by these 2 papers
+// https://arxiv.org/pdf/1903.03129.pdf      https://arxiv.org/pdf/1806.00588.pdf
+class LSHShortlist: public Shortlist {
+private:
+  int k_; // number of candidates returned from each input 
+  int nbits_; // length of hash
+  size_t lemmaSize_; // vocab size
+  static Ptr<faiss::IndexLSH> index_; // LSH index to store all possible candidates
+  static std::mutex mutex_;
+
+  void createCachedTensors(Expr weights,
+                           bool isLegacyUntransposedW,
+                           Expr b,
+                           Expr lemmaEt,
+                           int k);
+
+public:
+  LSHShortlist(int k, int nbits, size_t lemmaSize);
+  virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const override;
+
+  virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
+  virtual Expr getIndicesExpr() const override;
+
+};
+
+class LSHShortlistGenerator : public ShortlistGenerator {
+private:
+  int k_;
+  int nbits_;
+  size_t lemmaSize_;
+public:
+  LSHShortlistGenerator(int k, int nbits, size_t lemmaSize);
+  Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
+};
+
+///////////////////////////////////////////////////////////////////////////////////
 
 // Intended for use during training in the future, currently disabled
 #if 0
@@ -338,6 +386,7 @@ unless the extension is *.bin for which the Microsoft legacy binary shortlist is
 Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  Ptr<const Vocab> srcVocab,
                                                  Ptr<const Vocab> trgVocab,
+                                                 const std::vector<int> &lshOpts,
                                                  size_t srcIdx = 0,
                                                  size_t trgIdx = 1,
                                                  bool shared = false);

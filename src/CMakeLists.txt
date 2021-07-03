@@ -72,7 +72,6 @@ set(MARIAN_SOURCES
   layers/generic.cpp
   layers/loss.cpp
   layers/weight.cpp
-  layers/lsh.cpp
   layers/embedding.cpp
   layers/output.cpp
   layers/logits.cpp

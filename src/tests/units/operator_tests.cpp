@@ -615,6 +615,66 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     CHECK(values2 == values);
   }
 
+  SECTION("bdot") {
+    graph->clear();
+    values.clear();
+
+    std::vector<T> vA({ 1, 2, 
+                        3, 4,
+                        5, 6,
+                        7, 8});
+
+    std::vector<T> vB({ 1,  2, 
+                        3,  4,
+                        5,  6,
+                        7,  8,
+                        9, 10,
+                       11, 12});
+
+    std::vector<T> vC({  7,  10, 
+                        15,  22, 
+                        19,  22, 
+                        43,  50, 
+                        31,  34, 
+                        71,  78, 
+                        23,  34, 
+                        31,  46, 
+                        67,  78, 
+                        91, 106, 
+                       111, 122, 
+                       151, 166});
+
+    std::vector<T> vCt({   5,  11, 
+                          11,  25, 
+                          17,  23, 
+                          39,  53, 
+                          29,  35, 
+                          67,  81, 
+                          17,  39, 
+                          23,  53, 
+                          61,  83, 
+                          83, 113, 
+                         105, 127, 
+                         143, 173});
+
+    auto A = graph->param("A", {2, 1, 2, 2}, inits::fromVector(vA));
+    auto B = graph->param("B", {1, 3, 2, 2}, inits::fromVector(vB));
+    
+    auto C  = bdot(A, B, /*transA=*/false, /*transB=*/false);
+    auto Ct = bdot(A, B, /*transA=*/false, /*transB=*/true);
+
+    graph->forward();
+
+    CHECK(C->shape()  == Shape({2, 3, 2, 2}));
+    CHECK(Ct->shape() == Shape({2, 3, 2, 2}));
+
+    C->val()->get(values);
+    CHECK(vC == values);
+
+    Ct->val()->get(values);
+    CHECK(vCt == values);
+  }
+
   SECTION("repeat") {
     graph->clear();
     values.clear();

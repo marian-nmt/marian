@@ -4,7 +4,6 @@
 #include "layers/constructors.h"
 #include "layers/generic.h"
 #include "layers/loss.h"
-#include "layers/lsh.h"
 #include "models/states.h"  // for EncoderState
 
 namespace marian {}  // namespace marian

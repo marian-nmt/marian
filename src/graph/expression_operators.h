@@ -479,6 +479,16 @@ Expr bdot(Expr a,
           float scalar = 1.f);
 
 /**
+ * bdot_legacy is an old implemetation of bdot without correct broadcasting on the batch dimensions, 
+ * to be removed once the behavior can be correctly replicated with normal bdot on 5 dimensions.
+ */
+Expr bdot_legacy(Expr a,
+                 Expr b,
+                 bool transA = false,
+                 bool transB = false,
+                 float scalar = 1.f);
+
+/**
  * Performs an affine transformation.
  * Computes
  * @f$ C \leftarrow \alpha \operatorname{op}(A) \cdot \operatorname{op}(B) + C@f$,

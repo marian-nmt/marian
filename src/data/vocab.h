@@ -61,6 +61,9 @@ public:
   // number of vocabulary items
   size_t size() const;
 
+  // number of lemma items. Same as size() except in factored models
+  size_t lemmaSize() const;
+
   // number of vocabulary items
   std::string type() const;
 
