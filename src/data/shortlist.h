@@ -66,14 +66,15 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
-// implements SLIDE for faster inference. 
-// https://arxiv.org/pdf/1903.03129.pdf
+// faster inference inspired by these 2 papers
+// https://arxiv.org/pdf/1903.03129.pdf      https://arxiv.org/pdf/1806.00588.pdf
 class LSHShortlist: public Shortlist {
 private:
   int k_; // number of candidates returned from each input 
   int nbits_; // length of hash
   size_t lemmaSize_; // vocab size
   static Ptr<faiss::IndexLSH> index_; // LSH index to store all possible candidates
+  static std::mutex mutex_;
 
   void createCachedTensors(Expr weights,
                         bool isLegacyUntransposedW,

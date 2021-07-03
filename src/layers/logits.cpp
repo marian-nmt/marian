@@ -62,7 +62,7 @@ Expr Logits::applyLossFunction(
     auto factorIndices = indices(maskedFactoredLabels.indices);       // [B... flattened] factor-label indices, or 0 if factor does not apply
     auto factorMask    = constant(maskedFactoredLabels.masks);        // [B... flattened] loss values get multiplied with 0 for labels that don't have this factor
     auto factorLogits  = logits_[g];                                  // [B... * Ug] label-wise loss values (not aggregated yet)
-    std::cerr << "g=" << g << " factorLogits->loss()=" << factorLogits->loss()->shape() << std::endl;
+    //std::cerr << "g=" << g << " factorLogits->loss()=" << factorLogits->loss()->shape() << std::endl;
     // For each location in [B...] select [indices[B...]]. If not using factor, select [0] and mask it out next.
     auto factorLoss    = lossFn(factorLogits->loss(), factorIndices); // [B... x 1]
     // clang-format on
@@ -113,7 +113,7 @@ Expr Logits::getFactoredLogits(size_t groupIndex,
       else {
         auto forward = [this, g](Expr out, const std::vector<Expr>& inputs) {
           Expr lastIndices = inputs[0];
-          std::vector<float> masks = getFactorMasksMultiDim(g, lastIndices);
+          std::vector<float> masks = getFactorMasks(g, lastIndices);
           out->val()->set(masks);
         };
 
@@ -245,7 +245,7 @@ std::vector<float> Logits::getFactorMasks(size_t factorGroup, const std::vector<
   return res;
 }
 
-std::vector<float> Logits::getFactorMasksMultiDim(size_t factorGroup, Expr indicesExpr)
+std::vector<float> Logits::getFactorMasks(size_t factorGroup, Expr indicesExpr)
     const {  // [lemmaIndex] -> 1.0 for words that do have this factor; else 0
   int batchSize = indicesExpr->shape()[0];
   int currBeamSize = indicesExpr->shape()[1];

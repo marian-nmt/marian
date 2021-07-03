@@ -20,7 +20,6 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
                          const std::vector<bool>& dropBatchEntries, // [origDimBatch] - empty source batch entries are marked with true, should be cleared after first use.
                          const std::vector<IndexType>& batchIdxMap) const { // [origBatchIdx -> currentBatchIdx]
   std::vector<float> align; // collects alignment information from the last executed time step
-  //utils::Debug(batchIdxMap, "batchIdxMap");
   if(options_->hasAndNotEmpty("alignment") && factorGroup == 0)
     align = scorers_[0]->getAlignment(); // [beam depth * max src length * current batch size] -> P(s|t); use alignments from the first scorer, even if ensemble,
 
@@ -86,12 +85,6 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
 
     // map wordIdx to word
     auto prevBeamHypIdx = beamHypIdx; // back pointer
-    /*std::cerr << "currentBatchIdx=" << currentBatchIdx 
-          << " origBatchIdx=" << origBatchIdx 
-          << " beamHypIdx=" << beamHypIdx 
-          << " prevBeamHypIdx=" << prevBeamHypIdx
-          << std::endl;*/
-
     auto prevHyp = beam[prevBeamHypIdx];
     Word word;
     // If short list has been set, then wordIdx is an index into the short-listed word set,
@@ -315,7 +308,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
       suppressed.erase(std::remove_if(suppressed.begin(), 
                                       suppressed.end(), 
                                       [&](WordIndex i) { 
-                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos; // TODO beamIdx
+                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos;
                                       }),
                        suppressed.end());
     

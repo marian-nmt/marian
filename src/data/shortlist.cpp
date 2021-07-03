@@ -79,6 +79,7 @@ void Shortlist::createCachedTensors(Expr weights,
 
 ///////////////////////////////////////////////////////////////////////////////////
 Ptr<faiss::IndexLSH> LSHShortlist::index_;
+std::mutex LSHShortlist::mutex_;
 
 LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
 : Shortlist(std::vector<WordIndex>()) 
@@ -111,6 +112,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
     auto values = inputs[1];
     int dim = values->shape()[-1];
 
+    mutex_.lock();
     if(!index_) {
       LOG(info, "Building LSH index for vector dim {} and with hash size {} bits", dim, nbits_);
       index_.reset(new faiss::IndexLSH(dim, nbits_, 
@@ -119,6 +121,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
       index_->train(lemmaSize_, values->val()->data<float>());
       index_->add(  lemmaSize_, values->val()->data<float>());
     }
+    mutex_.unlock();
 
     int qRows = query->shape().elements() / dim;
     std::vector<float> distances(qRows * k_);
@@ -317,7 +320,8 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  size_t srcIdx,
                                                  size_t trgIdx,
                                                  bool shared) {
-  if (lshOpts.size() == 2) {
+  if (lshOpts.size()) {
+    assert(lshOpts.size() == 2);
     size_t lemmaSize = trgVocab->lemmaSize();
     return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1], lemmaSize);
   }
