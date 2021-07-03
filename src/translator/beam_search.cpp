@@ -308,7 +308,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
       suppressed.erase(std::remove_if(suppressed.begin(), 
                                       suppressed.end(), 
                                       [&](WordIndex i) { 
-                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos; // TODO beamIdx
+                                        return shortlist->tryForwardMap(i) == data::Shortlist::npos;
                                       }),
                        suppressed.end());
     
