@@ -66,8 +66,8 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
-// faster inference inspired by SLIDE. 
-// https://arxiv.org/pdf/1903.03129.pdf
+// faster inference inspired by these 2 papers
+// https://arxiv.org/pdf/1903.03129.pdf      https://arxiv.org/pdf/1806.00588.pdf
 class LSHShortlist: public Shortlist {
 private:
   int k_; // number of candidates returned from each input 
