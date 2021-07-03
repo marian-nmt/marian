@@ -19,8 +19,8 @@ const T* get(const void*& current, size_t num = 1) {
 
 //////////////////////////////////////////////////////////////////////////////////////
 Shortlist::Shortlist(const std::vector<WordIndex>& indices)
-  : indices_(indices)
-  , done_(false) {}
+  : indices_(indices), 
+    initialized_(false) {}
 
 Shortlist::~Shortlist() {}
 
@@ -35,7 +35,7 @@ WordIndex Shortlist::tryForwardMap(WordIndex wIdx) const {
 }
 
 void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
-  if (done_) {
+  if (initialized_) {
     return;
   }
 
@@ -49,7 +49,7 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
 
   //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
   createCachedTensors(weights, isLegacyUntransposedW, b, lemmaEt, k);
-  done_ = true;
+  initialized_ = true;
 }
 
 Expr Shortlist::getIndicesExpr() const {

@@ -29,13 +29,13 @@ protected:
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;
-  bool done_; // used by batch-level shortlist. Only initialize with 1st call then skip all subsequent calls for same batch
+  bool initialized_; // used by batch-level shortlist. Only initialize with 1st call then skip all subsequent calls for same batch
   
   void createCachedTensors(Expr weights,
-                        bool isLegacyUntransposedW,
-                        Expr b,
-                        Expr lemmaEt,
-                        int k);
+                           bool isLegacyUntransposedW,
+                           Expr b,
+                           Expr lemmaEt,
+                           int k);
 public:
   static constexpr WordIndex npos{std::numeric_limits<WordIndex>::max()}; // used to identify invalid shortlist entries similar to std::string::npos
 
@@ -77,10 +77,10 @@ private:
   static std::mutex mutex_;
 
   void createCachedTensors(Expr weights,
-                        bool isLegacyUntransposedW,
-                        Expr b,
-                        Expr lemmaEt,
-                        int k);
+                           bool isLegacyUntransposedW,
+                           Expr b,
+                           Expr lemmaEt,
+                           int k);
 
 public:
   LSHShortlist(int k, int nbits, size_t lemmaSize);

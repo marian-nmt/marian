@@ -275,7 +275,7 @@ void FactoredVocab::constructGroupInfoFromFactorVocab() {
     groupCounts[g]++;
   }
 
-  // required by LSH shortlist
+  // required by LSH shortlist. Factored segmenter encodes the number of lemmas in the first factor group, this corresponds to actual surface forms
   lemmaSize_ = groupCounts[0];
   
   for (size_t g = 0; g < numGroups; g++) { // detect non-overlapping groups
