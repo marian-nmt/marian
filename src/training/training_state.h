@@ -142,8 +142,9 @@ public:
   // for periods.
   bool enteredNewPeriodOf(std::string schedulingParam) const {
     auto period = SchedulingParameter::parse(schedulingParam);
+    // @TODO: adapt to logical epochs
     ABORT_IF(period.unit == SchedulingUnit::epochs,
-             "Unit {} is not supported for frequency parameters (the one(s) with value {})",
+             "Unit {} is not supported for frequency parameters",
              schedulingParam);
     auto previousProgress = getPreviousProgressIn(period.unit);
     auto progress = getProgressIn(period.unit);

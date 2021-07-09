@@ -1,10 +1,7 @@
 #include "data/shortlist.h"
 #include "microsoft/shortlist/utils/ParameterTree.h"
 #include "marian.h"
-
-#if BLAS_FOUND
-#include "3rd_party/faiss/IndexLSH.h"
-#endif
+#include "layers/lsh.h"
 
 namespace marian {
 namespace data {
@@ -47,7 +44,6 @@ void Shortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Exp
   Shape kShape({k});
   indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
 
-  //std::cerr << "indicesExpr_=" << indicesExpr_->shape() << std::endl;
   createCachedTensors(weights, isLegacyUntransposedW, b, lemmaEt, k);
   initialized_ = true;
 }
@@ -78,12 +74,10 @@ void Shortlist::createCachedTensors(Expr weights,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-Ptr<faiss::IndexLSH> LSHShortlist::index_;
-std::mutex LSHShortlist::mutex_;
 
 LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
-: Shortlist(std::vector<WordIndex>()) 
-, k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
+: Shortlist(std::vector<WordIndex>()), 
+  k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
 }
 
 WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
@@ -99,67 +93,23 @@ Expr LSHShortlist::getIndicesExpr() const {
 }
 
 void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) {
-#if BLAS_FOUND
+
   ABORT_IF(input->graph()->getDeviceId().type == DeviceType::gpu,
            "LSH index (--output-approx-knn) currently not implemented for GPU");
 
-  int currBeamSize = input->shape()[0];
-  int batchSize = input->shape()[2];
-  int numHypos = currBeamSize * batchSize;
-
-  auto forward = [this, numHypos](Expr out, const std::vector<Expr>& inputs) {
-    auto query  = inputs[0];
-    auto values = inputs[1];
-    int dim = values->shape()[-1];
-
-    mutex_.lock();
-    if(!index_) {
-      LOG(info, "Building LSH index for vector dim {} and with hash size {} bits", dim, nbits_);
-      index_.reset(new faiss::IndexLSH(dim, nbits_, 
-                                       /*rotate=*/dim != nbits_, 
-                                       /*train_thesholds*/false));
-      index_->train(lemmaSize_, values->val()->data<float>());
-      index_->add(  lemmaSize_, values->val()->data<float>());
-    }
-    mutex_.unlock();
-
-    int qRows = query->shape().elements() / dim;
-    std::vector<float> distances(qRows * k_);
-    std::vector<faiss::Index::idx_t> ids(qRows * k_);
-
-    index_->search(qRows, query->val()->data<float>(), k_,
-                   distances.data(), ids.data());
-    
-    indices_.clear();
-    for(auto iter = ids.begin(); iter != ids.end(); ++iter) {
-      faiss::Index::idx_t id = *iter;
-      indices_.push_back((WordIndex)id);
-    }
-
-    for (size_t hypoIdx = 0; hypoIdx < numHypos; ++hypoIdx) {
-      size_t startIdx = k_ * hypoIdx;
-      size_t endIdx = startIdx + k_;
-      std::sort(indices_.begin() + startIdx, indices_.begin() + endIdx);
-    }
-    out->val()->set(indices_);
-  };
-
-  Shape kShape({currBeamSize, batchSize, k_});
-  indicesExpr_ = lambda({input, weights}, kShape, Type::uint32, forward);
+  indicesExpr_ = callback(lsh::search(input, weights, k_, nbits_, (int)lemmaSize_), 
+                          [this](Expr node) { 
+                            node->val()->get(indices_); // set the value of the field indices_ whenever the graph traverses this node
+                          });
 
   createCachedTensors(weights, isLegacyUntransposedW, b, lemmaEt, k_);
-
-#else
-  input; weights; isLegacyUntransposedW; b; lemmaEt;
-  ABORT("LSH output layer requires a CPU BLAS library");
-#endif
 }
 
 void LSHShortlist::createCachedTensors(Expr weights,
-                          bool isLegacyUntransposedW,
-                          Expr b,
-                          Expr lemmaEt,
-                          int k) {
+                                       bool isLegacyUntransposedW,
+                                       Expr b,
+                                       Expr lemmaEt,
+                                       int k) {
   int currBeamSize = indicesExpr_->shape()[0];
   int batchSize = indicesExpr_->shape()[1];
   ABORT_IF(isLegacyUntransposedW, "Legacy untranspose W not yet tested");

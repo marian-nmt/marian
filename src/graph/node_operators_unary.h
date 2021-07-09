@@ -795,7 +795,7 @@ private:
 };
 
 class ReshapeNodeOp : public UnaryNodeOp {
-private:
+protected:
   friend class SerializationHelpers;
   Expr reshapee_;
 
@@ -853,6 +853,45 @@ public:
     if(!cnode)
       return false;
     if(shape() != cnode->shape())
+      return false;
+    return true;
+  }
+};
+
+// @TODO: add version with access to backward step
+// This allows to attach a lambda function to any node during the execution. It is a non-operation otherwise
+// i.e. doesn't consume any memory or take any time to execute (it's a reshape onto itself) other than the
+// compute in the lambda function. It gets called after the forward step of the argument node.
+class CallbackNodeOp : public ReshapeNodeOp {
+private:
+  typedef std::function<void(Expr)> LambdaNodeCallback;
+  std::unique_ptr<LambdaNodeCallback> callback_;
+  
+public:
+  CallbackNodeOp(Expr node, LambdaNodeCallback callback)
+  : ReshapeNodeOp(node, node->shape()), 
+    callback_(new LambdaNodeCallback(callback)) {
+  }
+
+  void forward() override {
+    (*callback_)(ReshapeNodeOp::reshapee_);
+  }
+
+  const std::string type() override { return "callback"; }
+
+  virtual size_t hash() override {
+    size_t seed = ReshapeNodeOp::hash();
+    util::hash_combine(seed, callback_.get());
+    return seed;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!ReshapeNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<CallbackNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(callback_ != cnode->callback_)   // pointer compare on purpose
       return false;
     return true;
   }

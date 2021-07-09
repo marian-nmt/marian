@@ -647,6 +647,16 @@ public:
   }
 
   /**
+   * Return the Parameters object related to the graph by elementType.
+   * The Parameters object holds the whole set of the parameter nodes of the given type.
+   */
+  Ptr<Parameters>& params(Type elementType) {     
+    auto it = paramsByElementType_.find(elementType);
+    ABORT_IF(it == paramsByElementType_.end(), "Parameter object for type {} does not exist", defaultElementType_);
+    return it->second;
+  }
+
+  /**
    * Set default element type for the graph.
    * The default value is used if some node type is not specified.
    */

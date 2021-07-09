@@ -25,7 +25,8 @@ namespace data {
 class Shortlist {
 protected:
   std::vector<WordIndex> indices_;    // // [packed shortlist index] -> word index, used to select columns from output embeddings
-  Expr indicesExpr_;
+  Expr indicesExpr_;    // cache an expression that contains the short list indices
+
   Expr cachedShortWt_;  // short-listed version, cached (cleared by clear())
   Expr cachedShortb_;   // these match the current value of shortlist_
   Expr cachedShortLemmaEt_;

@@ -76,7 +76,10 @@ std::vector<Ptr<IVocabWrapper>> loadVocabs(const std::vector<std::string>& vocab
 DecoderCpuAvxVersion getCpuAvxVersion();
 DecoderCpuAvxVersion parseCpuAvxVersion(std::string name);
 
-bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec);
+// MJD: added "addLsh" which will now break whatever compilation after update. That's on purpose.
+// The calling code should be adapted, not this interface. If you need to fix things in QS because of this
+// talk to me first!
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, bool addLsh);
 
 }  // namespace quicksand
 }  // namespace marian

@@ -35,7 +35,8 @@ class TensorBase {
 
   ENABLE_INTRUSIVE_PTR(TensorBase)
 
-  // Constructors are private, use TensorBase::New(...)
+protected:
+  // Constructors are protected, use TensorBase::New(...)
   TensorBase(MemoryPiece::PtrType memory,
              Shape shape,
              Type type,
@@ -61,10 +62,10 @@ class TensorBase {
         shape_(shape), type_(type), backend_(backend) {}
 
 public:
-  // Use this whenever pointing to MemoryPiece
+  // Use this whenever pointing to TensorBase
   typedef IPtr<TensorBase> PtrType;
 
-  // Use this whenever creating a pointer to MemoryPiece
+  // Use this whenever creating a pointer to TensorBase
   template <class ...Args>
   static PtrType New(Args&& ...args) {
     return PtrType(new TensorBase(std::forward<Args>(args)...));

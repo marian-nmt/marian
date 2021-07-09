@@ -36,6 +36,11 @@ public:
 };
 
 /**
+ * Dummy do-nothing initializer. Mostly for testing.
+ */
+Ptr<NodeInitializer> dummy();
+
+/**
  * Use a lambda function of form [](Tensor t) { do something with t } to initialize tensor.
  * @param func functor
  */
@@ -262,13 +267,6 @@ Ptr<NodeInitializer> fromWord2vec(const std::string& file,
  * entry and change over time steps.
  */
 Ptr<NodeInitializer> sinusoidalPositionEmbeddings(int start);
-
-/**
- * Computes a random rotation matrix for LSH hashing.
- * This is part of a hash function. The values are orthonormal and computed via
- * QR decomposition. Same seed results in same random rotation.
- */
-Ptr<NodeInitializer> randomRotation(size_t seed = Config::seed);
 
 /**
  * Computes the equivalent of Python's range().

@@ -21,20 +21,26 @@ private:
   std::unique_ptr<LambdaNodeFunctor> forward_;
   std::unique_ptr<LambdaNodeFunctor> backward_;
   
+  size_t externalHash_;
+
 public:
   LambdaNodeOp(Inputs inputs, Shape shape, Type type, 
-               LambdaNodeFunctor forward) 
+               LambdaNodeFunctor forward, 
+               size_t externalHash = 0)
   : NaryNodeOp(inputs, shape, type), 
-    forward_(new LambdaNodeFunctor(forward)) {
+    forward_(new LambdaNodeFunctor(forward)),
+    externalHash_(externalHash) {
     Node::trainable_ = !!backward_;
   }
 
   LambdaNodeOp(Inputs inputs, Shape shape, Type type, 
                LambdaNodeFunctor forward,
-               LambdaNodeFunctor backward) 
+               LambdaNodeFunctor backward, 
+               size_t externalHash = 0) 
   : NaryNodeOp(inputs, shape, type), 
     forward_(new LambdaNodeFunctor(forward)),
-    backward_(new LambdaNodeFunctor(backward)) {
+    backward_(new LambdaNodeFunctor(backward)),
+    externalHash_(externalHash) {
   }
 
   void forward() override {
@@ -50,8 +56,12 @@ public:
 
   virtual size_t hash() override {
     size_t seed = NaryNodeOp::hash();
-    util::hash_combine(seed, forward_.get());
-    util::hash_combine(seed, backward_.get());
+    if(externalHash_ != 0) {
+      util::hash_combine(seed, externalHash_);
+    } else {
+      util::hash_combine(seed, forward_.get());
+      util::hash_combine(seed, backward_.get());
+    }
     return seed;
   }
 

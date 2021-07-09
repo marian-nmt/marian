@@ -29,7 +29,7 @@ inline void BitstringWriter::write(uint64_t x, int nbit) {
         i += nbit;
         return;
     } else {
-        int j = i >> 3;
+        size_t j = i >> 3;
         code[j++] |= x << (i & 7);
         i += nbit;
         x >>= na;
@@ -57,7 +57,7 @@ inline uint64_t BitstringReader::read(int nbit) {
         return res;
     } else {
         int ofs = na;
-        int j = (i >> 3) + 1;
+        size_t j = (i >> 3) + 1;
         i += nbit;
         nbit -= na;
         while (nbit > 8) {
@@ -160,7 +160,7 @@ struct HammingComputer20 {
     void set (const uint8_t *a8, int code_size) {
         assert (code_size == 20);
         const uint64_t *a = (uint64_t *)a8;
-        a0 = a[0]; a1 = a[1]; a2 = a[2];
+        a0 = a[0]; a1 = a[1]; a2 = (uint32_t)a[2];
     }
 
     inline int hamming (const uint8_t *b8) const {

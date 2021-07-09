@@ -28,13 +28,17 @@ Expr checkpoint(Expr a) {
 }
 
 Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
-            LambdaNodeFunctor fwd) {
-  return Expression<LambdaNodeOp>(nodes, shape, type, fwd);
+            LambdaNodeFunctor fwd, size_t hash) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd, hash);
 }
 
 Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
-            LambdaNodeFunctor fwd, LambdaNodeFunctor bwd) {
-  return Expression<LambdaNodeOp>(nodes, shape, type, fwd, bwd);
+            LambdaNodeFunctor fwd, LambdaNodeFunctor bwd, size_t hash) {
+  return Expression<LambdaNodeOp>(nodes, shape, type, fwd, bwd, hash);
+}
+
+Expr callback(Expr node, LambdaNodeCallback call) {
+  return Expression<CallbackNodeOp>(node, call);
 }
 
 // logistic function. Note: scipy name is expit()

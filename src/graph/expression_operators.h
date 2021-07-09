@@ -26,12 +26,19 @@ typedef std::function<void(Expr out, const std::vector<Expr>& in)> LambdaNodeFun
 /**
  * Arbitrary node with forward operation only.
  */
-Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, LambdaNodeFunctor fwd);
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, LambdaNodeFunctor fwd, size_t hash = 0);
 
 /**
  * Arbitrary node with forward and backward operation.
  */
-Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, LambdaNodeFunctor fwd, LambdaNodeFunctor bwd);
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, LambdaNodeFunctor fwd, LambdaNodeFunctor bwd, size_t hash = 0);
+
+
+/**
+ * Convience typedef for graph @ref lambda expressions.
+ */
+typedef std::function<void(Expr)> LambdaNodeCallback;
+Expr callback(Expr node, LambdaNodeCallback call);
 
 /**
  * @addtogroup graph_ops_activation Activation Functions

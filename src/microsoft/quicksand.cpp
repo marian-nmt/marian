@@ -11,6 +11,7 @@
 #include "data/alignment.h"
 #include "data/vocab_base.h"
 #include "tensors/cpu/expression_graph_packable.h"
+#include "layers/lsh.h"
 
 #if USE_FBGEMM
 #include "fbgemm/Utils.h"
@@ -248,7 +249,7 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
 // This function converts an fp32 model into an FBGEMM based packed model.
 // marian defined types are used for external project as well.
 // The targetPrec is passed as int32_t for the exported function definition.
-bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec) {
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, bool addLsh) {
   std::cerr << "Converting from: " << inputFile << ", to: " << outputFile << ", precision: " << targetPrec << std::endl;
 
   YAML::Node config;
@@ -260,7 +261,26 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
   graph->setDevice(CPU0);
 
   graph->load(inputFile);
-  graph->forward();
+
+  // MJD: Note, this is a default settings which we might want to change or expose. Use this only with Polonium students.
+  // The LSH will not be used by default even if it exists in the model. That has to be enabled in the decoder config.
+  int lshNBits = 1024;
+  std::string lshOutputWeights = "Wemb";
+  if(addLsh) {
+    // Add dummy parameters for the LSH before the model gets actually initialized.
+    // This create the parameters with useless values in the tensors, but it gives us the memory we need.
+    graph->setReloaded(false);
+    lsh::addDummyParameters(graph, /*weights=*/lshOutputWeights, /*nBits=*/lshNBits);
+    graph->setReloaded(true);
+  }
+
+  graph->forward();  // run the initializers
+
+  if(addLsh) {
+    // After initialization, hijack the paramters for the LSH and force-overwrite with correct values.
+    // Once this is done we can just pack and save as normal.
+    lsh::overwriteDummyParameters(graph, /*weights=*/lshOutputWeights);
+  }
 
   Type targetPrecType = (Type) targetPrec;
   if (targetPrecType == Type::packed16 

@@ -11,6 +11,15 @@ namespace marian {
 
 namespace inits {
 
+class DummyInit : public NodeInitializer {
+public:
+  void apply(Tensor tensor) override {
+    tensor;
+  }
+};
+
+Ptr<NodeInitializer> dummy() { return New<DummyInit>(); }
+
 class LambdaInit : public NodeInitializer {
   private:
     std::function<void(Tensor)> lambda_;
@@ -237,24 +246,3 @@ template Ptr<NodeInitializer> range<IndexType>(IndexType begin, IndexType end, I
 }  // namespace inits
 }  // namespace marian
 
-
-#if BLAS_FOUND
-#include "faiss/VectorTransform.h"
-
-namespace marian {
-namespace inits {
-
-Ptr<NodeInitializer> randomRotation(size_t seed) {
-  auto rot = [=](Tensor t) {
-    int rows = t->shape()[-2];
-    int cols = t->shape()[-1];
-    faiss::RandomRotationMatrix rrot(cols, rows); // transposed in faiss
-    rrot.init((int)seed);
-    t->set(rrot.A);
-  };
-  return fromLambda(rot, Type::float32);
-}
-
-}  // namespace inits
-}  // namespace marian
-#endif

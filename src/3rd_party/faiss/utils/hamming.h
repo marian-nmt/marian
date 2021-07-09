@@ -116,7 +116,7 @@ struct BitstringReader {
 extern size_t hamming_batch_size;
 
 static inline int popcount64(uint64_t x) {
-    return __builtin_popcountl(x);
+    return (int)__builtin_popcountl(x);
 }
 
 
