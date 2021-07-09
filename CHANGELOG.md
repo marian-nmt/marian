@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Adds option --add-lsh to marian-conv which allows the LSH to be memory-mapped.
 - Early stopping based on first, all, or any validation metrics via `--early-stopping-on`
 - Compute 8.6 support if using CUDA>=11.1
 - Support for RMSNorm as drop-in replace for LayerNorm from `Biao Zhang; Rico Sennrich (2019). Root Mean Square Layer Normalization`. Enabled in Transformer model via `--transformer-postprocess dar` instead of `dan`.
@@ -45,6 +46,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Broken links to MNIST data sets
 
 ### Changed
+- Optimize LSH for speed by treating is as a shortlist generator. No option changes in decoder
 - Set REQUIRED_BIAS_ALIGNMENT = 16 in tensors/gpu/prod.cpp to avoid memory-misalignment on certain Ampere GPUs.
 - For BUILD_ARCH != native enable all intrinsics types by default, can be disabled like this: -DCOMPILE_AVX512=off
 - Moved FBGEMM pointer to commit c258054 for gcc 9.3+ fix
