@@ -92,6 +92,7 @@ struct HammingComputer4 {
     }
 
     void set (const uint8_t *a, int code_size) {
+        code_size;
         assert (code_size == 4);
         a0 = *(uint32_t *)a;
     }
@@ -112,6 +113,7 @@ struct HammingComputer8 {
     }
 
     void set (const uint8_t *a, int code_size) {
+        code_size;
         assert (code_size == 8);
         a0 = *(uint64_t *)a;
     }
@@ -133,6 +135,7 @@ struct HammingComputer16 {
     }
 
     void set (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 16);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1];
@@ -158,6 +161,7 @@ struct HammingComputer20 {
     }
 
     void set (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 20);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1]; a2 = (uint32_t)a[2];
@@ -180,6 +184,7 @@ struct HammingComputer32 {
     }
 
     void set (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 32);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1]; a2 = a[2]; a3 = a[3];
@@ -203,6 +208,7 @@ struct HammingComputer64 {
     }
 
     void set (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 64);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1]; a2 = a[2]; a3 = a[3];
@@ -255,6 +261,7 @@ struct HammingComputerM8 {
     }
 
     void set (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size % 8 == 0);
         a =  (uint64_t *)a8;
         n = code_size / 8;
@@ -282,6 +289,7 @@ struct HammingComputerM4 {
     }
 
     void set (const uint8_t *a4, int code_size) {
+        code_size;
         assert (code_size % 4 == 0);
         a =  (uint32_t *)a4;
         n = code_size / 4;
@@ -344,6 +352,7 @@ struct GenHammingComputer8 {
     uint64_t a0;
 
     GenHammingComputer8 (const uint8_t *a, int code_size) {
+        code_size;
         assert (code_size == 8);
         a0 = *(uint64_t *)a;
     }
@@ -358,6 +367,7 @@ struct GenHammingComputer8 {
 struct GenHammingComputer16 {
     uint64_t a0, a1;
     GenHammingComputer16 (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 16);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1];
@@ -375,6 +385,7 @@ struct GenHammingComputer32 {
     uint64_t a0, a1, a2, a3;
 
     GenHammingComputer32 (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size == 32);
         const uint64_t *a = (uint64_t *)a8;
         a0 = a[0]; a1 = a[1]; a2 = a[2]; a3 = a[3];
@@ -395,6 +406,7 @@ struct GenHammingComputerM8 {
     int n;
 
     GenHammingComputerM8 (const uint8_t *a8, int code_size) {
+        code_size;
         assert (code_size % 8 == 0);
         a =  (uint64_t *)a8;
         n = code_size / 8;
