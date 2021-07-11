@@ -274,11 +274,15 @@ public:
 
     trgVocab_ = New<Vocab>(options_, vocabPaths.size() - 1);
     trgVocab_->load(vocabPaths.back());
+    auto srcVocab = srcVocabs_.front();
+
+    std::vector<int> lshOpts = options_->get<std::vector<int>>("output-approx-knn");
+    ABORT_IF(lshOpts.size() != 0 && lshOpts.size() != 2, "--output-approx-knn takes 2 parameters");
 
     // load lexical shortlist
-    if(options_->hasAndNotEmpty("shortlist"))
-      shortlistGenerator_ = New<data::LexicalShortlistGenerator>(
-          options_, srcVocabs_.front(), trgVocab_, 0, 1, vocabPaths.front() == vocabPaths.back());
+    if (lshOpts.size() == 2 || options_->hasAndNotEmpty("shortlist")) {
+        shortlistGenerator_ = data::createShortlistGenerator(options_, srcVocab, trgVocab_, lshOpts, 0, 1, vocabPaths.front() == vocabPaths.back());
+    }
 
     // get device IDs
     auto devices = Config::getDevices(options_);

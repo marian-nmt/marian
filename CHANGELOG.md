@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add unit tests for binary files.
 - Fix compilation with OMP
 - Compute aligned memory sizes using exact sizing
+- Support for loading lexical shortlist from a binary blob 
+- Integrate a shortlist converter (which can convert a text lexical shortlist to a binary shortlist) into marian-conv with --shortlist option
 
 ### Fixed
 - Added support to MPIWrappest::bcast (and similar) for count of type size_t

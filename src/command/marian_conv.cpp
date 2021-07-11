@@ -3,7 +3,7 @@
 #include "tensors/cpu/expression_graph_packable.h"
 #include "onnx/expression_graph_onnx_exporter.h"
 #include "layers/lsh.h"
-
+#include "data/shortlist.h"
 #include <sstream>
 
 int main(int argc, char** argv) {
@@ -16,7 +16,8 @@ int main(int argc, char** argv) {
     YAML::Node config; // @TODO: get rid of YAML::Node here entirely to avoid the pattern. Currently not fixing as it requires more changes to the Options object.
     auto cli = New<cli::CLIWrapper>(
         config,
-        "Convert a model in the .npz format and normal memory layout to a mmap-able binary model which could be in normal memory layout or packed memory layout",
+        "Convert a model in the .npz format and normal memory layout to a mmap-able binary model which could be in normal memory layout or packed memory layout\n"
+        "or convert a text lexical shortlist to a binary shortlist with {--shortlist,-s} option",
         "Allowed options",
         "Examples:\n"
         "  ./marian-conv -f model.npz -t model.bin --gemm-type packed16");
@@ -30,9 +31,30 @@ int main(int argc, char** argv) {
                                        "Encode output matrix and optional rotation matrix into model file. "
                                        "arg1: number of bits in LSH encoding, arg2: name of output weights matrix")->implicit_val("1024 Wemb");
     cli->add<std::vector<std::string>>("--vocabs,-V", "Vocabulary file, required for ONNX export");
+    cli->add<std::vector<std::string>>("--shortlist,-s", "Shortlist conversion: filePath firstNum bestNum threshold");
+    cli->add<std::string>("--dump-shortlist,-d", "Binary shortlist dump path","lex.bin");
     cli->parse(argc, argv);
     options->merge(config);
   }
+
+  // shortlist conversion:
+  // ./marian-conv --shortlist lex.esen.s2t 100 100 0 --dump-shortlist lex.esen.bin --vocabs vocab.esen.spm vocab.esen.spm
+  if(options->hasAndNotEmpty("shortlist")){
+    auto vocabPaths = options->get<std::vector<std::string>>("vocabs");
+    auto dumpPath = options->get<std::string>("dump-shortlist");
+
+    Ptr<Vocab> srcVocab = New<Vocab>(options, 0);
+    srcVocab->load(vocabPaths[0]);
+    Ptr<Vocab> trgVocab = New<Vocab>(options, 1);
+    trgVocab->load(vocabPaths[1]);
+
+    Ptr<const data::ShortlistGenerator> binaryShortlistGenerator
+        = New<data::BinaryShortlistGenerator>(options, srcVocab, trgVocab, 0, 1, vocabPaths[0] == vocabPaths[1]);
+    binaryShortlistGenerator->dump(dumpPath);
+    LOG(info, "Dumping of the shortlist is finished");
+    return 0;
+  }
+
   auto modelFrom = options->get<std::string>("from");
   auto modelTo = options->get<std::string>("to");
 

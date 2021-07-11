@@ -256,7 +256,6 @@ public:
     bestNum_ = vals.size() > 2 ? std::stoi(vals[2]) : 100;
     float threshold = vals.size() > 3 ? std::stof(vals[3]) : 0;
     std::string dumpPath = vals.size() > 4 ? vals[4] : "";
-
     LOG(info,
         "[data] Loading lexical shortlist as {} {} {} {}",
         fname,
@@ -391,6 +390,79 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
                                                  size_t srcIdx = 0,
                                                  size_t trgIdx = 1,
                                                  bool shared = false);
+
+// Magic signature for binary shortlist:
+// ASCII and Unicode text files never start with the following 64 bits
+const uint64_t BINARY_SHORTLIST_MAGIC = 0xF11A48D5013417F5;
+
+bool isBinaryShortlist(const std::string& fileName);
+
+class BinaryShortlistGenerator : public ShortlistGenerator {
+private:
+  Ptr<Options> options_;
+  Ptr<const Vocab> srcVocab_;
+  Ptr<const Vocab> trgVocab_;
+
+  size_t srcIdx_;
+  bool shared_{false};
+
+  uint64_t firstNum_{100};  // baked into binary header
+  uint64_t bestNum_{100};   // baked into binary header
+
+  // shortlist is stored in a skip list
+  // [&shortLists_[wordToOffset_[word]], &shortLists_[wordToOffset_[word+1]])
+  // is a sorted array of word indices in the shortlist for word
+  mio::mmap_source mmapMem_;
+  uint64_t wordToOffsetSize_;
+  uint64_t shortListsSize_;
+  const uint64_t *wordToOffset_;
+  const WordIndex *shortLists_;
+  std::vector<char> blob_;  // binary blob
+
+  struct Header {
+    uint64_t magic; // BINARY_SHORTLIST_MAGIC
+    uint64_t checksum; // util::hashMem<uint64_t, uint64_t> from &firstNum to end of file.
+    uint64_t firstNum; // Limits used to create the shortlist.
+    uint64_t bestNum;
+    uint64_t wordToOffsetSize; // Length of wordToOffset_ array.
+    uint64_t shortListsSize; // Length of shortLists_ array.
+  };
+
+  void contentCheck();
+  // load shortlist from buffer
+  void load(const void* ptr_void, size_t blobSize, bool check = true);
+  // load shortlist from file
+  void load(const std::string& filename, bool check=true);
+  // import text shortlist from file
+  void import(const std::string& filename, double threshold);
+  // save blob to file (called by dump)
+  void saveBlobToFile(const std::string& filename) const;
+
+public:
+  BinaryShortlistGenerator(Ptr<Options> options,
+                           Ptr<const Vocab> srcVocab,
+                           Ptr<const Vocab> trgVocab,
+                           size_t srcIdx = 0,
+                           size_t /*trgIdx*/ = 1,
+                           bool shared = false);
+
+  // construct directly from buffer
+  BinaryShortlistGenerator(const void* ptr_void,
+                           const size_t blobSize,
+                           Ptr<const Vocab> srcVocab,
+                           Ptr<const Vocab> trgVocab,
+                           size_t srcIdx = 0,
+                           size_t /*trgIdx*/ = 1,
+                           bool shared = false,
+                           bool check = true);
+
+  ~BinaryShortlistGenerator(){
+    mmapMem_.unmap();
+  }
+
+  virtual Ptr<Shortlist> generate(Ptr<data::CorpusBatch> batch) const override;
+  virtual void dump(const std::string& fileName) const override;
+};
 
 }  // namespace data
 }  // namespace marian
