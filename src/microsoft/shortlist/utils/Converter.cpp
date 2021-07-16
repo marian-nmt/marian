@@ -1,5 +1,6 @@
 #include "microsoft/shortlist/utils/Converter.h"
 
+namespace marian {
 namespace quicksand {
 
 #include "microsoft/shortlist/logging/LoggerMacros.h"
@@ -57,3 +58,4 @@ void Converter::HandleConversionError(const std::string& str, const char * type_
 }
 
 } // namespace quicksand
+} // namespace marian

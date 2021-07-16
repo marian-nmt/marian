@@ -79,7 +79,7 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name);
 // MJD: added "addLsh" which will now break whatever compilation after update. That's on purpose.
 // The calling code should be adapted, not this interface. If you need to fix things in QS because of this
 // talk to me first!
-bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, bool addLsh);
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, int32_t lshNBits);
 
 }  // namespace quicksand
 }  // namespace marian

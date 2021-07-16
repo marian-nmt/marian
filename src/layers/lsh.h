@@ -32,7 +32,7 @@ namespace lsh {
   Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int k, int firstNRows = 0);
 
   // same as above, but performs encoding on the fly
-  Expr search(Expr query, Expr weights, int k, int nbits, int firstNRows = 0);
+  Expr search(Expr query, Expr weights, int k, int nbits, int firstNRows = 0, bool abortIfDynamic = false);
   
   // These are helper functions for encoding the LSH into the binary Marian model, used by marian-conv
   void addDummyParameters(Ptr<ExpressionGraph> graph, std::string weightsName, int nBits);

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string> 
 
+namespace marian {
 namespace quicksand {
 
 #include "microsoft/shortlist/logging/LoggerMacros.h"
@@ -336,3 +337,4 @@ std::string StringUtils::ToLower(const std::string& str) {
 }
 
 } // namespace quicksand
+} // namespace marian

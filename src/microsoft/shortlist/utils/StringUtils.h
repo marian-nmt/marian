@@ -8,6 +8,7 @@
 
 #include "microsoft/shortlist/utils/PrintTypes.h"
 
+namespace marian {
 namespace quicksand {
 
 class StringUtils {
@@ -96,3 +97,4 @@ std::string StringUtils::ToString(const T& obj) {
 }
 
 } // namespace quicksand
+} // namespace marian

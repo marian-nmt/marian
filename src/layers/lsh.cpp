@@ -155,7 +155,7 @@ Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int k, int firstNRows
   return lambda({encodedQuery, encodedWeights}, kShape, Type::uint32, search);
 }
 
-Expr search(Expr query, Expr weights, int k, int nBits, int firstNRows) {
+Expr search(Expr query, Expr weights, int k, int nBits, int firstNRows, bool abortIfDynamic) {
   int dim = weights->shape()[-1];
   
   Expr rotMat = nullptr;
@@ -164,6 +164,7 @@ Expr search(Expr query, Expr weights, int k, int nBits, int firstNRows) {
     if(rotMat) {
       LOG_ONCE(info, "Reusing parameter LSH rotation matrix {} with shape {}", rotMat->name(), rotMat->shape());
     } else {
+      ABORT_IF(abortIfDynamic, "Dynamic creation of LSH rotation matrix prohibited");
       LOG_ONCE(info, "Creating ad-hoc rotation matrix with shape {}", Shape({dim, nBits}));
       rotMat = rotator(weights, nBits);
     }
@@ -173,6 +174,7 @@ Expr search(Expr query, Expr weights, int k, int nBits, int firstNRows) {
   if(encodedWeights) {
     LOG_ONCE(info, "Reusing parameter LSH code matrix {} with shape {}", encodedWeights->name(), encodedWeights->shape());
   } else {
+    ABORT_IF(abortIfDynamic, "Dynamic creation of LSH code matrix prohibited");
     LOG_ONCE(info, "Creating ad-hoc code matrix with shape {}", Shape({weights->shape()[-2], lsh::bytesPerVector(nBits)}));
     encodedWeights = encode(weights, rotMat);
   }

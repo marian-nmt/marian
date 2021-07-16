@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Integrate a shortlist converter (which can convert a text lexical shortlist to a binary shortlist) into marian-conv with --shortlist option
 
 ### Fixed
+- Various fixes to enable LSH in Quicksand
 - Added support to MPIWrappest::bcast (and similar) for count of type size_t
 - Adding new validation metrics when training is restarted and --reset-valid-stalled is used
 - Missing depth-scaling in transformer FFN

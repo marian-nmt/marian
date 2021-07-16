@@ -4,6 +4,8 @@
 
 #include "spdlog/spdlog.h"
 
+// set to 1 to use for debugging if no loggers can be created
+#define LOG_TO_STDERR 0
 
 namespace marian {
   void logCallStack(size_t skipLevels);
@@ -149,6 +151,9 @@ class Config;
 
 template <class... Args>
 void checkedLog(std::string logger, std::string level, Args... args) {
+#if LOG_TO_STDERR
+  std::cerr << "[" << level << "] " << fmt::format(args...) << std::endl;
+#else
   Logger log = spdlog::get(logger);
   if(!log) {
     return;
@@ -169,6 +174,7 @@ void checkedLog(std::string logger, std::string level, Args... args) {
   else {
     log->warn("Unknown log level '{}' for logger '{}'", level, logger);
   }
+#endif
 }
 
 void createLoggers(const marian::Config* options = nullptr);

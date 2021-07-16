@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 
+namespace marian {
 namespace quicksand {
 
 class Converter {
@@ -81,3 +82,4 @@ std::vector<T> Converter::ConvertVectorInternal(I begin, I end, const char * typ
 }
 
 } // namespace quicksand
+} // namespace marian

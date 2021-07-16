@@ -62,7 +62,7 @@ public:
     trgVocab_->load(vocabs.back());
     auto srcVocab = corpus_->getVocabs()[0];
 
-    std::vector<int> lshOpts = options_->get<std::vector<int>>("output-approx-knn");
+    std::vector<int> lshOpts = options_->get<std::vector<int>>("output-approx-knn", {});
     ABORT_IF(lshOpts.size() != 0 && lshOpts.size() != 2, "--output-approx-knn takes 2 parameters");
 
     if (lshOpts.size() == 2 || options_->hasAndNotEmpty("shortlist")) {

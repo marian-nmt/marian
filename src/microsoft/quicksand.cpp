@@ -78,7 +78,7 @@ public:
     graph_->setDevice(deviceId, device_);
 
 #if MKL_FOUND
-    mkl_set_num_threads(options->get<int>("mkl-threads", 1));
+    mkl_set_num_threads(options_->get<int>("mkl-threads", 1));
 #endif
 
     std::vector<std::string> models
@@ -114,6 +114,9 @@ public:
     for(auto scorer : scorers_) {
       scorer->init(graph_);
     }
+
+    // run parameter init once, this is required for graph_->get("parameter name") to work correctly
+    graph_->forward();
   }
 
   void setWorkspace(uint8_t* data, size_t size) override { device_->set(data, size); }
@@ -121,8 +124,21 @@ public:
   QSNBestBatch decode(const QSBatch& qsBatch,
                       size_t maxLength,
                       const std::unordered_set<WordIndex>& shortlist) override {
-    if(shortlist.size() > 0) {
-      auto shortListGen = New<data::FakeShortlistGenerator>(shortlist);
+    
+    std::vector<int> lshOpts = options_->get<std::vector<int>>("output-approx-knn", {});
+    ABORT_IF(lshOpts.size() != 0 && lshOpts.size() != 2, "--output-approx-knn takes 2 parameters");
+    ABORT_IF(lshOpts.size() == 2 && shortlist.size() > 0, "LSH and shortlist cannot be used at the same time");
+
+    if(lshOpts.size() == 2 || shortlist.size() > 0) {
+      Ptr<data::ShortlistGenerator> shortListGen;
+      // both ShortListGenerators are thin wrappers, hence no problem with calling this per query
+      if(lshOpts.size() == 2) {
+        // Setting abortIfDynamic to true disallows memory allocation for LSH parameters, this is specifically for use in Quicksand.
+        // If we want to use the LSH in Quicksand we need to create a binary model that contains the LSH parameters via conversion.
+        shortListGen = New<data::LSHShortlistGenerator>(lshOpts[0], lshOpts[1], vocabs_[1]->lemmaSize(), /*abortIfDynamic=*/true);
+      } else {
+        shortListGen = New<data::FakeShortlistGenerator>(shortlist);
+      } 
       for(auto scorer : scorers_)
         scorer->setShortlistGenerator(shortListGen);
     }
@@ -249,7 +265,7 @@ DecoderCpuAvxVersion parseCpuAvxVersion(std::string name) {
 // This function converts an fp32 model into an FBGEMM based packed model.
 // marian defined types are used for external project as well.
 // The targetPrec is passed as int32_t for the exported function definition.
-bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, bool addLsh) {
+bool convertModel(std::string inputFile, std::string outputFile, int32_t targetPrec, int32_t lshNBits) {
   std::cerr << "Converting from: " << inputFile << ", to: " << outputFile << ", precision: " << targetPrec << std::endl;
 
   YAML::Node config;
@@ -264,9 +280,10 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
 
   // MJD: Note, this is a default settings which we might want to change or expose. Use this only with Polonium students.
   // The LSH will not be used by default even if it exists in the model. That has to be enabled in the decoder config.
-  int lshNBits = 1024;
   std::string lshOutputWeights = "Wemb";
+  bool addLsh = lshNBits > 0;
   if(addLsh) {
+    std::cerr << "Adding LSH to model with hash size " << lshNBits << std::endl;
     // Add dummy parameters for the LSH before the model gets actually initialized.
     // This create the parameters with useless values in the tensors, but it gives us the memory we need.
     graph->setReloaded(false);

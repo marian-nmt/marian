@@ -5,6 +5,7 @@
 #include "microsoft/shortlist/utils/StringUtils.h"
 #include "microsoft/shortlist/utils/Converter.h"
 
+namespace marian {
 namespace quicksand {
 
 #include "microsoft/shortlist/logging/LoggerMacros.h"
@@ -414,4 +415,4 @@ void ParameterTree::ReplaceVariablesInternal(
 }
 
 } // namespace quicksand
-
+} // namespace marian

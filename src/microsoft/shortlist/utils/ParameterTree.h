@@ -8,6 +8,7 @@
 
 #include "microsoft/shortlist/utils/StringUtils.h"
 
+namespace marian {
 namespace quicksand {
 
 class ParameterTree {
@@ -183,3 +184,4 @@ void ParameterTree::SetParam(const std::string& name, const T& obj) {
 }
 
 } // namespace quicksand
+} // namespace marian

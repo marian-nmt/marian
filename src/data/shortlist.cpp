@@ -77,9 +77,9 @@ void Shortlist::createCachedTensors(Expr weights,
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize)
+LSHShortlist::LSHShortlist(int k, int nbits, size_t lemmaSize, bool abortIfDynamic)
 : Shortlist(std::vector<WordIndex>()), 
-  k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
+  k_(k), nbits_(nbits), lemmaSize_(lemmaSize), abortIfDynamic_(abortIfDynamic) {
 }
 
 WordIndex LSHShortlist::reverseMap(int beamIdx, int batchIdx, int idx) const {
@@ -99,7 +99,7 @@ void LSHShortlist::filter(Expr input, Expr weights, bool isLegacyUntransposedW, 
   ABORT_IF(input->graph()->getDeviceId().type == DeviceType::gpu,
            "LSH index (--output-approx-knn) currently not implemented for GPU");
 
-  indicesExpr_ = callback(lsh::search(input, weights, k_, nbits_, (int)lemmaSize_), 
+  indicesExpr_ = callback(lsh::search(input, weights, k_, nbits_, (int)lemmaSize_, abortIfDynamic_),
                           [this](Expr node) { 
                             node->val()->get(indices_); // set the value of the field indices_ whenever the graph traverses this node
                           });
@@ -135,12 +135,12 @@ void LSHShortlist::createCachedTensors(Expr weights,
   }
 }
 
-LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits, size_t lemmaSize) 
-  : k_(k), nbits_(nbits), lemmaSize_(lemmaSize) {
+LSHShortlistGenerator::LSHShortlistGenerator(int k, int nbits, size_t lemmaSize, bool abortIfDynamic) 
+  : k_(k), nbits_(nbits), lemmaSize_(lemmaSize), abortIfDynamic_(abortIfDynamic) {
 }
 
 Ptr<Shortlist> LSHShortlistGenerator::generate(Ptr<data::CorpusBatch> batch) const {
-  return New<LSHShortlist>(k_, nbits_, lemmaSize_);
+  return New<LSHShortlist>(k_, nbits_, lemmaSize_, abortIfDynamic_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -175,7 +175,7 @@ QuicksandShortlistGenerator::QuicksandShortlistGenerator(Ptr<Options> options,
   int32_t header_magic_number = *get<int32_t>(current);
   ABORT_IF(header_magic_number != MAGIC_NUMBER, "Trying to mmap Quicksand shortlist but encountered wrong magic number");
 
-  auto config = ::quicksand::ParameterTree::FromBinaryReader(current);
+  auto config = marian::quicksand::ParameterTree::FromBinaryReader(current);
   use16bit_ = config->GetBoolReq("use_16_bit");
   
   LOG(info, "[data] Mapping Quicksand shortlist from {}", fname);
@@ -275,7 +275,7 @@ Ptr<ShortlistGenerator> createShortlistGenerator(Ptr<Options> options,
   if (lshOpts.size()) {
     assert(lshOpts.size() == 2);
     size_t lemmaSize = trgVocab->lemmaSize();
-    return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1], lemmaSize);
+    return New<LSHShortlistGenerator>(lshOpts[0], lshOpts[1], lemmaSize, /*abortIfDynamic=*/false);
   }
   else {                                                   
     std::vector<std::string> vals = options->get<std::vector<std::string>>("shortlist");
