@@ -447,9 +447,15 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
   std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
 
   for(int b = 0; b < dimBatch; ++b) {
-    for(auto p : batchVector[b].getAlignment()) {
-      size_t idx = p.srcPos * dimBatch * trgWords + b * trgWords + p.tgtPos;
-      aligns[idx] = 1.f;
+
+    // If the batch vector is altered within marian by, for example, case augmentation,
+    // the guided alignments we received for this tuple cease to be valid.
+    // Hence skip setting alignments for that sentence tuple..
+    if (!batchVector[b].isAltered()) {
+      for(auto p : batchVector[b].getAlignment()) {
+        size_t idx = p.srcPos * dimBatch * trgWords + b * trgWords + p.tgtPos;
+        aligns[idx] = 1.f;
+      }
     }
   }
   batch->setGuidedAlignment(std::move(aligns));

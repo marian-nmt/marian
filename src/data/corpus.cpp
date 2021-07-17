@@ -7,6 +7,7 @@
 #include "common/filesystem.h"
 
 #include "data/corpus.h"
+#include "data/factored_vocab.h"
 
 namespace marian {
 namespace data {
@@ -26,13 +27,16 @@ Corpus::Corpus(std::vector<std::string> paths,
         allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
         titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
 
-void Corpus::preprocessLine(std::string& line, size_t streamId) {
+void Corpus::preprocessLine(std::string& line, size_t streamId, bool& altered) {
+  bool isFactoredVocab = vocabs_.back()->tryAs<FactoredVocab>() != nullptr;
+  altered = false; 
   if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
     line = vocabs_[streamId]->toUpper(line);
     if (streamId == 0)
       LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
     else
       LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
+    altered = isFactoredVocab ? false : true; // FS vocab does not really "alter" the token lemma for all caps
   }
   else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
     // Only applied to stream 0 (source) since this feature is aimed at robustness against
@@ -43,6 +47,7 @@ void Corpus::preprocessLine(std::string& line, size_t streamId) {
       LOG_ONCE(info, "[data] Source English-title-case'd line to: {}", line);
     else
       LOG_ONCE(info, "[data] Target English-title-case'd line to: {}", line);
+    altered = isFactoredVocab ? false : true; // FS vocab does not really "alter" the token lemma for title casing
   }
 }
 
@@ -103,7 +108,10 @@ SentenceTuple Corpus::next() {
               ++shift;
             } else {
               size_t vocabId = j - shift;
-              preprocessLine(fields[j], vocabId);
+              bool altered;
+              preprocessLine(fields[j], vocabId, /*out=*/altered);
+              if (altered)
+                tup.markAltered();
               addWordsToSentenceTuple(fields[j], vocabId, tup);
             }
           }
@@ -116,7 +124,10 @@ SentenceTuple Corpus::next() {
             addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
 
         } else {
-          preprocessLine(line, i);
+          bool altered;
+          preprocessLine(line, i, /*out=*/altered);
+          if (altered)
+            tup.markAltered();
           addWordsToSentenceTuple(line, i, tup);
         }
       }

@@ -30,7 +30,7 @@ private:
   // for pre-processing
   size_t allCapsEvery_{0};   // if set, convert every N-th input sentence (after randomization) to all-caps (source and target)
   size_t titleCaseEvery_{0}; // ditto for title case (source only)
-  void preprocessLine(std::string& line, size_t streamId);
+  void preprocessLine(std::string& line, size_t streamId, bool& altered); // altered => whether the segmentation was altered in marian
 
 public:
   // @TODO: check if translate can be replaced by an option in options
