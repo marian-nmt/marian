@@ -59,7 +59,7 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     /*
     std::cerr << "affineOrDot.x=" << x->shape() << std::endl;
     std::cerr << "affineOrDot.W=" << W->shape() << std::endl;
-    std::cerr << "affineOrDot.b=" << b->shape() << std::endl;
+    if (b) std::cerr << "affineShortlist.b=" << b->shape() << std::endl;
     std::cerr << "affineOrDot.transA=" << transA << " transB=" << transB << std::endl;
     */
     if(b)
@@ -68,18 +68,32 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
       return dot(x, W, transA, transB);
   };
 
-  auto affineShortlist = [](Expr x, Expr W, Expr b, bool transA, bool transB) {
-    /*
+  auto affineShortlist = [this](Expr x, Expr W, Expr b, bool transA, bool transB) {
+    /*    
     std::cerr << "affineShortlist.x=" << x->shape() << std::endl;
     std::cerr << "affineShortlist.W=" << W->shape() << std::endl;
-    std::cerr << "affineShortlist.b=" << b->shape() << std::endl;
+    if (b) std::cerr << "affineShortlist.b=" << b->shape() << std::endl;
     std::cerr << "affineShortlist.transA=" << transA << " transB=" << transB << std::endl;
     */
-    ABORT_IF(!(!transA && transB), "affineShortlist. Must be transA==0 and transB==1");
-    ABORT_IF(b, "affineShortlist not tested with bias");
-    Expr ret = bdot(x, W, transA, transB);
-    //std::cerr << "ret=" << ret->shape() << std::endl;
-    //std::cerr << std::endl;
+
+    Expr ret;
+
+    if (b) {
+      // original shortlist. W always has 1 for beam & batch
+      ABORT_UNLESS(!shortlist_->isDynamic(), "affineShortlist. Bias not supported with LSH/dynamic shortlist"); // todo rename ABORT_UNLESS to ASSERT
+      ret = affine(x, W, b, transA, transB);
+    }
+    else if (shortlist_->isDynamic()) {
+      // LSH produces W entry for each beam and batch => need bdot()
+      ABORT_IF(!(!transA && transB), "affineShortlist. Only tested with transA==0 and transB==1");
+      ret = bdot(x, W, transA, transB);
+    }
+    else {
+      // original shortlist. W always has 1 for beam & batch
+      ret = dot(x, W, transA, transB);
+    } 
+
+    //std::cerr << "ret.x=" << ret->shape() << std::endl;
     return ret;
   };
 

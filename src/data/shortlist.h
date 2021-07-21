@@ -43,6 +43,7 @@ public:
   Shortlist(const std::vector<WordIndex>& indices);
   virtual ~Shortlist();
   
+  virtual bool isDynamic() const { return false; }
   virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const;
   virtual WordIndex tryForwardMap(WordIndex wIdx) const;
 
@@ -87,6 +88,8 @@ private:
 
 public:
   LSHShortlist(int k, int nbits, size_t lemmaSize, bool abortIfDynamic = false);
+
+  virtual bool isDynamic() const override { return true; }
   virtual WordIndex reverseMap(int beamIdx, int batchIdx, int idx) const override;
 
   virtual void filter(Expr input, Expr weights, bool isLegacyUntransposedW, Expr b, Expr lemmaEt) override;
