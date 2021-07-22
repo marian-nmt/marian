@@ -1,6 +1,35 @@
 # How to build Marian on Windows with GPU support
 
-This is interesting for developers, exctracted from README.
+This is interesting mostly for developers. Warning: it has been extracted from
+an old `vs/README.md` and some information might be outdated.
+
+---
+## Known issues
+
+1. __Patch for CUDA 9.2 error: Unsupported Visual Studio Version Error__
+
+    When using CUDA 9.2, the latest versions of Visual Studio 2017 are not
+    officially supported by CUDA. Two fixes are proposed:
+    - Downgrade Visual Studio to a supported version
+    - Edit the file `<CUDA install path>\include\crt\host_config.h` and change the line 131:
+
+            131     #if _MSC_VER < 1600 || _MSC_VER > 1914
+
+        into:
+
+            131     #if _MSC_VER < 1600 || _MSC_VER > 1915
+
+    For more information, read this [nVidia forum](https://devtalk.nvidia.com/default/topic/1022648/cuda-setup-and-installation/cuda-9-unsupported-visual-studio-version-error/4)
+
+2. __It does not compile with Boost 1.73 or newer__
+
+    It may happen that SimpleWebSocketServer, a 3rd party library that Marian uses for
+    marian-server, does not support the version of Boost available in vcpkg. In such case install a
+    supported version of Boost; if you use vcpkg, an option is to checkout to #5970385, which has
+    Boost 1.72.
+
+    Note that Boost is required only if you compile with marian-server, for compilation using CMake,
+    it is if you set `COMPILE_SERVER` to `TRUE` in CMakeSettings.json.
 
 ---
 ## Changes from the master branch
