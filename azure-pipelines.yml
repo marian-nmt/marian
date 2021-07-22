@@ -19,7 +19,7 @@ variables:
   CUDA_PATH_WINDOWS: "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"
   MKL_DIR: "$(Build.SourcesDirectory)/mkl"
   MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
-  VCPKG_COMMIT: 6185aa76504a5025f36754324abf307cc776f3da
+  VCPKG_COMMIT: c69096659f49e2b1aca532ea5c2f8c135182519b
   VCPKG_DIR: "$(Build.SourcesDirectory)/vcpkg"
   VCPKG_PACKAGES: "protobuf"
   # The Visual Studio installation directory can be found using:
@@ -88,8 +88,8 @@ stages:
         # Install packages
         .\vcpkg.exe install --triplet x64-windows-static $(VCPKG_PACKAGES)
         # Clean to make the cache smaller
-        Remove-Item $(VCPKG_DIR)\downloads  -Force -Recurse
-        Remove-Item $(VCPKG_DIR)\buildtrees -Force -Recurse
+        Remove-Item $(VCPKG_DIR)\downloads  -Force -Recurse -ErrorAction SilentlyContinue
+        Remove-Item $(VCPKG_DIR)\buildtrees -Force -Recurse -ErrorAction SilentlyContinue
       displayName: Prepare vcpkg
 
     - script: |
