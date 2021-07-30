@@ -4,6 +4,9 @@ include_directories(.)
 include_directories(3rd_party)
 include_directories(3rd_party/SQLiteCpp/include)
 include_directories(3rd_party/sentencepiece)
+if(USE_SENTENCEPIECE)
+  include_directories(3rd_party/sentencepiece/third_party/protobuf-lite)
+endif(USE_SENTENCEPIECE)
 include_directories(3rd_party/fbgemm/include)
 include_directories(3rd_party/intgemm)
 include_directories(${CMAKE_BINARY_DIR}/src/3rd_party/intgemm) # running cmake on the intgemm submodule triggers config file generation in this directory.
@@ -110,6 +113,7 @@ set(MARIAN_SOURCES
 
   # this is only compiled to catch build errors
   microsoft/quicksand.cpp
+  microsoft/sentencepiece.cpp
   microsoft/cosmos.cpp
 
   # copied from quicksand to be able to read binary shortlist

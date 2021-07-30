@@ -71,9 +71,7 @@ if(USE_SENTENCEPIECE)
   endif()
 
   # regardless of -DUSE_STATIC_LIBS setting always build sentencepiece statically
-  if(NOT GENERATE_MARIAN_INSTALL_TARGETS)
-    set(SPM_ENABLE_SHARED OFF CACHE BOOL  "Builds shared libaries in addition to static libraries." FORCE)
-  endif()
+  set(SPM_ENABLE_SHARED OFF CACHE BOOL  "Builds shared libaries in addition to static libraries." FORCE)
   set(SPM_ENABLE_TCMALLOC ON CACHE BOOL "Enable TCMalloc if available.")
 
   if(USE_STATIC_LIBS)
@@ -111,16 +109,11 @@ if(USE_SENTENCEPIECE)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
   endif()
 
+  # regardless of -DUSE_STATIC_LIBS setting always build sentencepiece statically
   if(GENERATE_MARIAN_INSTALL_TARGETS)
-    if(USE_STATIC_LIBS)
-      install(TARGETS sentencepiece-static sentencepiece_train-static
-        EXPORT marian-targets
-        DESTINATION sentencepiece)
-    else()
-      install(TARGETS sentencepiece sentencepiece_train
-        EXPORT marian-targets
-        DESTINATION sentencepiece)
-    endif()
+    install(TARGETS sentencepiece-static sentencepiece_train-static
+      EXPORT marian-targets
+      DESTINATION sentencepiece)
   endif(GENERATE_MARIAN_INSTALL_TARGETS)
 endif(USE_SENTENCEPIECE)
 
