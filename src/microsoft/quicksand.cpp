@@ -302,7 +302,8 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
   Type targetPrecType = (Type) targetPrec;
   if (targetPrecType == Type::packed16 
       || targetPrecType == Type::packed8avx2 
-      || targetPrecType == Type::packed8avx512) {
+      || targetPrecType == Type::packed8avx512
+      || (targetPrecType == Type::float32 && addLsh)) { // only allow non-conversion to float32 if we also use the LSH
     graph->packAndSave(outputFile, configStr.str(), targetPrecType);
     std::cerr << "Conversion Finished." << std::endl;
   } else {
