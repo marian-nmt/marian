@@ -624,6 +624,9 @@ execute_process(COMMAND rm ${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp
                 OUTPUT_QUIET ERROR_QUIET)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/build_info.cpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/src/common/build_info.cpp @ONLY)
+# to be able to check if this is a CMake-based compilation, which always adds
+# build-info option, even on Windows.
+add_definitions(-DBUILD_INFO_AVAILABLE=1)
 
 # Compile source files
 include_directories(${marian_SOURCE_DIR}/src)

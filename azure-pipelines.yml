@@ -15,25 +15,37 @@ pool:
   name: Azure Pipelines
 
 variables:
-  BOOST_ROOT_WINDOWS: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
-  CUDA_PATH_WINDOWS: "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"
-  MKL_DIR: "$(Build.SourcesDirectory)/mkl"
-  MKL_URL: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
-  VCPKG_COMMIT: c69096659f49e2b1aca532ea5c2f8c135182519b
-  VCPKG_DIR: "$(Build.SourcesDirectory)/vcpkg"
-  VCPKG_PACKAGES: "protobuf"
+  - group: marian-prod-tests
+  - name: BOOST_ROOT_WINDOWS
+    value: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
+  - name: BOOST_URL
+    value: "https://sourceforge.net/projects/boost/files/boost-binaries/1.72.0/boost_1_72_0-msvc-14.2-64.exe"
+  - name: CUDA_PATH_WINDOWS
+    value: "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA"
+  - name: MKL_DIR
+    value: "$(Build.SourcesDirectory)/mkl"
+  - name: MKL_URL
+    value: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+  - name: VCPKG_COMMIT
+    value: c69096659f49e2b1aca532ea5c2f8c135182519b
+  - name: VCPKG_DIR
+    value: "$(Build.SourcesDirectory)/vcpkg"
+  - name: VCPKG_PACKAGES
+    value: "protobuf"
   # The Visual Studio installation directory can be found using:
   #   pushd "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
   #   for /f "delims=" %%x in ('.\vswhere.exe -latest -property InstallationPath') do set VSPATH=%%x
   #   popd
-  VS_PATH: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise"
+  - name: VS_PATH
+    value: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise"
 
 stages:
-- stage: Build
+- stage: Builds
   jobs:
 
   ######################################################################
-  - job: Windows
+  - job: BuildWindows
+    displayName: Windows
 
     strategy:
       matrix:
@@ -62,21 +74,31 @@ stages:
         Expand-Archive -Force mkl.zip $(MKL_DIR)
       displayName: Download MKL
 
-    ## Cache for vcpkg packages. It does not work yet properly due to linker errors after restoring it.
+    ## Cache for Boost
     #- task: Cache@2
-    #  displayName: Cache
+    #  displayName: Cache Boost
     #  inputs:
     #    # Change the first value (v0) to another value to clear the cache
-    #    key: 'v0 | "$(VCPKG_PACKAGES)" | vcpkg | "$(Agent.OS)"'
-    #    path: $(VCPKG_DIR)
+    #    key: '"v0" | "boost" | "$(BOOST_URL)" | "$(BOOST_ROOT_WINDOWS)" | "$(Agent.OS)"'
+    #    path: $(BOOST_ROOT_WINDOWS)
+    #    cacheHitVar: CACHE_BOOST_RESTORED
 
     # Boost is no longer pre-installed on Azure/GitHub-hosted Windows runners
     - pwsh: |
         Write-Host "Downloading Boost to $(BOOST_ROOT_WINDOWS)"
-        $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.72.0/boost_1_72_0-msvc-14.2-64.exe"
-        C:\msys64\usr\bin\wget.exe -nv $Url -O "$(Pipeline.Workspace)/boost.exe"
+        C:\msys64\usr\bin\wget.exe -nv "$(BOOST_URL)" -O "$(Pipeline.Workspace)/boost.exe"
         Start-Process -Wait -FilePath "$(Pipeline.Workspace)/boost.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=$(BOOST_ROOT_WINDOWS)"
       displayName: Download Boost
+      condition: ne(variables.CACHE_BOOST_RESTORED, 'true')
+
+    ## Cache for vcpkg packages. It does not work yet properly due to linker errors after restoring it.
+    #- task: Cache@2
+    #  displayName: Cache vcpkg
+    #  inputs:
+    #    # Change the first value (v0) to another value to clear the cache
+    #    key: '"v0" | "vcpkg" | "$(VCPKG_COMMIT)" | "$(VCPKG_PACKAGES)" | "$(Agent.OS)"'
+    #    path: $(VCPKG_DIR)
+    #    cacheHitVar: CACHE_VCPKG_RESTORED
 
     - pwsh: |
         git clone https://github.com/Microsoft/vcpkg.git $(VCPKG_DIR)
@@ -91,6 +113,7 @@ stages:
         Remove-Item $(VCPKG_DIR)\downloads  -Force -Recurse -ErrorAction SilentlyContinue
         Remove-Item $(VCPKG_DIR)\buildtrees -Force -Recurse -ErrorAction SilentlyContinue
       displayName: Prepare vcpkg
+      condition: ne(variables.CACHE_VCPKG_RESTORED, 'true')
 
     - script: |
         :: Load VS environment
@@ -402,12 +425,12 @@ stages:
     - checkout: self
       submodules: true
 
-      # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
-      # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
+    # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
+    # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
     - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler
       displayName: Install packages
 
-      # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
+    # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
     - bash: |
         wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
         sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
@@ -444,3 +467,230 @@ stages:
         ls -lah *
       displayName: Check targets
       workingDirectory: install
+
+
+# Marian is built in the same job where the regression tests are run to make sure that executables
+# is compiled and run on a machine with the same CPU architecture, which is required for
+# compilations with FBGEMM.
+- stage: Tests
+  jobs:
+
+  ######################################################################
+  - job: TestWindows
+    displayName: Windows CPU+FBGEMM
+
+    pool:
+      vmImage: windows-latest
+
+    steps:
+    # Due to multiple checkouts this will be commonly cloned into D:\a\1\s\marian-dev
+    - checkout: self
+      submodules: true
+
+    - pwsh: |
+        C:\msys64\usr\bin\wget.exe -nv $(MKL_URL) -O mkl.zip
+        Expand-Archive -Force mkl.zip $(MKL_DIR)
+      displayName: Download MKL
+
+    # Cache for vcpkg packages
+    - task: Cache@2
+      displayName: Cache vcpkg
+      inputs:
+        # Change the first value (v0) to another value to clear the cache
+        key: '"v0" | "vcpkg" | "$(VCPKG_COMMIT)" | "$(VCPKG_PACKAGES)" | "$(Agent.OS)"'
+        path: $(VCPKG_DIR)
+        cacheHitVar: CACHE_VCPKG_RESTORED
+
+    - pwsh: |
+        git clone https://github.com/Microsoft/vcpkg.git $(VCPKG_DIR)
+        cd $(VCPKG_DIR)
+        git checkout $(VCPKG_COMMIT)
+        pushd
+        .\bootstrap-vcpkg.bat -disableMetrics
+        popd
+        # Install packages
+        .\vcpkg.exe install --triplet x64-windows-static $(VCPKG_PACKAGES)
+        # Clean to make the cache smaller
+        Remove-Item $(VCPKG_DIR)\downloads  -Force -Recurse -ErrorAction SilentlyContinue
+        Remove-Item $(VCPKG_DIR)\buildtrees -Force -Recurse -ErrorAction SilentlyContinue
+      displayName: Prepare vcpkg
+      condition: ne(variables.CACHE_VCPKG_RESTORED, 'true')
+
+    - script: |
+        :: Load VS environment
+        call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
+        :: Create build directory
+        mkdir build
+        cd build
+        :: Run CMake
+        cmake .. -G Ninja ^
+          -DCMAKE_BUILD_TYPE="Slim" ^
+          -DCMAKE_C_COMPILER="cl.exe" ^
+          -DCMAKE_CXX_COMPILER="cl.exe" ^
+          -DCMAKE_MAKE_PROGRAM="ninja.exe" ^
+          -DCMAKE_TOOLCHAIN_FILE="$(VCPKG_DIR)\scripts\buildsystems\vcpkg.cmake" ^
+          -DVCPKG_TARGET_TRIPLET="x64-windows-static" ^
+          ^
+          -DCOMPILE_CPU="TRUE" ^
+          -DCOMPILE_CUDA="FALSE" ^
+          ^
+          -DUSE_FBGEMM="TRUE" ^
+          -DUSE_SENTENCEPIECE="TRUE" ^
+          -DUSE_STATIC_LIBS="TRUE"
+      displayName: Configure CMake
+      env:
+        # Set envvars so that CMake can find the installed packages
+        MKLROOT: $(MKL_DIR)
+      workingDirectory: marian-dev
+
+    - script: |
+        pwd
+        call "$(VS_PATH)/VC/Auxiliary/Build/vcvarsall.bat" x64
+        ninja
+      displayName: Compile
+      workingDirectory: marian-dev/build
+
+    ## Publish an artifact with Marian executables. Disabled because it is not portable due to
+    ## fbgemm and not needed at the moment
+    #- pwsh: Compress-Archive -Path marian*.exe spm_*.exe -DestinationPath $(Build.SourcesDirectory)/marian-dev-ci_windows-x64_cpu.zip
+      #displayName: Prepare binaries
+      #workingDirectory: marian-dev/build
+    #- publish: marian-dev-ci_windows-x64_cpu.zip
+      #artifact: marian-dev-ci_windows-x64_cpu
+      #displayName: Publish binaries
+
+    # Running regression tests
+    # Due to multiple checkouts this will be commonly cloned into D:\a\1\s\marian-prod-tests
+    - checkout: git://Marian/marian-prod-tests
+
+    # Collect details about the CPU architecture, etc.
+    # Because the outputs goes to *.log files, they will be also included in the artifact with test outputs.
+    - script: bash -c "cat /proc/cpuinfo | tee cpuinfo.log"
+      displayName: Machine statistics
+      workingDirectory: marian-prod-tests
+
+    - bash: |
+        cd models
+        bash download-models.sh
+        ls
+      displayName: Prepare tests
+      env:
+          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+      workingDirectory: marian-prod-tests
+
+    # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
+    # instead of '/', which often breaks the job
+    - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics'
+      continueOnError: true
+      displayName: Run tests
+      workingDirectory: marian-prod-tests
+
+    - bash: |
+        # cut -c3- removes './' from paths making 7z to retain the directory structure
+        find . -type f \( -name "*.log" -o -name "*.out" -o -name "*.diff" \) -print | cut -c3- > listing.txt
+        echo "Creating an artifact with the following files:"
+        cat listing.txt
+        7z a -tzip ../regression-tests-ci_windows-x64_cpu.zip @listing.txt
+      displayName: Collect outputs
+      workingDirectory: marian-prod-tests
+
+    - publish: regression-tests-ci_windows-x64_cpu.zip
+      artifact: regression-tests-ci_windows-x64_cpu
+      displayName: Publish outputs
+
+  ######################################################################
+  - job: TestLinux
+    displayName: Linux CPU+FBGEMM
+
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+    # Due to multiple checkouts this will be commonly cloned into D:\a\1\s\marian-dev
+    - checkout: self
+      submodules: true
+
+    # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
+    # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
+    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-8 g++-8
+      displayName: Install packages
+
+    # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
+    - bash: |
+        wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
+        sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
+      displayName: Install MKL
+
+    # Note that COMPILE_CPU=on and USE_SENTENCEPUECE=on are set explicitly to make them detectable
+    # by the regression tests framework (not sure if it is still required)
+    - bash: |
+        mkdir -p install
+        mkdir -p build
+        cd build
+        CC=/usr/bin/gcc-8 CXX=/usr/bin/g++-8 \
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=slim \
+          -DCOMPILE_CPU=on \
+          -DCOMPILE_CUDA=off \
+          -DUSE_FBGEMM=on \
+          -DUSE_SENTENCEPIECE=on \
+          -DUSE_STATIC_LIBS=on
+      displayName: Configure CMake
+      workingDirectory: marian-dev
+
+    - bash: make -j3
+      displayName: Compile
+      workingDirectory: marian-dev/build
+
+    ## Publish an artifact with Marian executables. Disabled because it is not portable due to
+    ## fbgemm and not needed at the moment
+    #- bash: zip $(Build.SourcesDirectory)/marian-dev-ci_linux-x64-static_cpu.zip marian* spm_*
+      #displayName: Prepare binaries
+      #workingDirectory: marian-dev/build
+    #- publish: marian-dev-ci_linux-x64-static_cpu.zip
+      #artifact: marian-dev-ci_linux-x64-static_cpu
+      #displayName: Publish binaries
+
+    # Running regression tests
+    # Due to multiple checkouts this will be commonly cloned into D:\a\1\s\marian-prod-tests
+    - checkout: git://Marian/marian-prod-tests
+
+    # Collect details about the CPU architecture, etc.
+    # Because the outputs goes to *.log files, they will be also included in the artifact with test outputs.
+    - bash: |
+        echo ">>> lscpu"
+        lscpu | tee lscpu.log
+        echo ">>> cpuinfo"
+        cat /proc/cpuinfo | tee cpuinfo.log
+        /usr/bin/gcc-8 --version | tee gcc.log
+      displayName: Machine statistics
+      workingDirectory: marian-prod-tests
+
+    - bash: |
+        cd models
+        bash download-models.sh
+        ls
+      displayName: Prepare tests
+      env:
+          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+      workingDirectory: marian-prod-tests
+
+    - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics'
+      continueOnError: true
+      displayName: Run tests
+      workingDirectory: marian-prod-tests
+
+    - bash: |
+        # cut -c3- removes './' from paths making 7z to retain the directory structure
+        find . -type f \( -name "*.log" -o -name "*.out" -o -name "*.diff" \) -print | cut -c3- > listing.txt
+        echo "Creating an artifact with the following files:"
+        cat listing.txt
+        7z a -tzip ../regression-tests-ci_linux-x64-static_cpu.zip @listing.txt
+      displayName: Collect outputs
+      workingDirectory: marian-prod-tests
+
+    - publish: regression-tests-ci_linux-x64-static_cpu.zip
+      artifact: regression-tests-ci_linux-x64-static_cpu
+      displayName: Publish outputs

@@ -983,15 +983,15 @@ Ptr<Options> ConfigParser::parseOptions(int argc, char** argv, bool doValidate) 
 
   auto buildInfo = get<std::string>("build-info");
   if(!buildInfo.empty() && buildInfo != "false") {
-#ifndef _MSC_VER // cmake build options are not available on MSVC based build.
+#ifdef BUILD_INFO_AVAILABLE // cmake build options are not available on MSVC based build.
     if(buildInfo == "all")
       std::cerr << cmakeBuildOptionsAdvanced() << std::endl;
     else
       std::cerr << cmakeBuildOptions() << std::endl;
     exit(0);
-#else // _MSC_VER
-    ABORT("build-info is not available on MSVC based build.");
-#endif // _MSC_VER
+#else // BUILD_INFO_AVAILABLE
+    ABORT("build-info is not available on MSVC based build unless compiled via CMake.");
+#endif // BUILD_INFO_AVAILABLE
   }
 
   // get paths to extra config files
