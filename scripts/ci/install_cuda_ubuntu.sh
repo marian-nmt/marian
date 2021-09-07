@@ -91,7 +91,7 @@ sudo add-apt-repository "deb ${REPO_URL} /"
 sudo apt-get update
 
 echo "Installing CUDA packages ${CUDA_PACKAGES}"
-sudo apt-get -y install ${CUDA_PACKAGES}
+sudo apt-get -y --allow-unauthenticated install ${CUDA_PACKAGES}
 
 if [[ $? -ne 0 ]]; then
     echo "CUDA Installation Error."
