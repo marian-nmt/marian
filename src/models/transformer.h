@@ -295,7 +295,8 @@ public:
       kh = cache_[prefix + "_keys"];                                                   // then return cached tensor
     }
     else {
-      auto Wk = graph_->param(prefix + "_Wk", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
+      int dimKeys =  keys->shape()[-1]; // different than dimModel when using lemma and factors combined with concatenation
+      auto Wk = graph_->param(prefix + "_Wk", {dimKeys, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
       auto bk = graph_->param(prefix + "_bk", {1,        dimModel}, inits::zeros());
 
       kh = affine(keys, Wk, bk);     // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
@@ -309,7 +310,8 @@ public:
         && cache_[prefix + "_values"]->shape().elements() == values->shape().elements()) {
       vh = cache_[prefix + "_values"];
     } else {
-      auto Wv = graph_->param(prefix + "_Wv", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
+      int dimValues = values->shape()[-1]; // different than dimModel when using lemma and factors combined with concatenation
+      auto Wv = graph_->param(prefix + "_Wv", {dimValues, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
       auto bv = graph_->param(prefix + "_bv", {1,        dimModel}, inits::zeros());
 
       vh = affine(values, Wv, bv); // [-4: batch size, -3: num heads, -2: max length, -1: split vector dim]
@@ -661,7 +663,9 @@ private:
         "vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_], // for factored outputs
         "output-omit-bias", opt<bool>("output-omit-bias", false),
         "output-approx-knn", opt<std::vector<int>>("output-approx-knn", {}),
-        "lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
+        "lemma-dim-emb", opt<int>("lemma-dim-emb", 0), // for factored outputs
+        "lemma-dependency", opt<std::string>("lemma-dependency", ""), // for factored outputs
+        "factors-combine", opt<std::string>("factors-combine", "")); // for factored outputs
 
     if(opt<bool>("tied-embeddings") || opt<bool>("tied-embeddings-all"))
       outputFactory.tieTransposed(opt<bool>("tied-embeddings-all") || opt<bool>("tied-embeddings-src") ? "Wemb" : prefix_ + "_Wemb");

@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Expresion graph documentation (#788)
 - Graph operators documentation (#801)
 - Remove unused variable from expression graph
+- Factor groups and concatenation: doc/factors.md
 
 ## [1.10.0] - 2021-02-06
 

@@ -49,12 +49,13 @@ public:
   virtual size_t lemmaSize() const override;
 
   CSRData csr_rows(const Words& words) const; // sparse matrix for summing up factors from the concatenated embedding matrix for each word
-
+  void lemmaAndFactorsIndexes(const Words& words, std::vector<IndexType>& lemmaIndices, std::vector<float>& factorIndices) const;
 #ifdef FACTOR_FULL_EXPANSION
   const CSRData& getGlobalFactorMatrix() const { return globalFactorMatrix_; }   // [v,u] (sparse) -> =1 if u is factor of v  --only used in getLogits()
 #endif
   size_t getNumGroups() const { return groupRanges_.size(); }
-  std::pair<size_t, size_t> getGroupRange(size_t g)    const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
+  std::pair<size_t, size_t> getGroupRange(size_t g) const { return groupRanges_[g]; }   // [g] -> (u_begin, u_end)
+  size_t getTotalFactorCount() const;
 #ifdef FACTOR_FULL_EXPANSION
   const std::vector<float>& getGapLogMask() const { return gapLogMask_; } // [v] -inf if v is a gap entry, else 0
 #endif
@@ -79,15 +80,6 @@ public:
   std::string word2string(Word word) const;
   Word string2word(const std::string& w) const;
   bool tryGetFactor(const std::string& factorGroupName, size_t& groupIndex, size_t& factorIndex) const; // note: factorGroupName given without separator
-
-  // some hard-coded constants from FactoredSegmenter
-  // The naming mimics the names in FactoredSegmenter.cs, and therefore intentionally does not follow Marian conventions.
-  // @TODO: We have more hard-coded constants throughout the code. Move them all here.
-  // @TODO: figure out how to do this with static const*/constexpr
-#define FactoredVocab_INLINE_FIX_WHAT_serialized "is"
-#define FactoredVocab_FIX_SRC_ID_TAG             "<IOPEN>"
-#define FactoredVocab_FIX_TGT_ID_TAG             "<IDELIM>"
-#define FactoredVocab_FIX_END_ID_TAG             "<ICLOSE>"
 
 private:
   void constructGroupInfoFromFactorVocab();

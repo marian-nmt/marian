@@ -663,6 +663,44 @@ std::string FactoredVocab::surfaceForm(const Words& sentence) const /*override f
   return res;
 }
 
+/**
+ * Auxiliary function that return the total number of factors (no lemmas) in a factored vocabulary.
+ * @return number of factors
+ */
+size_t FactoredVocab::getTotalFactorCount() const {
+  return factorVocabSize() - groupRanges_[0].second;
+}
+
+/**
+ * Decodes the indexes of lemma and factor for each word and outputs that information separately.
+ * It will return two data structures that contain separate information regarding lemmas and factors indexes
+ * by receiving a list with the word indexes of a batch.
+ * @param[in] words           vector of words
+ * @param[out] lemmaIndices   lemma index for each word
+ * @param[out] factorIndices  factor usage information for each word (1 if the factor is used 0 if not)
+ */
+void FactoredVocab::lemmaAndFactorsIndexes(const Words& words, std::vector<IndexType>& lemmaIndices, std::vector<float>& factorIndices) const {
+  lemmaIndices.reserve(words.size());
+  factorIndices.reserve(words.size() * getTotalFactorCount());
+
+  auto numGroups = getNumGroups();
+  std::vector<size_t> lemmaAndFactorIndices;
+
+  for (auto &word : words) {
+    if (vocab_.contains(word.toWordIndex())) { // skip invalid combinations in the space (can only happen during initialization)  --@TODO: add a check?
+      word2factors(word, lemmaAndFactorIndices);
+      lemmaIndices.push_back((IndexType) lemmaAndFactorIndices[0]); // save the lemma vocabulary index
+      for (size_t g = 1; g < numGroups; g++) { // loop over the different factors group
+        auto factorIndex = lemmaAndFactorIndices[g]; // get the vocabulary index of the factor of group g
+        ABORT_IF(factorIndex == FACTOR_NOT_SPECIFIED, "Attempted to embed a word with a factor not specified");
+        for (int i = 0; i < factorShape_[g] - 1; i++) { // loop over all factors in group g
+          factorIndices.push_back((float) (factorIndex == i)); // fill the factor indexes array with '0' if the factor is not used in a given word, '1' if it is
+        }
+      }
+    }
+  }
+}
+
 // create a CSR matrix M[V,U] from words[] with M[v,u] = 1 if factor u is a factor of word v
 // This is used to form the embedding of a multi-factor token.
 // That embedding is a sum of the embeddings of the individual factors.

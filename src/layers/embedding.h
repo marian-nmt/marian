@@ -12,8 +12,10 @@ class FactoredVocab;
 // EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
+  Expr FactorEmbMatrix_; // Factors embedding matrix if combining lemma and factors embeddings with concatenation
   Ptr<FactoredVocab> factoredVocab_;
   Expr multiRows(const Words& data, float dropProb) const;
+  Expr embedWithConcat(const Words& data) const;
   bool inference_{false};
 
 public:

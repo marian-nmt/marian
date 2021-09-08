@@ -318,7 +318,9 @@ public:
       }
       last("vocab", opt<std::vector<std::string>>("vocabs")[batchIndex_]); // for factored outputs
       last("lemma-dim-emb", opt<int>("lemma-dim-emb", 0)); // for factored outputs
-      
+      last("lemma-dependency", opt<std::string>("lemma-dependency", "")); // for factored outputs
+      last("factors-combine", opt<std::string>("factors-combine", "")); // for factored outputs
+
       last("output-omit-bias", opt<bool>("output-omit-bias", false)); 
 
       // assemble layers into MLP and apply to embeddings, decoder context and

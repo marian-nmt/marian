@@ -116,6 +116,21 @@ void Config::initialize(ConfigParser const& cp) {
     config_["tsv-fields"] = tsvFields;
   }
 
+  // ensures factors backward compatibility whilst keeping the more user friendly CLI
+  if(get<std::string>("lemma-dependency").empty()) {
+    YAML::Node config;
+    int lemmaDimEmb = get<int>("lemma-dim-emb");
+    if(lemmaDimEmb > 0) {
+      config_["lemma-dependency"] = "re-embedding";
+    } else if(lemmaDimEmb == -1) {
+      config_["lemma-dependency"] = "lemma-dependent-bias";
+    } else if(lemmaDimEmb == -2) {
+      config_["lemma-dependency"] = "soft-transformer-layer";
+    } else if(lemmaDimEmb == -3) {
+      config_["lemma-dependency"] = "hard-transformer-layer";
+    }
+  }
+
   // echo full configuration
   log();
 

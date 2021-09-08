@@ -62,6 +62,9 @@ EncoderDecoder::EncoderDecoder(Ptr<ExpressionGraph> graph, Ptr<Options> options)
   modelFeatures_.insert("ulr-dim-emb");
   modelFeatures_.insert("lemma-dim-emb");
   modelFeatures_.insert("output-omit-bias");
+  modelFeatures_.insert("lemma-dependency");
+  modelFeatures_.insert("factors-combine");
+  modelFeatures_.insert("factors-dim-emb");
 }
 
 std::vector<Ptr<EncoderBase>>& EncoderDecoder::getEncoders() {

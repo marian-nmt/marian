@@ -139,6 +139,9 @@ public:
     modelFeatures_.insert("ulr-trainable-transformation");
     modelFeatures_.insert("ulr-dim-emb");
     modelFeatures_.insert("lemma-dim-emb");
+    modelFeatures_.insert("lemma-dependency");
+    modelFeatures_.insert("factors-combine");
+    modelFeatures_.insert("factors-dim-emb");
   }
 
   virtual Ptr<Options> getOptions() override { return options_; }
