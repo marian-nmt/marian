@@ -6,6 +6,13 @@
 # 3. Choose "Existing Azure Pipelines YAML file" and specify path to this file
 # 4. "More actions" > "Save"
 
+parameters:
+# Allow skipping the entire 'Build' stage
+- name: runBuilds
+  displayName: Run builds? Uncheck to run regression tests only.
+  type: boolean
+  default: true
+
 # The pipeline CI trigger is set on the branch master only and PR trigger on a
 # (non-draft) pull request to any branch
 trigger:
@@ -45,6 +52,7 @@ stages:
 
   ######################################################################
   - job: BuildWindows
+    condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Windows
 
     strategy:
@@ -180,6 +188,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntu
+    condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Ubuntu
     timeoutInMinutes: 90
 
@@ -322,6 +331,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntuMinimal
+    condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Ubuntu CPU+GPU gcc-5 cmake 3.5
 
     pool:
@@ -368,6 +378,7 @@ stages:
 
   ######################################################################
   - job: BuildMacOS
+    condition: eq(${{ parameters.runBuilds }}, true)
     displayName: macOS CPU clang
 
     pool:
@@ -416,6 +427,7 @@ stages:
 
   ######################################################################
   - job: BuildInstall
+    condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Linux CPU library install
 
     pool:
