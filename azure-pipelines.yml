@@ -246,17 +246,7 @@ stages:
           examples: true
           static: true
         ################################################################
-        # Ubuntu 16.04 supports CUDA 8+
-        "16.04 CUDA 9.2 gcc-7":
-          image: ubuntu-16.04
-          boost: true
-          cpu: true
-          gpu: true
-          cuda: 9.2
-          gcc: 7
-          unit_tests: true
-          examples: true
-          static: false
+        # Ubuntu 16.04 is no longer available on Azure-hosted machines
 
     pool:
       vmImage: $(image)
@@ -332,18 +322,16 @@ stages:
   ######################################################################
   - job: BuildUbuntuMinimal
     condition: eq(${{ parameters.runBuilds }}, true)
-    displayName: Ubuntu CPU+GPU gcc-5 cmake 3.5
+    displayName: Ubuntu CPU+GPU gcc-7 cmake 3.5
 
     pool:
-      vmImage: ubuntu-16.04
+      vmImage: ubuntu-18.04
 
     steps:
     - checkout: self
       submodules: true
 
     # The script simplifies installation of different versions of CUDA.
-    # Ubuntu 16.04 on Azure-hosted VMs have GCC 5.5 as gcc-5, which is not compatible with CUDA 9.
-    # Downgrading to GCC 5.4 (the default gcc on Ubuntu 16.04) would be more work...
     - bash: ./scripts/ci/install_cuda_ubuntu.sh "10.0"
       displayName: Install CUDA
 
@@ -356,10 +344,10 @@ stages:
 
     # GCC 5 is the minimum version supported
     - bash: |
-        /usr/bin/gcc-5 --version
+        /usr/bin/gcc-7 --version
         mkdir -p build
         cd build
-        CC=/usr/bin/gcc-5 CXX=/usr/bin/g++-5 CUDAHOSTCXX=/usr/bin/g++-5 \
+        CC=/usr/bin/gcc-7 CXX=/usr/bin/g++-7 CUDAHOSTCXX=/usr/bin/g++-7 \
         ../cmake-3.5.1-Linux-x86_64/bin/cmake .. \
           -DCOMPILE_CPU=on \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0
@@ -592,7 +580,7 @@ stages:
 
     # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
     # instead of '/', which often breaks the job
-    - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics'
+    - bash: MARIAN=../marian-dev/build TIMEOUT=10m bash ./run_mrt.sh '#cpu' '#basics' '#devops'
       continueOnError: true
       displayName: Run tests
       workingDirectory: marian-prod-tests
@@ -689,7 +677,7 @@ stages:
           AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
       workingDirectory: marian-prod-tests
 
-    - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics'
+    - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics' '#devops'
       continueOnError: true
       displayName: Run tests
       workingDirectory: marian-prod-tests
