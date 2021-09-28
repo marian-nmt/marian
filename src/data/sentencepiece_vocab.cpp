@@ -236,18 +236,20 @@ public:
     return words;
   }
 
-  std::string decode(const Words& sentence, bool /*ignoreEOS*/) const override {
+  std::string decode(const Words& sentence, bool ignoreEOS) const override {
     std::string line;
     if(keepEncoded_) {  // i.e. keep the sentence segmented into subword units
       for(const Word& id : sentence)
-        line += (*this)[id] + " ";
+        if(!ignoreEOS || id != getEosId())
+          line += (*this)[id] + " ";
       line.pop_back();  // trim the trailing whitespace
     } else {
       // convert vector of Word to vector of int
       std::vector<int> spmSentence;
       spmSentence.reserve(sentence.size());
       for(auto&& word : sentence)
-        spmSentence.push_back(word.toWordIndex());
+        if(!ignoreEOS || word != getEosId())
+          spmSentence.push_back(word.toWordIndex());
       spm_->Decode(spmSentence, &line);
     }
     return line;
