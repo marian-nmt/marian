@@ -400,7 +400,7 @@ public:
                           opt<int>("transformer-heads"), /*cache=*/false);
   }
 
-  Expr LayerFFN(std::string prefix, Expr input) const {
+  Expr LayerFFN(std::string prefix, Expr input, bool isDecoder=false) const {
     int dimModel = input->shape()[-1];
 
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
@@ -408,13 +408,22 @@ public:
     auto output = preProcess(prefix + "_ffn", opsPre, input, dropProb);
 
     auto actName = opt<std::string>("transformer-ffn-activation");
+
     int dimFfn = opt<int>("transformer-dim-ffn");
     int depthFfn = opt<int>("transformer-ffn-depth");
-    float ffnDropProb
-      = inference_ ? 0 : opt<float>("transformer-dropout-ffn");
-
+    if(isDecoder) {
+      int decDimFfn = opt<int>("transformer-decoder-dim-ffn", 0);
+      if(decDimFfn != 0)
+        dimFfn = decDimFfn;
+      
+      int decDepthFfn = opt<int>("transformer-decoder-ffn-depth", 0);
+      if(decDepthFfn != 0)
+        depthFfn = decDepthFfn;      
+    }
+    
     ABORT_IF(depthFfn < 1, "Filter depth {} is smaller than 1", depthFfn);
-
+    
+    float ffnDropProb = inference_ ? 0 : opt<float>("transformer-dropout-ffn");
     auto initFn = inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f);
 
     // the stack of FF layers
@@ -861,7 +870,7 @@ public:
       // remember decoder state
       decoderStates.push_back(decoderState);
 
-      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+      query = LayerFFN(prefix_ + "_l" + layerNo + "_ffn", query, /*isDecoder=*/true); // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
 
       checkpoint(query);
     }

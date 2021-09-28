@@ -255,10 +255,16 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Pool encoder states instead of using cross attention (selects first encoder state, best used with special token)");
   cli.add<int>("--transformer-dim-ffn",
       "Size of position-wise feed-forward network (transformer)",
-      2048);
+      2048);  
+  cli.add<int>("--transformer-decoder-dim-ffn",
+      "Size of position-wise feed-forward network in decoder (transformer). Uses --transformer-dim-ffn if 0.",
+      0);
   cli.add<int>("--transformer-ffn-depth",
       "Depth of filters (transformer)",
       2);
+  cli.add<int>("--transformer-decoder-ffn-depth",
+      "Depth of filters in decoder (transformer). Uses --transformer-ffn-depth if 0",
+      0);
   cli.add<std::string>("--transformer-ffn-activation",
       "Activation between filters: swish or relu (transformer)",
       "swish");
