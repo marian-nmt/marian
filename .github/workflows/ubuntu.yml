@@ -50,14 +50,7 @@ jobs:
             unit_tests: false
             examples: false
           # Ubuntu 16.04 supports CUDA 8+
-          - name: "Ubuntu 16.04 CUDA 9.2 gcc-7"
-            os: ubuntu-16.04
-            cuda: "9.2"
-            gcc: 7
-            cpu: true
-            gpu: true
-            unit_tests: true
-            examples: true
+          # But it is no longer available in GitHub workflows
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
