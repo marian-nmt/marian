@@ -94,7 +94,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       // For factored decoding, the word is built over multiple decoding steps,
       // starting with the lemma, then adding factors one by one.
       if (factorGroup == 0) {
-        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap((int) prevBeamHypIdx, (int) currentBatchIdx, wordIdx) : wordIdx); // @BUGBUG: reverseMap is only correct if factoredVocab_->getGroupRange(0).first == 0
+        word = factoredVocab->lemma2Word(shortlist ? shortlist->reverseMap((int) prevBeamHypIdx, (int) currentBatchIdx, wordIdx) : wordIdx);
         std::vector<size_t> factorIndices; factoredVocab->word2factors(word, factorIndices);
         //LOG(info, "{} + {} ({}) -> {} -> {}",
         //    factoredVocab->decode(prevHyp->tracebackWords()),
@@ -115,7 +115,7 @@ Beams BeamSearch::toHyps(const std::vector<unsigned int>& nBestKeys, // [current
       }
     }
     else if (shortlist)
-      word = Word::fromWordIndex(shortlist->reverseMap((int) prevBeamHypIdx, (int) origBatchIdx, wordIdx));
+      word = Word::fromWordIndex(shortlist->reverseMap((int) prevBeamHypIdx, (int) currentBatchIdx, wordIdx));
     else
       word = Word::fromWordIndex(wordIdx);
 
@@ -330,6 +330,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
   auto prevBatchIdxMap = batchIdxMap; // [origBatchIdx -> currentBatchIdx] but shifted by one time step
   // main loop over output time steps
   for (size_t t = 0; ; t++) {
+    //std::cerr << "\nstep=" << t << std::endl;
     ABORT_IF(origDimBatch != beams.size(), "Lost a batch entry??");
     // determine beam size for next output time step, as max over still-active sentences
     // E.g. if all batch entries are down from beam 5 to no more than 4 surviving hyps, then
