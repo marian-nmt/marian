@@ -106,24 +106,24 @@ using Weak = std::weak_ptr<T>;
 /** @brief Creates shared_ptr of any type, passes all arguments to any available
  * constructor */
 template <class T, typename... Args>
-Ptr<T> New(Args&&... args) {
-  return Ptr<T>(new T(std::forward<Args>(args)...));
+inline Ptr<T> New(Args&&... args) {
+  return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
 template <class T>
-Ptr<T> New(Ptr<T> p) {
+inline Ptr<T> New(Ptr<T> p) {
   return Ptr<T>(p);
 }
 
 /** @brief Creates InstrusivePtr of any type, passes all arguments to any available
  * constructor */
 template <class T, typename... Args>
-IPtr<T> INew(Args&&... args) {
+inline IPtr<T> INew(Args&&... args) {
   return IPtr<T>(new T(std::forward<Args>(args)...));
 }
 
 template <class T>
-IPtr<T> INew(Ptr<T> p) {
+inline IPtr<T> INew(Ptr<T> p) {
   return IPtr<T>(p);
 }
 

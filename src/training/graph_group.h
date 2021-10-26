@@ -60,21 +60,20 @@ protected:
   double typicalTrgBatchWords_{0}; // for dynamic batch sizing: typical batch size in words
   bool mbRoundUp_{true}; // round up batches for more efficient training but can make batch size less stable, disable with --mini-batch-round-up=false
 
-  bool costScale_{false};
-  float costScaleFactor_{1.f}; // @TODO, add current costScaleFactor_ to trainingState for serialization
-  size_t costScaleFreq_{2000};
-  float costScaleMultiplier_{2.f};
-  float costScaleNanTolerance_{0.f};
-  size_t costScaleNanRange_{1};
-  float costScaleFactorMinimum_{1.f}; // @TODO make this configureable
+  bool costScaling_{false};
+  float costScalingFactor_{1.f}; // @TODO, add current costScalingFactor_ to trainingState for serialization
+  size_t costScalingFreq_{2000};
+  float costScalingMultiplier_{2.f};
+  float costScalingFactorMinimum_{1.f};
+
   size_t noNanSeen_{0}; // @TODO, add current noNanSeen_ to trainingState for serialization
   size_t nanSeen_{0};
+
+  bool checkGradientNan_{false};
 
   bool dynamicGradientScaling_{false};
   float dynamicGradientScalingFactor_{2.f};
   bool dynamicGradientScalingUseLogs_{false};
-
-  bool checkGradientNan_{false};
 
   // determines the number of input streams (i.e. input files or fields in the TSV input) that need
   // to be included in the batch, i.e. without alignments and weights

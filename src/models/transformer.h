@@ -147,8 +147,7 @@ public:
 
     int dimDepth = dimModel / dimHeads;
 
-    auto output
-        = reshape(input, {dimBatch * dimBeam, dimSteps, dimHeads, dimDepth});
+    auto output = reshape(input, {dimBatch * dimBeam, dimSteps, dimHeads, dimDepth});
 
     return transpose(output, {0, 2, 1, 3}); // [dimBatch*dimBeam, dimHeads, dimSteps, dimDepth]
   }
@@ -361,9 +360,9 @@ public:
 
   Expr LayerAttention(std::string prefix,
                       Expr input,         // [-4: beam depth, -3: batch size, -2: max length, -1: vector dim]
-                      const Expr& keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
-                      const Expr& values, // ...?
-                      const Expr& mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
+                      Expr keys,   // [-4: beam depth=1, -3: batch size, -2: max length, -1: vector dim]
+                      Expr values, // ...?
+                      Expr mask,   // [-4: batch size, -3: num heads broadcast=1, -2: max length broadcast=1, -1: max length]
                       int dimHeads,
                       bool cache = false,
                       bool saveAttentionWeights = false) {
@@ -372,6 +371,12 @@ public:
     float dropProb = inference_ ? 0 : opt<float>("transformer-dropout");
     auto opsPre = opt<std::string>("transformer-preprocess");
     auto output = preProcess(prefix + "_Wo", opsPre, input, dropProb);
+
+    // fixes missing norm for keys and values in self-attention with pre-norm
+    if(input == keys)
+       keys = output;
+    if(input == values)
+       values = output;
 
     // multi-head self-attention over previous input
     output = MultiHead(prefix, dimModel, dimHeads, output, keys, values, mask, cache, saveAttentionWeights);

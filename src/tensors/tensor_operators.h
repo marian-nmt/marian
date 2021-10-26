@@ -41,6 +41,25 @@ DISPATCH2(CopyCast, marian::Tensor, const marian::Tensor);
 DISPATCH2(AddCast, marian::Tensor, const marian::Tensor);
 DISPATCH4(IsNaN, const Tensor, Ptr<Allocator>, bool&, bool&);
 
+#ifdef CUDA_FOUND
+namespace gpu {
+bool SanitizeGradient(marian::Tensor in, Ptr<Allocator> allocator, bool pruneNaN, bool clipInf);
+}
+#endif
+
+namespace cpu {
+bool SanitizeGradient(marian::Tensor in, Ptr<Allocator> allocator, bool pruneNaN, bool clipInf);
+}
+
+static inline bool SanitizeGradient(marian::Tensor in, Ptr<Allocator> allocator, bool pruneNaN, bool clipInf) {
+#ifdef CUDA_FOUND
+  if(in->getBackend()->getDeviceId().type == DeviceType::gpu)
+    return gpu::SanitizeGradient(in, allocator, pruneNaN, clipInf);
+  else
+#endif
+    return cpu::SanitizeGradient(in, allocator, pruneNaN, clipInf);
+}
+
 template <class Functor, class... Tensors>
 void Element(Functor functor, marian::Tensor out, Tensors... tensors) {
 #ifdef CUDA_FOUND

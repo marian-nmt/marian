@@ -143,13 +143,13 @@ void AsyncGraphGroup::execute(Ptr<data::Batch> batch) {
     thread_local Tensor accGradients;
     thread_local Ptr<TensorAllocator> accAlloc;
 
-    ABORT_IF(costScale_ ,"Cost-scaling not implemented for AsyncSGD");
+    ABORT_IF(costScaling_ ,"Cost-scaling not implemented for AsyncSGD");
 
     auto graph = graphs_[tid];
     Ptr<RationalLoss> dynamicLoss = models_[tid]->build(graph, batch);
-    if(costScaleFactor_ != 1.f) {
+    if(costScalingFactor_ != 1.f) {
       // it's ok to go out of scope, this will still insert the new top node into the graph
-      auto costNode = dynamicLoss->loss() * costScaleFactor_;
+      auto costNode = dynamicLoss->loss() * costScalingFactor_;
     }
 
     if(t % optimizerDelay_ == 0) {
