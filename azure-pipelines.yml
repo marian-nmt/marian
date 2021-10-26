@@ -370,7 +370,7 @@ stages:
     displayName: macOS CPU clang
 
     pool:
-      vmImage: macos-latest
+      vmImage: macos-10.15
 
     steps:
     - checkout: self
