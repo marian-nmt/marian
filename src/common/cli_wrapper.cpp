@@ -132,8 +132,14 @@ void CLIWrapper::parseAliases() {
   if(aliases_.empty())
     return;
 
+  // Find the set of values allowed for each alias option.
+  // Later we will check and abort if an alias option has an unknown value.
+  std::unordered_map<std::string, std::unordered_set<std::string>> allowedAliasValues;
+  for(auto &&alias : aliases_)
+    allowedAliasValues[alias.key].insert(alias.value);
+
   // Iterate all known aliases, each alias has a key, value, and config
-  for(const auto &alias : aliases_) {
+  for(auto &&alias : aliases_) {
     // Check if the alias option exists in the config (it may come from command line or a config
     // file)
     if(config_[alias.key]) {
@@ -145,6 +151,15 @@ void CLIWrapper::parseAliases() {
       bool expand = false;
       if(config_[alias.key].IsSequence()) {
         auto aliasOpts = config_[alias.key].as<std::vector<std::string>>();
+        // Abort if an alias option has an unknown value, i.e. value that has not been defined
+        // in common/aliases.cpp
+        for(auto &&aliasOpt : aliasOpts)
+          if(allowedAliasValues[alias.key].count(aliasOpt) == 0) {
+            std::vector<std::string> allowedOpts(allowedAliasValues[alias.key].begin(),
+                                                 allowedAliasValues[alias.key].end());
+            ABORT("Unknown value '" + aliasOpt + "' for alias option --" + alias.key + ". "
+                  "Allowed values: " + utils::join(allowedOpts, ", "));
+          }
         expand = std::find(aliasOpts.begin(), aliasOpts.end(), alias.value) != aliasOpts.end();
       } else {
         expand = config_[alias.key].as<std::string>() == alias.value;

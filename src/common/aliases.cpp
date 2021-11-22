@@ -19,6 +19,8 @@ namespace marian {
  * As aliases are key-value pairs by default, values are compared as std::string. 
  * If the command line option corresponding to the alias is a vector, the alias 
  * will be triggered if the requested value exists in that vector at least once.
+ * By design if an option value that is not defined for that alias option below
+ * is used, the CLI parser will abort with 'unknown value for alias' error.
  *
  * @see CLIWrapper::alias()
  *

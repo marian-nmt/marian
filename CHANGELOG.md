@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed loading binary models on architectures where `size_t` != `uint64_t`.
 - Missing float template specialisation for elem::Plus
 - Broken links to MNIST data sets
+- Enforce validation for the task alias in training mode.
 
 ### Changed
 - Optimize LSH for speed by treating is as a shortlist generator. No option changes in decoder
