@@ -1309,7 +1309,7 @@ __global__ void gSelect(T* out,
   }
 }
 
-template <typename T>
+template <bool add, typename T>
 __global__ void gInsert(T* out,
                         functional::Shape outShape,
                         const T* in,
@@ -1327,7 +1327,10 @@ __global__ void gInsert(T* out,
       int idxIndex = idxShape.bindex(dims); // broadcast index into indices tensor
       dims[axis] = (int)d_indices[idxIndex];    
       int outIndex = outShape.index(dims);
-      out[outIndex] += in[index]; // this is probably wrong, atomicAdd?
+      if(add)
+        out[outIndex] += in[index]; // this is probably wrong, atomicAdd?
+      else
+        out[outIndex] = in[index];     
     }
   }
 }
@@ -1349,21 +1352,21 @@ void Select(Tensor out,
 
   if(out->type() == Type::float32) {
     gSelect<<<blocks, threads>>>(out->data<float>(),
-                                out->shape(),
-                                in->data<float>(),
-                                in->shape(),
-                                axisGPU,
-                                indices->data<IndexType>(), 
-                                indices->shape());
+                                 out->shape(),
+                                 in->data<float>(),
+                                 in->shape(),
+                                 axisGPU,
+                                 indices->data<IndexType>(), 
+                                 indices->shape());
 #if COMPILE_FP16
   } else if (out->type() == Type::float16) {
     gSelect<<<blocks, threads>>>(out->data<half>(),
-                                out->shape(),
-                                in->data<half>(),
-                                in->shape(),
-                                axisGPU,
-                                indices->data<IndexType>(),
-                                indices->shape());
+                                 out->shape(),
+                                 in->data<half>(),
+                                 in->shape(),
+                                 axisGPU,
+                                 indices->data<IndexType>(),
+                                 indices->shape());
 #endif
   } else if(out->type() == Type::uint32) {
     gSelect<<<blocks, threads>>>(out->data<IndexType>(),
@@ -1378,6 +1381,7 @@ void Select(Tensor out,
   }
 }
 
+template <bool add>
 void Insert(Tensor out,
             const Tensor in,
             const Tensor indices,
@@ -1393,27 +1397,30 @@ void Insert(Tensor out,
   int axisGPU = axis + functional::Shape::size() - out->shape().size();
 
   if(out->type() == Type::float32) {
-    gInsert<<<blocks, threads>>>(out->data<float>(),
-                                out->shape(),
-                                in->data<float>(),
-                                in->shape(),
-                                axisGPU,
-                                indices->data<IndexType>(),
-                                indices->shape());
+    gInsert<add><<<blocks, threads>>>(out->data<float>(),
+                                               out->shape(),
+                                               in->data<float>(),
+                                               in->shape(),
+                                               axisGPU,
+                                               indices->data<IndexType>(),
+                                               indices->shape());
 #if COMPILE_FP16
   } else if (out->type() == Type::float16) {
-    gInsert<<<blocks, threads>>>(out->data<half>(),
-                                out->shape(),
-                                in->data<half>(),
-                                in->shape(),
-                                axisGPU,
-                                indices->data<IndexType>(),
-                                indices->shape());
+    gInsert<add><<<blocks, threads>>>(out->data<half>(),
+                                               out->shape(),
+                                               in->data<half>(),
+                                               in->shape(),
+                                               axisGPU,
+                                               indices->data<IndexType>(),
+                                               indices->shape());
 #endif
   } else {
     ABORT("Insert not implemented for type {}", out->type());
   }
 }
+
+template void Insert<true>(Tensor out, const Tensor in, const Tensor indices, int axis);
+template void Insert<false>(Tensor out, const Tensor in, const Tensor indices, int axis);
 
 template <typename T>
 __global__ void gGRUFastForward(T* out,

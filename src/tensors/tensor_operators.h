@@ -297,7 +297,28 @@ DISPATCH3(CopyCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
 DISPATCH3(PasteCols, marian::Tensor, const marian::Tensor, const marian::Tensor)
 
 DISPATCH4(Select, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
-DISPATCH4(Insert, marian::Tensor, const marian::Tensor, const marian::Tensor, int)
+
+#ifdef CUDA_FOUND
+namespace gpu {
+  template <bool add>
+  void Insert(Tensor out, const Tensor in, const Tensor indices, int axis);
+}
+#endif
+
+namespace cpu {
+  template <bool add>
+  void Insert(Tensor out, const Tensor in, const Tensor indices, int axis);
+}
+
+template <bool add>
+static inline void Insert(Tensor out, const Tensor in, const Tensor indices, int axis) {
+#ifdef CUDA_FOUND
+  if(out->getBackend()->getDeviceId().type == DeviceType::gpu)
+    gpu::Insert<add>(out, in, indices, axis);
+  else
+#endif
+    cpu::Insert<add>(out, in, indices, axis);
+}
 
 DISPATCH7(TopK, marian::Tensor, marian::Tensor, Ptr<Allocator>, const marian::Tensor, int, int, bool);
 

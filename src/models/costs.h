@@ -297,20 +297,30 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
 };
 
-// Gumbel-max noising for sampling during beam-search
-// Seems to work well enough with beam-size=1. Turn on
-// with --output-sampling during translation with marian-decoder
+// Gumbel-max noising for sampling during translation.
+// Produces accurate sampling with beam=1. Turn on
+// with --output-sampling [full] during translation
+// with marian-decoder for samnpling from the full
+// softmax distribution.
 class GumbelSoftmaxStep : public ILogProbStep {
 public:
   virtual ~GumbelSoftmaxStep() {}
-  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override {
-    state->setLogProbs(state->getLogProbs().applyUnaryFunctions(
-        [](Expr logits) {  // lemma gets gumbelled
-          return logsoftmax(logits + constant_like(logits, inits::gumbel()));
-        },
-        logsoftmax));  // factors don't
-    return state;
-  }
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
+};
+
+
+// Gumbel-max noising for top-k sampling during translation.
+// Produces accurate sampling with beam=1. Turn on
+// with --output-sampling topk [10] during translation
+// with marian-decoder for top-10 sampling.
+class TopkGumbelSoftmaxStep : public ILogProbStep {
+private:
+  int k_{1};
+
+public:
+  TopkGumbelSoftmaxStep(int k);
+  virtual ~TopkGumbelSoftmaxStep() {}
+  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
 };
 
 // class to wrap an IEncoderDecoder and a ILogProbStep that are executed in sequence,

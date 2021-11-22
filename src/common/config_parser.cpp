@@ -695,9 +695,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add<std::vector<float>>("--weights",
       "Scorer weights");
-  cli.add<bool>("--output-sampling",
-     "Noise output layer with gumbel noise",
-      false);
+  cli.add<std::vector<std::string>>("--output-sampling",
+     "Noise output layer with gumbel noise. Implicit default is 'full' for sampling from full distribution. "
+     " Also accepts 'topk num' (e.g. topk 100) for top-100 sampling.")
+     ->implicit_val("full");
   cli.add<std::vector<int>>("--output-approx-knn",
      "Use approximate knn search in output layer (currently only in transformer)")
      ->implicit_val("100 1024");
