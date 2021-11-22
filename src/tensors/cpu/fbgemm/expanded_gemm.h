@@ -292,7 +292,18 @@ private:
   size_t k_;
   bool transA_;
   bool transB_;
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-private-field"
+#endif
+
   Type elementType_;
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 
 public:
   FbgemmPacked8AffineNodeOp(Type elementType,
