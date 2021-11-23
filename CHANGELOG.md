@@ -28,10 +28,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add unit tests for binary files.
 - Fix compilation with OMP
 - Compute aligned memory sizes using exact sizing
-- Support for loading lexical shortlist from a binary blob 
+- Support for loading lexical shortlist from a binary blob
 - Integrate a shortlist converter (which can convert a text lexical shortlist to a binary shortlist) into marian-conv with --shortlist option
 
 ### Fixed
+- Add GCC11 support into FBGEMM
 - Added pragma to ignore unused-private-field error on elementType_ on macOS
 - Do not set guided alignments for case augmented data if vocab is not factored
 - Various fixes to enable LSH in Quicksand
