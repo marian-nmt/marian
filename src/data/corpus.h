@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 
+#include "3rd_party/threadpool.h"
 #include "common/definitions.h"
 #include "common/file_stream.h"
 #include "common/options.h"
@@ -20,6 +21,8 @@ class Corpus : public CorpusBase {
 private:
   std::vector<UPtr<io::TemporaryFile>> tempFiles_;
   std::vector<size_t> ids_;
+  
+  UPtr<ThreadPool> threadPool_; // thread pool for parallelized data reading
 
   // for shuffle-in-ram
   bool shuffleInRAM_{false};

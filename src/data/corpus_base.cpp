@@ -12,7 +12,24 @@ typedef std::vector<float> MaskBatch;
 typedef std::pair<WordBatch, MaskBatch> WordMask;
 typedef std::vector<WordMask> SentBatch;
 
-CorpusIterator::CorpusIterator() : pos_(-1), tup_(0) {}
+void SentenceTupleImpl::setWeights(const std::vector<float>& weights) {
+  if(weights.size() != 1) {  // this assumes a single sentence-level weight is always fine
+    ABORT_IF(empty(), "Source and target sequences should be added to a tuple before data weights");
+    auto numWeights = weights.size();
+    auto numTrgWords = back().size();
+    // word-level weights may or may not contain a weight for EOS tokens
+    if(numWeights != numTrgWords && numWeights != numTrgWords - 1)
+      LOG(warn,
+          "[warn] "
+          "Number of weights ({}) does not match the number of target words ({}) in line #{}",
+          numWeights,
+          numTrgWords,
+          id_);
+  }
+  weights_ = weights;
+}
+
+CorpusIterator::CorpusIterator() : pos_(-1) {}
 
 CorpusIterator::CorpusIterator(CorpusBase* corpus)
     : corpus_(corpus), pos_(0), tup_(corpus_->next()) {}
@@ -23,7 +40,7 @@ void CorpusIterator::increment() {
 }
 
 bool CorpusIterator::equal(CorpusIterator const& other) const {
-  return this->pos_ == other.pos_ || (this->tup_.empty() && other.tup_.empty());
+  return this->pos_ == other.pos_ || (!this->tup_.valid() && !other.tup_.valid());
 }
 
 const SentenceTuple& CorpusIterator::dereference() const {
@@ -390,7 +407,7 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate, size_t seed)
 
 void CorpusBase::addWordsToSentenceTuple(const std::string& line,
                                          size_t batchIndex,
-                                         SentenceTuple& tup) const {
+                                         SentenceTupleImpl& tup) const {
   // This turns a string in to a sequence of numerical word ids. Depending
   // on the vocabulary type, this can be non-trivial, e.g. when SentencePiece
   // is used.
@@ -411,7 +428,7 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
 }
 
 void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
-                                             SentenceTuple& tup) const {
+                                             SentenceTupleImpl& tup) const {
   ABORT_IF(rightLeft_,
            "Guided alignment and right-left model cannot be used "
            "together at the moment");
@@ -420,7 +437,7 @@ void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
   tup.setAlignment(align);
 }
 
-void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTuple& tup) const {
+void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTupleImpl& tup) const {
   auto elements = utils::split(line, " ");
 
   if(!elements.empty()) {
@@ -547,23 +564,6 @@ size_t CorpusBase::getNumberOfTSVInputFields(Ptr<Options> options) {
     return n;
   }
   return 0;
-}
-
-void SentenceTuple::setWeights(const std::vector<float>& weights) {
-  if(weights.size() != 1) {  // this assumes a single sentence-level weight is always fine
-    ABORT_IF(empty(), "Source and target sequences should be added to a tuple before data weights");
-    auto numWeights = weights.size();
-    auto numTrgWords = back().size();
-    // word-level weights may or may not contain a weight for EOS tokens
-    if(numWeights != numTrgWords && numWeights != numTrgWords - 1)
-      LOG(warn,
-          "[warn] "
-          "Number of weights ({}) does not match the number of target words ({}) in line #{}",
-          numWeights,
-          numTrgWords,
-          id_);
-  }
-  weights_ = weights;
 }
 
 // experimental: hide inline-fix source tokens from cross attention

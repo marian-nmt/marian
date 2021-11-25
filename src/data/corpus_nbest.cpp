@@ -43,7 +43,7 @@ SentenceTuple CorpusNBest::next() {
     pos_++;
 
     // fill up the sentence tuple with sentences from all input files
-    SentenceTuple tup(curId);
+    SentenceTupleImpl tup(curId);
 
     std::string line;
     lastLines_.resize(files_.size() - 1);
@@ -74,9 +74,10 @@ SentenceTuple CorpusNBest::next() {
     if(cont && std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
-      return tup;
+      return SentenceTuple(tup);
   }
-  return SentenceTuple(0);
+
+  return SentenceTuple();
 }
 
 void CorpusNBest::reset() {

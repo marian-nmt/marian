@@ -109,7 +109,7 @@ SentenceTuple CorpusSQLite::next() {
   while(select_->executeStep()) {
     // fill up the sentence tuple with sentences from all input files
     size_t curId = select_->getColumn(0).getInt();
-    SentenceTuple tup(curId);
+    SentenceTupleImpl tup(curId);
 
     for(size_t i = 0; i < files_.size(); ++i) {
       auto line = select_->getColumn((int)(i + 1));
@@ -126,9 +126,9 @@ SentenceTuple CorpusSQLite::next() {
     if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
          return words.size() > 0 && words.size() <= maxLength_;
        }))
-      return tup;
+      return SentenceTuple(tup);
   }
-  return SentenceTuple(0);
+  return SentenceTuple();
 }
 
 void CorpusSQLite::shuffle() {

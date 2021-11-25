@@ -883,6 +883,10 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   if(mode_ == cli::mode::training) {
     cli.add<bool>("--shuffle-in-ram",
         "Keep shuffled corpus in RAM, do not write to temp file");
+
+    cli.add<size_t>("--data-threads",
+        "Number of concurrent threads to use during data reading and processing", 1);
+
     // @TODO: Consider making the next two options options of the vocab instead, to make it more local in scope.
     cli.add<size_t>("--all-caps-every",
         "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
@@ -901,6 +905,9 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
     cli.add<bool>("--mini-batch-round-up",
         "Round up batch size to next power of 2 for more efficient training, but this can make batch size less stable. Disable with --mini-batch-round-up=false",
         true);
+  } else {
+    cli.add<size_t>("--data-threads",
+        "Number of concurrent threads to use during data reading and processing", 1);
   }
   // clang-format on
 }
