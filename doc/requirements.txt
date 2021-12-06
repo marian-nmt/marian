@@ -3,4 +3,5 @@ breathe==4.13.0
 exhale
 sphinx_rtd_theme
 recommonmark
+mistune<2.0.0
 m2r
