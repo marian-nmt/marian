@@ -31,11 +31,16 @@ GraphGroup::GraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
 
     if(vgc.size() > 0) dynamicGradientScalingFactor_  = std::stof(vgc[0]);
     if(vgc.size() > 1) dynamicGradientScalingUseLogs_ = vgc[1] == "log";
+    if(vgc.size() > 2) dynamicGradientScalingFadeout_ = std::stoul(vgc[2]);
 
     LOG_ONCE(info,
              "Re-scaling gradient to have average gradient norm if (log={}) gradient norm diverges from average by {} sigmas",
              dynamicGradientScalingUseLogs_,
              dynamicGradientScalingFactor_);
+    if(dynamicGradientScalingFadeout_ > 0)
+      LOG_ONCE(info,
+               "Dynamic gradient re-scaling will fade out linearly after {} updates",
+               dynamicGradientScalingFadeout_);
   }
 
   if(options_->get<bool>("check-gradient-nan")) {
@@ -229,11 +234,17 @@ float GraphGroup::computeNormalizationFactor(float gNorm, size_t updateTrgWords)
     auto deltaTransform    = gNormTransform - gNormAvgTransform; // compute the difference between the current transformer gradient norm and the running average.
     auto gNormStdTransform = std::sqrt(gNormVarTransform);       // compute STD for the running average of (log) gradient norms.
 
+    float fadeoutMultiplier = 1.f;
+    if(dynamicGradientScalingFadeout_ > 0ul) // fade out linearly after that many updates @TODO: allow units other than updates
+      fadeoutMultiplier = (float)std::max(dynamicGradientScalingFadeout_, scheduler_->numberOfBatches()) / (float)dynamicGradientScalingFadeout_;
+
+    float dynamicGradientScalingFactorWithFadeout = dynamicGradientScalingFactor_ * fadeoutMultiplier; // if fadeoutMultiplier increases dynamic gradient scaling becomes less and less likely to happen over time.
     // delta of (log) gradient norm vs (log) gradient norm average is larger than N standard deviations
     // hence rescale gradient using the average.
-    if(scheduler_->numberOfBatches() >= window && deltaTransform > dynamicGradientScalingFactor_ * gNormStdTransform) {
-      LOG(debug, "log gradient norms: {} :: {:.4f} - {:.4f} = {:.4f} > {:.4f} * {:.4f}",
-          dynamicGradientScalingUseLogs_, gNormTransform, gNormAvgTransform, deltaTransform, dynamicGradientScalingFactor_, gNormStdTransform);
+    if(scheduler_->numberOfBatches() >= window && deltaTransform > dynamicGradientScalingFactorWithFadeout * gNormStdTransform) {
+      if(isMainProcess())
+        LOG(debug, "log gradient norms: {} :: {:.4f} - {:.4f} = {:.4f} > {:.4f} * {:.4f} - scaling gradient by {:.4f}",
+            dynamicGradientScalingUseLogs_, gNormTransform, gNormAvgTransform, deltaTransform, dynamicGradientScalingFactorWithFadeout, gNormStdTransform, gNormAvg / gNorm);
 
       normalizationFactor *= gNorm / gNormAvg; // since we later do gradient / normalizationFactor this divides by norm and multiplies by the average, rescaling to the average. 
     }

@@ -74,6 +74,7 @@ protected:
   bool dynamicGradientScaling_{false};
   float dynamicGradientScalingFactor_{2.f};
   bool dynamicGradientScalingUseLogs_{false};
+  size_t dynamicGradientScalingFadeout_{0ul};
 
   // determines the number of input streams (i.e. input files or fields in the TSV input) that need
   // to be included in the batch, i.e. without alignments and weights
