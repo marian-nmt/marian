@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Integrate a shortlist converter (which can convert a text lexical shortlist to a binary shortlist) into marian-conv with --shortlist option
 
 ### Fixed
+- Fix AVX2 and AVX512 detection on MacOS
 - Add GCC11 support into FBGEMM
 - Added pragma to ignore unused-private-field error on elementType_ on macOS
 - Do not set guided alignments for case augmented data if vocab is not factored
