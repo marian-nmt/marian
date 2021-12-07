@@ -25,7 +25,7 @@ Marian.
 The central component in the graph is the `Chainable<Tensor>` object. This
 object provides the abstract interface necessary to interact with elements in
 the computation graph. The details of this interface can be found in
-[/src/graph/chainable.h](api/file_src_graph_chainable.h.html). Note that the
+[/src/graph/chainable.h](file_src_graph_chainable.h). Note that the
 template parameter corresponds to the underlying data structure, which in Marian
 is the `Tensor`. Therefore, for convenience, the type `Expr` is defined:
 
@@ -37,22 +37,22 @@ The implementation of the different operator components are divided across
 several files:
 
   - Expression Operator
-    - [/src/graph/expression_operators.h](api/file_src_graph_expression_operators.h.html)
-    - [/src/graph/expression_operators.cpp](api/file_src_graph_expression_operators.cpp.html)
+    - [/src/graph/expression_operators.h](file_src_graph_expression_operators.h)
+    - [/src/graph/expression_operators.cpp](file_src_graph_expression_operators.cpp)
   - Node Operator
-    - [/src/graph/node_operators_unary.h](api/file_src_graph_node_operators_unary.h.html)
-    - [/src/graph/node_operators_binary.h](api/file_src_graph_node_operators_binary.h.html)
-    - [/src/graph/node_operators_tuple.h](api/file_src_graph_node_operators_tuple.h.html)
+    - [/src/graph/node_operators_unary.h](file_src_graph_node_operators_unary.h)
+    - [/src/graph/node_operators_binary.h](file_src_graph_node_operators_binary.h)
+    - [/src/graph/node_operators_tuple.h](file_src_graph_node_operators_tuple.h)
   - Functional Operator
-    - [/src/functional/operators.h](api/file_src_functional_operators.h.html)
+    - [/src/functional/operators.h](file_src_functional_operators.h)
   - Tensor operation
-    - [/src/tensors/tensor_operators.h](api/file_src_tensors_tensor_operators.h.html)
-    - [/src/tensors/cpu/tensor_operators.cpp](api/file_src_tensors_cpu_tensor_operators.cpp.html)
-    - [/src/tensors/gpu/tensor_operators.cu](api/file_src_tensors_gpu_tensor_operators.cu.html)
+    - [/src/tensors/tensor_operators.h](file_src_tensors_tensor_operators.h)
+    - [/src/tensors/cpu/tensor_operators.cpp](file_src_tensors_cpu_tensor_operators.cpp)
+    - [/src/tensors/gpu/tensor_operators.cu](file_src_tensors_gpu_tensor_operators.cu)
   - Declared Specialization
-    - [/src/tensors/gpu/element.inc](api/program_listing_file_src_tensors_gpu_element.inc.html)
-    - [/src/tensors/gpu/add.inc](api/program_listing_file_src_tensors_gpu_add.inc.html)
-    - [/src/tensors/gpu/add_all.inc](api/program_listing_file_src_tensors_gpu_add_all.inc.html)
+    - [/src/tensors/gpu/element.inc](program_listing_file_src_tensors_gpu_element.inc)
+    - [/src/tensors/gpu/add.inc](program_listing_file_src_tensors_gpu_add.inc)
+    - [/src/tensors/gpu/add_all.inc](program_listing_file_src_tensors_gpu_add_all.inc)
 
 To understand how the different components are inter-linked, we'll look at each
 of them in turn.
@@ -197,7 +197,7 @@ this example code, these are optional and, when omitted, calling
 `NaryNodeOp({a})` would result in a node with the same shape and type as `a`.
 The `type()` method returns the friendly name for the node. Note that the
 [ONNX](https://onnx.ai)
-[interface](api/program_listing_file_src_onnx_expression_graph_onnx_serialization.cpp.html)
+[interface](program_listing_file_src_onnx_expression_graph_onnx_serialization.cpp)
 maintains a mapping of these friendly names to their ONNX representation. In the
 absence of any member variables the `hash()` and `equal()` methods can be
 omitted, and defer to their `NaryNodeOp` definition. However, if such variables
@@ -244,7 +244,7 @@ _1 = sin(_2)
 ```
 
 The placeholders `_1`, `_2` are enabled by code in
-[/src/functional](api/dir_src_functional.html) and interoperate with the
+[/src/functional](dir_src_functional) and interoperate with the
 functional operators. In the call to `Element`, `val_` is assigned to `_1` and
 `child(0)->val()` to `_2`. Therefore, this has the action of setting the
 elements of this node to the result obtained by applying `sin` to the elements
@@ -328,7 +328,7 @@ specialization required for each type. The current required types are:
   - half (see `cuda_fp16.h` in the CUDA Math API)
 
 Further details are available in
-[/src/common/types.h](api/file_src_common_types.h.html).
+[/src/common/types.h](file_src_common_types.h).
 
 Returning to the example of `sin(x)`, the specialization for `float` and
 `double` requires
@@ -355,12 +355,12 @@ struct Ops<double> {
 ```
 
 The remaining specializations can be seen in
-[/src/functional/operators.h](api/file_src_functional_operators.h.html). Note
+[/src/functional/operators.h](file_src_functional_operators.h). Note
 that the general template must produce a runtime abort.
 
 The final component of the functional operator is to call the macro that enables
 interoperability with the framework of
-[/src/functional](api/dir_src_functional.html). For a unary operator, this is
+[/src/functional](dir_src_functional). For a unary operator, this is
 the macro `UNARY`.
 
 ```cpp
@@ -392,7 +392,7 @@ representation.
 
 Furthermore, the OpenMPI and OpenMP libraries are employed for parallelisation.
 While macros provided in
-[/src/common/definitions.h](api/file_src_common_definitions.h.html) locally
+[/src/common/definitions.h](file_src_common_definitions.h) locally
 enable faster floating-point math in supported compilers.
 
 ```cpp
@@ -402,14 +402,14 @@ MARIAN_FFAST_MATH_END
 ```
 
 The usual caveats apply when enabling `fast_math`, and can be found in
-[/src/common/definitions.h](api/file_src_common_definitions.h.html)
+[/src/common/definitions.h](file_src_common_definitions.h)
 
 Tensor operators are declared in
-[/src/tensors/tensor_operators.h](api/file_src_tensors_tensor_operators.h.html),
+[/src/tensors/tensor_operators.h](file_src_tensors_tensor_operators.h),
 these are device-agnostic function that call the relevant device-specific
 implementation. The CPU- and GPU-specific implementation are defined in `cpu`
-namespace in [/src/tensors/cpu/](api/dir_src_tensors_cpu.html) and the `gpu`
-namespace [/src/tensors/gpu/](api/dir_src_tensors_gpu.html). Therefore a typical
+namespace in [/src/tensors/cpu/](dir_src_tensors_cpu) and the `gpu`
+namespace [/src/tensors/gpu/](dir_src_tensors_gpu). Therefore a typical
 operator defers to an implementation in the device-specific namespace.
 
 ```cpp
@@ -461,16 +461,16 @@ compilation:
 ```
 
 To fix these undefined references, we must explicitly add the specialization to
-the `.inc` files of [/src/tensors/gpu/](api/dir_src_tensors_gpu.html). Each
+the `.inc` files of [/src/tensors/gpu/](dir_src_tensors_gpu). Each
 `.inc` file is included at the end of its corresponding `.cu` file, ensuring
 that the specialization is compiled.
 
 The undefined references should be added to the `.inc` file that corresponds to
 the header file in which contains the declaration of the missing functions.
 
-The file [element.inc](api/file_src_tensors_gpu_element.inc.html) contains the
+The file [element.inc](file_src_tensors_gpu_element.inc) contains the
 specializations of the function defined in
-[element.h](api/file_src_tensors_gpu_element.h.html):
+[element.h](file_src_tensors_gpu_element.h):
 
 ```cpp
 // src/tensors/gpu/element.h
@@ -478,9 +478,9 @@ template <class Functor, class... Tensors>
 void Element(Functor functor, Tensor out, Tensors... tensors);
 ```
 
-Similarly, [add.inc](api/file_src_tensors_gpu_add.inc.html) contains the
+Similarly, [add.inc](file_src_tensors_gpu_add.inc) contains the
 specializations for functions matching either of the two signatures in
-[add.h](api/file_src_tensors_gpu_add.h.html):
+[add.h](file_src_tensors_gpu_add.h):
 
 ```cpp
 // src/tensors/gpu/add.h
@@ -491,8 +491,8 @@ template <class Functor, class AggFunctor, class... Tensors>
 void Aggregate(Functor functor, float initAgg, AggFunctor aggFunctor, float scale, marian::Tensor out, Tensors... tensors);
 ```
 
-Finally [add_all.inc](api/file_src_tensors_gpu_add_all.inc.html) contains the
-specializations for [add_all.h](api/file_src_tensors_gpu_add_all.h.html), which
+Finally [add_all.inc](file_src_tensors_gpu_add_all.inc) contains the
+specializations for [add_all.h](file_src_tensors_gpu_add_all.h), which
 are several versions of:
 
 ```cpp
@@ -507,7 +507,7 @@ void AggregateAll(Ptr<Allocator> allocator,
                   const Tensor in1);
 ```
 
-However, for [add_all.h](api/file_src_tensors_gpu_add_all.h.html), there is an
+However, for [add_all.h](file_src_tensors_gpu_add_all.h), there is an
 additional type dependence in the first template parameter, which requires two
 entries:
 

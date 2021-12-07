@@ -6,7 +6,7 @@ The dynamic declaration, which means a new graph is created for each training in
 It allows handling of variably sized inputs, as well as the cases where the graph may change depending on the results of previous steps.
 Compared to static declaration, a dynamic computation graph could be expensive in terms of creating and optimising computation graphs.
 Marian uses careful memory management to remove overhead in computation graph construction, and supports efficient execution on both CPU and GPU.
-The main implementation of computation graph is in under [`src/graph`](api/dir_src_graph.html#dir-src-graph) directory.  
+The main implementation of computation graph is in under [src/graph](dir_src_graph) directory.  
 
 Building blocks for graphs:
 
@@ -59,7 +59,7 @@ The _workspace memory_ means the size of the memory available for the forward an
 This does not include model size and optimizer parameters that are allocated outsize workspace. 
 Hence you cannot allocate all device memory to the workspace.
 
-To create a graph, Marian offer a set of shortcut functions that implements the common expression operators for a neural network (see [`src/graph/expression_operators.h`](api/program_listing_file_src_graph_expression_operators.h.html)), such as `affine()`. 
+To create a graph, Marian offers a set of shortcut functions that implements the common expression operators for a neural network (see [src/graph/expression_operators.h](file_src_graph_expression_operators.h), such as `affine()`. 
 These functions actually construct the corresponding operation nodes in the graph, make links with other nodes. 
 E.g., `affine()` construct a `AffineNodeOp` node in the graph. 
 Thus, building a graph turns into a simple task of defining expressions by using those functions. 
@@ -142,7 +142,7 @@ auto x = graph->constant({N, NUM_FEATURES}, inits::fromVector(inputData));
 
 For the above example, the shape of the constant node is `{N, NUM_FEATURES}`, and the value of the constant node is initialised from a vector `inputData`.
 `inits::fromVector()` returns a `NodeInitializer` which is a functor used to initialise a tensor by copying from the given vector. 
-More functions used to initialise a node can be found in [`src/graph/node_initializers.h`](api/namespace_marian__inits.html#namespace-marian-inits) file. 
+More functions used to initialise a node can be found in [src/graph/node_initializers.h](namespace_marian__inits) file. 
 Marian also provides some shortcut functions to construct special constant nodes, such as `ones()` and `zeros()`:
 
 ```cpp
@@ -186,7 +186,7 @@ auto h = tanh(affine(x, W1, b1));
 ```
 
 In the above example, `affine()` and `tanh()` actually add `AffineNodeOp` and `TanhNodeOp` nodes to the graph. 
-For more shortcut functions used to add operations in the graph, you can find in [`src/graph/expression_operators.h`](api/program_listing_file_src_graph_expression_operators.h.html) file.
+For more shortcut functions used to add operations in the graph, you can find in [src/graph/expression_operators.h](file_src_graph_expression_operators.h) file.
 
 ## Graph execution
 
@@ -279,7 +279,7 @@ This comes to how we define the loss function and optimiser for the graph.
 A loss function is used to calculate the model error between the predicted value and the actual value. 
 The goal is to minimise this error during training. 
 In a graph, the loss function is also represented as a group of node(s). 
-You can also use the operators provided in [`expression_operators.h`](api/program_listing_file_src_graph_expression_operators.h.html) file to define the loss function. 
+You can also use the operators provided in [src/graph/expression_operators.h](file_src_graph_expression_operators.h) file to define the loss function. 
 E.g., Marian offers `cross_entropy()` function to compute the cross-entropy loss between true labels and predicted labels.
 
 **Define a loss function for modified Example 1**

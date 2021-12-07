@@ -23,7 +23,7 @@ Then set up a Python environment and install modules:
     pip3 install virtualenv
     virtualenv venv -p python3
     source venv/bin/activate
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
 
 Documentation building should also work on Windows, but it has not been tested.
 
@@ -48,4 +48,22 @@ Directories:
 
 ## Writing documentation
 
-To be documented...
+See [this section](src/doc_guide.rst) in the documentation for detailed recommendations on how to
+write code and user documentation in Marian.
+
+In a nutshell, each class, struct or function should have a Doxygen comment following the basic
+template of:
+
+    /**
+     * Brief summary.
+     * Detailed description. More detail.
+     * @see Some reference
+     * @param <name> Parameter description
+     * @return Return value description
+     */
+     std::string function(int param);
+
+And attributes should be documented with an inline comment, for example:
+
+    int var; ///< Brief description
+

@@ -19,7 +19,7 @@ Expr checkpoint(Expr a);
 typedef Expr(ActivationFunction)(Expr);  ///< ActivationFunction has signature Expr(Expr)
 
 /**
- * Convience typedef for graph @ref lambda expressions.
+ * Convenience typedef for graph @ref lambda expressions.
  */
 typedef std::function<void(Expr out, const std::vector<Expr>& in)> LambdaNodeFunctor;
 
@@ -114,7 +114,7 @@ Expr tanh(const std::vector<Expr>& nodes);
 
 /**
  * @copybrief tanh
- * Convience function to put parameter pack @p Args into a Expr vector
+ * Convenience function to put parameter pack @p Args into a Expr vector
  */
 template <typename... Args>
 Expr tanh(Args... args) {
@@ -188,8 +188,7 @@ Expr prelu(const std::vector<Expr>&, float alpha = 0.01);
  * @{
  */
 
-///@name Exponentiation and Logarithmic functions
-///@{
+// Exponentiation and Logarithmic functions
 /**
  * Natural logarithm.
  * Computes the element-wise natural logarithm of the expression: @f$ \log(a) @f$
@@ -203,10 +202,8 @@ Expr log(Expr a);
  * @see ExpNodeOp
  */
 Expr exp(Expr a);
-///@}
 
-///@name Trigonometric functions
-///@{
+// Trigonometric functions
 /**
 * Sine. Computes the element-wise sine of the expression: @f$ \sin(a) @f$.
 * @see SinNodeOp
@@ -225,7 +222,6 @@ Expr cos(Expr a);
 */
 Expr tan(Expr a);
 ///@}
-///@}
 
 /**
  * @addtogroup graph_ops_arithmetic Arithmetic
@@ -238,52 +234,42 @@ Expr tan(Expr a);
  * Returns @f$ -a @f$.
  * @see NegNodeOp for implementation.
  */
-///@{
 Expr operator-(Expr a);
-///@}
 
 /*********************************************************/
 
 /**
- * @name Addition
+ * Addition
  * Performs @f$ a + b @f$ in the expression graph.
 */
-///@{
 Expr operator+(Expr a, Expr b);   ///< @see Implementation in PlusNodeOp
 Expr operator+(float a, Expr b);  ///< @see Implementation in ScalarAddNodeOp
 Expr operator+(Expr a, float b);  ///< @see Implementation in ScalarAddNodeOp
-///@}
 
 /**
- * @name Subtraction
+ * Subtraction
  * Performs @f$ a - b @f$ in the expression graph.
  */
-///@{
 Expr operator-(Expr a, Expr b);   ///< @see Implementation in MinusNodeOp
 Expr operator-(float a, Expr b);  ///< @see Implementation in ScalarAddNodeOp
 Expr operator-(Expr a, float b);  ///< @see Implementation in ScalarAddNodeOp
-///@}
 
 /**
- * @name Multiplication
+ * Multiplication
  * Performs @f$ a * b @f$ in the expression graph.
  */
-///@{
 Expr operator*(Expr a, Expr b);   ///< @see Implementation in MultNodeOp
 Expr operator*(float a, Expr b);  ///< @see Implementation in ScalarMultNodeOp
 Expr operator*(Expr a, float b);  ///< @see Implementation in ScalarMultNodeOp
-///@}
 
 /**
- * @name Division
+ * Division
  * Performs @f$ a / b @f$ in the expression graph.
  */
-///@{
 Expr operator/(Expr a, Expr b);   ///< @see Implementation in DivNodeOp
 Expr operator/(float a, Expr b);  ///< Promotes @p a to Expression<ConstantNode> and uses operator/(Expr a, Expr b).
                                   ///< @todo efficient version of this without ExpressionGraph::constant
 Expr operator/(Expr a, float b);  ///< Implementation via @f$ a * \frac{1}{b} @f$.
-///@}
 
 ///@}
 
@@ -324,14 +310,13 @@ Expr logaddexp(Expr a, Expr b);
 
 ///@addtogroup graph_ops_mathematical
 ///@{
-/**
- * @name Element-wise min/max
+/*
+ * Element-wise min/max
  * Performs an element-wise min max comparison between expressions.
  * @see min, max for axis level operations
  * @see MinimumNodeOp, MaximumNodeOp
  * @todo implement version without ExpressionGraph::constant.
  */
-///@{
 
 /**
  * Computes the element-wise maximum of its inputs.
@@ -366,7 +351,6 @@ Expr minimum(float a, Expr b);
  * Promotes float input to a @ref ExpressionGraph::constant.
  */
 Expr minimum(Expr a, float b);
-///@}
 ///@}
 
 /**
@@ -428,23 +412,20 @@ Expr2 argmin(Expr a, int axis);
  * @{
  */
 
-/**
- * @name Expr-Expr comparisons
+/*
+ * Expr-Expr comparisons
  */
-///@{
 Expr lt(Expr a, Expr b);  ///< @f$ a < b @f$
 Expr eq(Expr a, Expr b);  ///< @f$ a \equiv b @f$
 Expr gt(Expr a, Expr b);  ///< @f$ a > b @f$
 Expr ge(Expr a, Expr b);  ///< @f$ a \geq b @f$
 Expr ne(Expr a, Expr b);  ///< @f$ a \neq b @f$
 Expr le(Expr a, Expr b);  ///< @f$ a \leq b @f$
-///@}
 
-/**
- * @name Float-Expr comparisons
+/*
+ * Float-Expr comparisons
  * Floats are promoted to a @ref ExpressionGraph::constant and use the Expr-Expr methods
  */
-///@{
 Expr lt(float a, Expr b);  ///< @f$ a < b @f$
 Expr eq(float a, Expr b);  ///< @f$ a \equiv b @f$
 Expr gt(float a, Expr b);  ///< @f$ a > b @f$
@@ -458,7 +439,6 @@ Expr gt(Expr a, float b);  ///< @f$ a > b @f$
 Expr ge(Expr a, float b);  ///< @f$ a \geq b @f$
 Expr ne(Expr a, float b);  ///< @f$ a \neq b @f$
 Expr le(Expr a, float b);  ///< @f$ a \leq b @f$
-///@}
 
 ///@}
 
@@ -810,8 +790,7 @@ static inline Expr narrow(Expr a, int axis, size_t start, size_t length) {
 
 ///@addtogroup graph_ops_mathematical
 ///@{
-///@name Aggregations
-///@{
+// Aggregations
 
 /**
  * Compute the sum along the specified axis.
@@ -862,7 +841,6 @@ Expr min(Expr a, int ax);
  */
 Expr prod(Expr a, int ax);
 
-///@}
 ///@}
 
 /**

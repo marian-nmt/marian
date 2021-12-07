@@ -37,11 +37,11 @@ release = version + ' ' + str(datetime.date.today())
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.imgmath',
+    'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'breathe',
     'exhale',
-    'recommonmark',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -57,6 +57,13 @@ exclude_patterns = [
     'README.md',
 ]
 
+# The file extensions of source files. Sphinx considers the files with
+# this suffix as sources. By default, Sphinx only supports 'restructuredtext'
+# file type. You can add a new file type using source parser extensions.
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -91,6 +98,7 @@ EXTENSION_MAPPING   += cu=C++ inc=C++
 ENABLE_PREPROCESSING = YES
 JAVADOC_AUTOBRIEF    = YES
 WARN_IF_UNDOCUMENTED = NO
+USE_MATHJAX          = YES
 """
 
 exhale_args = {
@@ -100,6 +108,7 @@ exhale_args = {
     'doxygenStripFromPath'  : '..',
     'createTreeView'        : True,
     'exhaleExecutesDoxygen' : True,
+    # 'verboseBuild'          : True, # set True for debugging
     'exhaleDoxygenStdin'    : doxygen_config.strip(),
 }
 

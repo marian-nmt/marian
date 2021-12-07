@@ -2,6 +2,7 @@ sphinx==2.4.4
 breathe==4.13.0
 exhale
 sphinx_rtd_theme
-recommonmark
+myst-parser==0.14.0a3
 mistune<2.0.0
 m2r
+sphinx-mathjax-offline
