@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Enforce validation for the task alias in training mode.
 
 ### Changed
+- MacOS marian uses Apple Accelerate framework by default, as opposed to openblas/mkl.
 - Optimize LSH for speed by treating is as a shortlist generator. No option changes in decoder
 - Set REQUIRED_BIAS_ALIGNMENT = 16 in tensors/gpu/prod.cpp to avoid memory-misalignment on certain Ampere GPUs.
 - For BUILD_ARCH != native enable all intrinsics types by default, can be disabled like this: -DCOMPILE_AVX512=off

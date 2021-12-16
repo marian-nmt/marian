@@ -18,16 +18,10 @@ jobs:
         submodules: recursive
 
     - name: Install dependencies
-      run: brew install boost openblas openssl protobuf
+      run: brew install boost openssl protobuf
 
-    # Openblas location is exported explicitly because openblas is keg-only,
-    # which means it was not symlinked into /usr/local/.
-    # CMake cannot find BLAS on GitHub runners if Marian is being compiled
-    # statically, hence USE_STATIC_LIBS=off
     - name: Configure CMake
       run: |
-        export LDFLAGS="-L/usr/local/opt/openblas/lib"
-        export CPPFLAGS="-I/usr/local/opt/openblas/include"
         mkdir -p build
         cd build
         cmake .. \
@@ -37,8 +31,7 @@ jobs:
           -DCOMPILE_SERVER=on \
           -DCOMPILE_TESTS=on \
           -DUSE_FBGEMM=on \
-          -DUSE_SENTENCEPIECE=on \
-          -DUSE_STATIC_LIBS=off
+          -DUSE_SENTENCEPIECE=on
 
     - name: Compile
       working-directory: build
