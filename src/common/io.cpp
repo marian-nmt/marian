@@ -56,6 +56,18 @@ void getYamlFromModel(YAML::Node& yaml,
     yaml = YAML::Load(item.data());
 }
 
+// Load YAML from item
+void getYamlFromModel(YAML::Node& yaml,
+                      const std::string& varName,
+                      const std::vector<Item>& items) {
+    for(auto& item : items) {
+      if(item.name == varName) {
+        yaml = YAML::Load(item.data());
+        return;
+      }
+    }
+}
+
 void addMetaToItems(const std::string& meta,
                     const std::string& varName,
                     std::vector<io::Item>& items) {

@@ -739,7 +739,7 @@ public:
 
 public:
   /** Load model (mainly parameter objects) from array of io::Items */
-  void load(std::vector<io::Item>& ioItems, bool markReloaded = true) {
+  void load(const std::vector<io::Item>& ioItems, bool markReloaded = true) {
     setReloaded(false);
     for(auto& item : ioItems) {
       std::string pName = item.name;

@@ -21,6 +21,7 @@ bool isBin(const std::string& fileName);
 
 void getYamlFromModel(YAML::Node& yaml, const std::string& varName, const std::string& fileName);
 void getYamlFromModel(YAML::Node& yaml, const std::string& varName, const void* ptr);
+void getYamlFromModel(YAML::Node& yaml, const std::string& varName, const std::vector<Item>& items);
 
 void addMetaToItems(const std::string& meta,
                     const std::string& varName,

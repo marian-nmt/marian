@@ -5,7 +5,7 @@ namespace marian {
 
 Ptr<Scorer> scorerByType(const std::string& fname,
                          float weight,
-                         const std::string& model,
+                         std::vector<io::Item> items,
                          Ptr<Options> options) {
   options->set("inference", true);
   std::string type = options->get<std::string>("type");
@@ -22,7 +22,7 @@ Ptr<Scorer> scorerByType(const std::string& fname,
 
   LOG(info, "Loading scorer of type {} as feature {}", type, fname);
 
-  return New<ScorerWrapper>(encdec, fname, weight, model);
+  return New<ScorerWrapper>(encdec, fname, weight, items);
 }
 
 Ptr<Scorer> scorerByType(const std::string& fname,
@@ -47,10 +47,8 @@ Ptr<Scorer> scorerByType(const std::string& fname,
   return New<ScorerWrapper>(encdec, fname, weight, ptr);
 }
 
-std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<std::vector<io::Item>> models) {
   std::vector<Ptr<Scorer>> scorers;
-
-  auto models = options->get<std::vector<std::string>>("models");
 
   std::vector<float> weights(models.size(), 1.f);
   if(options->hasAndNotEmpty("weights"))
@@ -58,19 +56,21 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
 
   bool isPrevRightLeft = false;  // if the previous model was a right-to-left model
   size_t i = 0;
-  for(auto model : models) {
+  for(auto items : models) {
     std::string fname = "F" + std::to_string(i);
 
     // load options specific for the scorer
     auto modelOptions = New<Options>(options->clone());
-    try {
-      if(!options->get<bool>("ignore-model-config")) {
-        YAML::Node modelYaml;
-        io::getYamlFromModel(modelYaml, "special:model.yml", model);
+    if(!options->get<bool>("ignore-model-config")) {
+      YAML::Node modelYaml;
+      io::getYamlFromModel(modelYaml, "special:model.yml", items);
+      if(!modelYaml.IsNull()) {
+        LOG(info, "Loaded model config");
         modelOptions->merge(modelYaml, true);
       }
-    } catch(std::runtime_error&) {
-      LOG(warn, "No model settings found in model file");
+      else {
+        LOG(warn, "No model settings found in model file");
+      }
     }
 
     // l2r and r2l cannot be used in the same ensemble
@@ -85,11 +85,22 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
       }
     }
 
-    scorers.push_back(scorerByType(fname, weights[i], model, modelOptions));
+    scorers.push_back(scorerByType(fname, weights[i], items, modelOptions));
     i++;
   }
 
   return scorers;
+}
+
+std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options) {
+  std::vector<std::vector<io::Item>> model_items;
+  auto models = options->get<std::vector<std::string>>("models");
+  for(auto model : models) {
+    auto items = io::loadItems(model);
+    model_items.push_back(std::move(items));
+  }
+
+  return createScorers(options, model_items);
 }
 
 std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<const void*>& ptrs) {
@@ -105,14 +116,16 @@ std::vector<Ptr<Scorer>> createScorers(Ptr<Options> options, const std::vector<c
 
     // load options specific for the scorer
     auto modelOptions = New<Options>(options->clone());
-    try {
-      if(!options->get<bool>("ignore-model-config")) {
-        YAML::Node modelYaml;
-        io::getYamlFromModel(modelYaml, "special:model.yml", ptr);
+    if(!options->get<bool>("ignore-model-config")) {
+      YAML::Node modelYaml;
+      io::getYamlFromModel(modelYaml, "special:model.yml", ptr);
+      if(!modelYaml.IsNull()) {
+        LOG(info, "Loaded model config");
         modelOptions->merge(modelYaml, true);
       }
-    } catch(std::runtime_error&) {
-      LOG(warn, "No model settings found in model file");
+      else {
+        LOG(warn, "No model settings found in model file");
+      }
     }
 
     scorers.push_back(scorerByType(fname, weights[i], ptr, modelOptions));

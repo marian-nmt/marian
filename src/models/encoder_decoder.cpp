@@ -145,6 +145,12 @@ std::string EncoderDecoder::getModelParametersAsString() {
 }
 
 void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
+                          const std::vector<io::Item>& items,
+                          bool markedReloaded) {
+  graph->load(items, markedReloaded && !opt<bool>("ignore-model-config", false));
+}
+
+void EncoderDecoder::load(Ptr<ExpressionGraph> graph,
                           const std::string& name,
                           bool markedReloaded) {
   graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));
