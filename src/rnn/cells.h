@@ -197,6 +197,7 @@ public:
 
 Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
+/** Base class for a gated recurrent unit (GRU) cell. */
 class GRU : public Cell {
 protected:
   std::string prefix_;

@@ -14,7 +14,8 @@ This is developer documentation. User documentation is available at https://mari
 
    graph
    operators
-
+   layer
+   factors
    api/library_index
 
    contributing

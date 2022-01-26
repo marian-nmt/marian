@@ -6,10 +6,12 @@ namespace marian {
 
 class FactoredVocab;
 
-// A regular embedding layer.
-// Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
-// It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
-// EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
+/**
+ * A regular embedding layer.
+ * Note that this also applies dropout if the option is passed (pass 0 when in inference mode).
+ * It is best to not use Embedding directly, but rather via getEmbeddingLayer() in
+ * EncoderDecoderLayerBase, which knows to pass on all required parameters from options.
+ */
 class Embedding : public LayerBase, public IEmbeddingLayer {
   Expr E_;
   Expr FactorEmbMatrix_; // Factors embedding matrix if combining lemma and factors embeddings with concatenation
@@ -19,16 +21,43 @@ class Embedding : public LayerBase, public IEmbeddingLayer {
   bool inference_{false};
 
 public:
+  /**
+   * Construct a regular embedding layer in the graph.
+   * @param graph The expression graph.
+   * @param options The options used for this embedding layer.
+   */
   Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options);
 
+  /**
+   * Apply/Link this embedding layer (with the given batch of sentences) to the expression graph.
+   * @param subBatch The batch of sentences
+   * @return The expression tuple holding the embedding layer and the masking layer
+   */
   std::tuple<Expr /*embeddings*/, Expr /*mask*/> apply(
       Ptr<data::SubBatch> subBatch) const override final;
 
+  /**
+   * Apply/Link this embedding layer (with the given words and shape) to the expression graph.
+   * @param words Sequence of vocabulary items
+   * @param shape Shape of the words
+   * @return The expression holding the embedding layer
+   */
   Expr apply(const Words& words, const Shape& shape) const override final;
 
+  /**
+   * Apply/Link this embedding layer (with the given WordIndex vector and shape) to the expression graph.
+   * @param embIdx The vector of WordIndex objects
+   * @param shape Shape of the WordIndex vector
+   * @return The expression holding the embedding layer
+   */
   Expr applyIndices(const std::vector<WordIndex>& embIdx, const Shape& shape) const override final;
 };
 
+/**
+ * Universal Language Representation (ULR) word embedding layer.
+ * It is under development.
+ * @todo applyIndices() is not implemented
+ */
 class ULREmbedding : public LayerBase, public IEmbeddingLayer {
   std::vector<Expr> ulrEmbeddings_;  // @TODO: These could now better be written as 6 named class members
   bool inference_{false};

@@ -5,6 +5,12 @@
 #include "rnn/rnn.h"
 
 namespace marian {
+/**
+  *  The namespace rnn.
+  *  Declare class Dense and all the available functions for creating
+  *  <a href=https://en.wikipedia.org/wiki/Recurrent_neural_network>recurrent neural network (RNN)</a>
+  *  network.
+  */
 namespace rnn {
 
 typedef Factory StackableFactory;
@@ -28,6 +34,12 @@ struct InputFactory : public StackableFactory {
   virtual Ptr<CellInput> construct(Ptr<ExpressionGraph> graph) = 0;
 };
 
+/**
+ * Base class for constructing RNN cells.
+ * RNN cells only process a single timestep instead of the whole batches of input sequences.
+ * There are nine types of RNN cells provided by Marian, i.e., `gru`, `gru-nematus`, `lstm`,
+ * `mlstm`, `mgru`, `tanh`, `relu`, `sru`, `ssru`.
+ */
 class CellFactory : public StackableFactory {
 protected:
   std::vector<std::function<Expr(Ptr<rnn::RNN>)>> inputs_;
@@ -92,8 +104,10 @@ public:
   }
 };
 
+/** A convenience typedef for constructing RNN cells. */
 typedef Accumulator<CellFactory> cell;
 
+/** Base class for constructing a stack of RNN cells (`rnn::cell`). */
 class StackedCellFactory : public CellFactory {
 protected:
   std::vector<Ptr<StackableFactory>> stackableFactories_;
@@ -137,8 +151,10 @@ public:
   }
 };
 
+/** A convenience typedef for constructing a stack of RNN cells. */
 typedef Accumulator<StackedCellFactory> stacked_cell;
 
+/** Base class for constructing RNN layers. */
 class RNNFactory : public Factory {
   using Factory::Factory;
 protected:
@@ -195,6 +211,7 @@ public:
   }
 };
 
+/** A convenience typedef for constructing RNN containers/layers. */
 typedef Accumulator<RNNFactory> rnn;
 }  // namespace rnn
 }  // namespace marian

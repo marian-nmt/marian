@@ -1,4 +1,4 @@
-# Operations in the Expression Graph
+# Operations in the expression graph
 
 Operations are responsible for manipulating the elements of an expression graph.
 In Marian, many useful operations have already been implemented and can be found

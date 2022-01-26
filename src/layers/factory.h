@@ -3,7 +3,10 @@
 #include "marian.h"
 
 namespace marian {
-
+/**
+ * Base class for constructing models or layers.
+ * Its main attribute is options which hold the basic characteristics of the model or the layer.
+ */
 class Factory : public std::enable_shared_from_this<Factory> {
 protected:
   Ptr<Options> options_;
@@ -68,8 +71,7 @@ public:
   template <class Cast>
   inline bool is() { return std::dynamic_pointer_cast<Cast>(shared_from_this()) != nullptr; }
 };
-
-// simplest form of Factory that just passes on options to the constructor of a layer type
+/** Simplest form of Factory that just passes on options to the constructor of a layer. */
 template<class Class>
 struct ConstructingFactory : public Factory {
   using Factory::Factory;
@@ -79,6 +81,17 @@ struct ConstructingFactory : public Factory {
   }
 };
 
+/**
+ * Accumulator<Factory> pattern offers a shortcut to construct models or layers.
+ * The options can be passed by a pair of parentheses. E.g., to construct a fully-connected layer:
+ * \code{.cpp}
+ * auto hidden = mlp::dense()
+      ("prefix", "hidden_layer")               // layer name
+      ("dim", outDim)                          // output dimension
+      ("activation", (int)mlp::act::sigmoid)   // activation function
+      .construct(graph);                       // construct this layer in graph
+   \endcode
+ */
 template <class BaseFactory> // where BaseFactory : Factory
 class Accumulator : public BaseFactory {
   typedef BaseFactory Factory;

@@ -1,4 +1,4 @@
-# Using marian with factors
+# Using Marian with factors
 
 Following this README should allow the user to train a model with source and/or target side factors. To train with factors, the data must be formatted in a certain way. A special vocabulary file format is also required, and its extension should be `.fsv` as providing a source and/or target vocabulary file with this extension is what triggers the usage of source and/or target factors. See details below.
 

@@ -33,6 +33,7 @@ public:
   }
 };
 
+/** A convenient typedef for constructing RNN attention layers. */
 typedef Accumulator<AttentionFactory> attention;
 }  // namespace rnn
 }  // namespace marian
