@@ -113,10 +113,10 @@ std::string CLIWrapper::switchGroup(std::string name) {
   return name;
 }
 
-void CLIWrapper::parse(int argc, char **argv) {
+void CLIWrapper::parse(int argc, char** argv) {
   try {
     app_->parse(argc, argv);
-  } catch(const CLI::ParseError &e) {
+  } catch(const CLI::ParseError& e) {
     exit(app_->exit(e));
   }
 
@@ -180,6 +180,13 @@ void CLIWrapper::parseAliases() {
   for(const auto &alias : aliases_) {
     config_.remove(alias.key);
   }
+}
+
+std::string CLIWrapper::keyName(const std::string& args) const {
+  // re-use existing functions from CLI11 to keep option names consistent
+  return std::get<1>(
+              CLI::detail::get_names(CLI::detail::split_names(args)))  // get long names only
+      .front();                                                        // get first long name
 }
 
 void CLIWrapper::updateConfig(const YAML::Node &config, cli::OptionPriority priority, const std::string &errorMsg) {
@@ -276,7 +283,7 @@ std::vector<std::string> CLIWrapper::getOrderedOptionNames() const {
   for(auto const &it : options_)
     keys.push_back(it.first);
   // sort option names by creation index
-  sort(keys.begin(), keys.end(), [this](const std::string &a, const std::string &b) {
+  sort(keys.begin(), keys.end(), [this](const std::string& a, const std::string& b) {
     return options_.at(a).idx < options_.at(b).idx;
   });
   return keys;

@@ -98,7 +98,7 @@ public:
    * @brief Splice options from a YAML node
    *
    * By default, only options with keys that do not already exist in options_ are extracted from
-   * node. These options are cloned if overwirte is true.
+   * node. These options are cloned if overwrite is true.
    *
    * @param node a YAML node to transfer the options from
    * @param overwrite overwrite all options

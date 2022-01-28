@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is neccessary, remove if no problems occur.
+#define THREAD_GUARD(body) [&]() { body; }() // test if THREAD_GUARD is necessary, remove if no problems occur.
 #define NodeOp(op) [=]() { op; }
 
 // helper macro to disable optimization (gcc only)

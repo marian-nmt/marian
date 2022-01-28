@@ -220,7 +220,7 @@ Ptr<DecoderState> EncoderDecoder::stepAll(Ptr<ExpressionGraph> graph,
   if(clearGraph)
     clear(graph);
 
-  // Required first step, also intializes shortlist
+  // Required first step, also initializes shortlist
   auto state = startState(graph, batch);
 
   // Fill state with embeddings from batch (ground truth)

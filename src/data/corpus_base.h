@@ -379,7 +379,7 @@ public:
    * @see marian::data::SubBatch::split(size_t n)
    */
   std::vector<Ptr<Batch>> split(size_t n, size_t sizeLimit /*=SIZE_MAX*/) override {
-    ABORT_IF(size() == 0, "Encoutered batch size of 0");
+    ABORT_IF(size() == 0, "Encountered batch size of 0");
 
     std::vector<std::vector<Ptr<SubBatch>>> subs; // [subBatchIndex][streamIndex]
     // split each stream separately
@@ -523,8 +523,8 @@ class CorpusBase : public DatasetBase<SentenceTuple, CorpusIterator, CorpusBatch
 public:
   typedef SentenceTuple Sample;
 
-  CorpusBase(Ptr<Options> options, 
-             bool translate = false, 
+  CorpusBase(Ptr<Options> options,
+             bool translate = false,
              size_t seed = Config::seed);
 
   CorpusBase(const std::vector<std::string>& paths,

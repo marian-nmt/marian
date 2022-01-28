@@ -70,9 +70,9 @@ public:
       outputs.push_back(output2);
     }
 
-    auto concated = concatenate(outputs, -1);
+    auto concatenated = concatenate(outputs, -1);
 
-    return concated;
+    return concatenated;
   }
 
 protected:

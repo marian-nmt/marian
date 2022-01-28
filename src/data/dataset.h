@@ -44,7 +44,7 @@ public:
   virtual void prepare() {}
   virtual void restore(Ptr<TrainingState>) {}
 
-  // @TODO: remove after cleaning traininig/training.h
+  // @TODO: remove after cleaning training/training.h
   virtual Ptr<Options> options() { return options_; }
 };
 

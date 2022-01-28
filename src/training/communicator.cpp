@@ -101,7 +101,7 @@ public:
       std::string maxRankStr = std::to_string(MPIWrapper::numMPIProcesses() -1);
       while (rankStr.size() < maxRankStr.size()) // pad so that logs across MPI processes line up nicely
         rankStr.insert(rankStr.begin(), ' ');
-      switchtoMultinodeLogging(rankStr);
+      switchToMultinodeLogging(rankStr);
     }
 
     // log hostnames in order, and test
@@ -261,7 +261,7 @@ void finalizeMPI(Ptr<IMPIWrapper>&& mpi) {
   ABORT_IF(mpi == nullptr || mpi != s_mpi, "attempted to finalize an inconsistent MPI instance. This should not be possible.");
   mpi = nullptr; // destruct caller's handle
   ABORT_IF(s_mpiUseCount == 0, "finalize called too many times. This should not be possible.");
-  if (s_mpiUseCount == 1) { // last call finalizes MPI, i.e. tells MPI that we sucessfully completed computation
+  if (s_mpiUseCount == 1) { // last call finalizes MPI, i.e. tells MPI that we successfully completed computation
     ABORT_IF(s_mpi.use_count() != 1, "dangling reference to MPI??"); // caller kept another shared_ptr to this instance
     s_mpi->finalize(); // signal successful completion to MPI
     s_mpi = nullptr;   // release the singleton instance upon last finalization

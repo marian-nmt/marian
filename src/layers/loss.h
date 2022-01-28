@@ -67,7 +67,7 @@ public:
     return count_->val()->scalar<T>();
   }
 
-  // @TODO: add a funtion for returning maybe ratio?
+  // @TODO: add a function for returning maybe ratio?
 
   size_t size() const {
     ABORT_IF(!count_, "Labels have not been defined");
@@ -189,7 +189,7 @@ public:
  *
  * L = sum_i^N L_i + N/M sum_j^M L_j
  *
- * We set labels to N. When reporting L/N this is equvalient to sum of means.
+ * We set labels to N. When reporting L/N this is equivalent to sum of means.
  * Compare to sum of means below where N is factored into the loss, but labels
  * are set to 1.
  */

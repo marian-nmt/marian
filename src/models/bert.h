@@ -8,7 +8,7 @@
 namespace marian {
 
 /**
- * This file contains nearly all BERT-related code and adds BERT-funtionality
+ * This file contains nearly all BERT-related code and adds BERT-functionality
  * on top of existing classes like TansformerEncoder and Classifier.
  */
 
@@ -82,7 +82,7 @@ public:
     // Initialize to sample random vocab id
     randomWord_.reset(new std::uniform_int_distribution<WordIndex>(0, (WordIndex)vocab.size()));
 
-    // Intialize to sample random percentage
+    // Initialize to sample random percentage
     randomPercent_.reset(new std::uniform_real_distribution<float>(0.f, 1.f));
 
     auto& words = subBatch->data();

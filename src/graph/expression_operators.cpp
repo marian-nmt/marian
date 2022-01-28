@@ -27,12 +27,12 @@ Expr checkpoint(Expr a) {
   return a;
 }
 
-Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type,
             LambdaNodeFunctor fwd, size_t hash) {
   return Expression<LambdaNodeOp>(nodes, shape, type, fwd, hash);
 }
 
-Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type, 
+Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type,
             LambdaNodeFunctor fwd, LambdaNodeFunctor bwd, size_t hash) {
   return Expression<LambdaNodeOp>(nodes, shape, type, fwd, bwd, hash);
 }
@@ -436,7 +436,7 @@ Expr std(Expr a, int ax) {
   return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::rms);
 }
 
-Expr var(Expr a, int ax) { 
+Expr var(Expr a, int ax) {
   if(a->shape()[ax] == 1) // nothing to reduce, var(a) = 0
     return a - a;
   return Expression<ReduceNodeOp>(a - mean(a, ax), ax, ReduceNodeOpCode::meanSqr);
@@ -575,8 +575,8 @@ Expr affineDefault(Expr a, Expr b, Expr bias, bool transA, bool transB, float sc
   return Expression<AffineNodeOp>(nodes, transA, transB, scale);
 }
 
-// This operation used to implement auto-tuning. We have removed it for now due to complexity, but plan to revisit it in the future. 
-// The last branch with auto-tuner is: 
+// This operation used to implement auto-tuning. We have removed it for now due to complexity, but plan to revisit it in the future.
+// The last branch with auto-tuner is:
 // youki/packed-model-pr-backup1031
 // https://machinetranslation.visualstudio.com/Marian/_git/marian-dev?version=GByouki%2Fpacked-model-pr-backup1031
 // SHA: 3456a7ed1d1608cfad74cd2c414e7e8fe141aa52
@@ -660,8 +660,8 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
     }
   } else {
     // Default GEMM
-    ABORT_IF(!isFloat(aElementType) || !isFloat(bElementType), 
-             "GPU-based GEMM only supports float types, you have A: {} and B: {}", 
+    ABORT_IF(!isFloat(aElementType) || !isFloat(bElementType),
+             "GPU-based GEMM only supports float types, you have A: {} and B: {}",
              aElementType, bElementType);
     return affineDefault(a, b, bias, transA, transB, scale);
   }
@@ -669,7 +669,7 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
 
 Expr affineWithRelu(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   auto graph = a->graph();
-  
+
   if(graph->isInference() && graph->getDeviceId().type == DeviceType::gpu)
     return Expression<AffineWithReluNodeOp>(a, b, bias, transA, transB, scale);
   else
@@ -775,7 +775,7 @@ Expr unlikelihood(Expr logits, Expr indices) {
   int dimBatch = logits->shape()[-2];
   int dimTime  = logits->shape()[-3];
 
-  // @TODO: fix this outside of this function in decoder.h etc. 
+  // @TODO: fix this outside of this function in decoder.h etc.
   auto indicesWithLayout = reshape(indices, {1, dimTime, dimBatch, 1});
 
   // This is currently implemented with multiple ops, might be worth doing a special operation like for cross_entropy

@@ -76,7 +76,7 @@ private:
     float scale = sqrtf(2.0f / (dimVoc + dimEmb));
 
     // @TODO: switch to new random generator back-end.
-    // This is rarly used however.
+    // This is rarely used however.
     std::random_device rd;
     std::mt19937 engine(rd());
 

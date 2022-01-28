@@ -76,7 +76,7 @@ public:
 
   Ptr<Allocator>       getAllocator() { return tensors_->allocator(); }
   Ptr<TensorAllocator> getTensorAllocator() { return tensors_; }
-  
+
   Expr findOrRemember(Expr node) {
     size_t hash = node->hash();
     // memoize constant nodes that are not parameters
@@ -359,9 +359,9 @@ private:
 
   // Find the named parameter and its typed parent parameter object (params) and return both.
   // If the parameter is not found return the parent parameter object that the parameter should be added to.
-  // Return [nullptr, nullptr] if no matching parent parameter object exists. 
-  std::tuple<Expr, Ptr<Parameters>> findParams(const std::string& name, 
-                                               Type elementType, 
+  // Return [nullptr, nullptr] if no matching parent parameter object exists.
+  std::tuple<Expr, Ptr<Parameters>> findParams(const std::string& name,
+                                               Type elementType,
                                                bool typeSpecified) const {
     Expr p; Ptr<Parameters> params;
     if(typeSpecified) { // type has been specified, so we are only allowed to look for a parameter with that type
@@ -373,12 +373,12 @@ private:
     } else { // type has not been specified, so we take any type as long as the name matches
       for(auto kvParams : paramsByElementType_) {
         p = kvParams.second->get(name);
-        
+
         if(p) { // p has been found, return with matching params object
           params = kvParams.second;
           break;
         }
-        
+
         if(kvParams.first == elementType) // even if p has not been found, set the params object to be returned
           params = kvParams.second;
       }
@@ -399,8 +399,8 @@ private:
 
     Expr p; Ptr<Parameters> params; std::tie
     (p, params) = findParams(name, elementType, typeSpecified);
-    
-    if(!params) { 
+
+    if(!params) {
       params = New<Parameters>(elementType);
       params->init(backend_);
       paramsByElementType_.insert({elementType, params});
@@ -632,13 +632,13 @@ public:
    * Return the Parameters object related to the graph.
    * The Parameters object holds the whole set of the parameter nodes.
    */
-  Ptr<Parameters>& params() { 
+  Ptr<Parameters>& params() {
     // There are no parameter objects, that's weird.
     ABORT_IF(paramsByElementType_.empty(), "No parameter object has been created");
-    
+
     // Safeguard against accessing parameters from the outside with multiple parameter types, not yet supported
     ABORT_IF(paramsByElementType_.size() > 1, "Calling of params() is currently not supported with multiple ({}) parameters", paramsByElementType_.size());
-    
+
     // Safeguard against accessing parameters from the outside with other than default parameter type, not yet supported
     auto it = paramsByElementType_.find(defaultElementType_);
     ABORT_IF(it == paramsByElementType_.end(), "Parameter object for type {} does not exist", defaultElementType_);
@@ -650,7 +650,7 @@ public:
    * Return the Parameters object related to the graph by elementType.
    * The Parameters object holds the whole set of the parameter nodes of the given type.
    */
-  Ptr<Parameters>& params(Type elementType) {     
+  Ptr<Parameters>& params(Type elementType) {
     auto it = paramsByElementType_.find(elementType);
     ABORT_IF(it == paramsByElementType_.end(), "Parameter object for type {} does not exist", defaultElementType_);
     return it->second;
@@ -661,8 +661,8 @@ public:
    * The default value is used if some node type is not specified.
    */
   void setDefaultElementType(Type defaultElementType) {
-    ABORT_IF(!paramsByElementType_.empty() && defaultElementType != defaultElementType_, 
-             "Parameter objects already exist, cannot change default type from {} to {}", 
+    ABORT_IF(!paramsByElementType_.empty() && defaultElementType != defaultElementType_,
+             "Parameter objects already exist, cannot change default type from {} to {}",
              defaultElementType_, defaultElementType);
     defaultElementType_ = defaultElementType;
   }
@@ -746,7 +746,7 @@ public:
       // skip over special parameters starting with "special:"
       if(pName.substr(0, 8) == "special:")
         continue;
-      
+
       // if during loading the loaded type is of the same type class as the default element type, allow conversion;
       // otherwise keep the loaded type. This is used when e.g. loading a float32 model as a float16 model as both
       // have type class TypeClass::float_type.
@@ -781,9 +781,9 @@ public:
 
     LOG(info, "Memory mapping model at {}", ptr);
     auto items = io::mmapItems(ptr);
-    
+
     // Deal with default parameter set object that might not be a mapped object.
-    // This gets assigned during ExpressionGraph::setDevice(...) and by default 
+    // This gets assigned during ExpressionGraph::setDevice(...) and by default
     // would contain allocated tensors. Here we replace it with a mmapped version.
     auto it = paramsByElementType_.find(defaultElementType_);
     if(it != paramsByElementType_.end()) {

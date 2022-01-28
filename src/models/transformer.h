@@ -70,7 +70,7 @@ public:
       // Hack for translating with length longer than trained embeddings
       // We check if the embedding matrix "Wpos" already exist so we can
       // check the number of positions in that loaded parameter.
-      // We then have to restict the maximum length to the maximum positon
+      // We then have to restrict the maximum length to the maximum positon
       // and positions beyond this will be the maximum position.
       Expr seenEmb = graph_->get("Wpos");
       int numPos = seenEmb ? seenEmb->shape()[-2] : maxLength;
