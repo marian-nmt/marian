@@ -122,7 +122,7 @@ public:
       threadPool.enqueue(task, device, id++);
     }
 
-    if(options_->get<bool>("output-sampling", false)) {
+    if(options_->hasAndNotEmpty("output-sampling")) {
       if(options_->get<size_t>("beam-size") > 1)
         LOG(warn,
             "[warning] Output sampling and beam search (beam-size > 1) are contradictory methods "

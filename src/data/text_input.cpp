@@ -40,7 +40,7 @@ SentenceTuple TextInput::next() {
   size_t curId = pos_++;
 
   // fill up the sentence tuple with source and/or target sentences
-  SentenceTuple tup(curId);
+  SentenceTupleImpl tup(curId);
   for(size_t i = 0; i < files_.size(); ++i) {
     std::string line;
     if(io::getline(*files_[i], line)) {
@@ -57,9 +57,9 @@ SentenceTuple TextInput::next() {
   }
 
   if(tup.size() == files_.size()) // check if each input file provided an example
-    return tup;
+    return SentenceTuple(tup);
   else if(tup.size() == 0) // if no file provided examples we are done
-    return SentenceTuple(0);
+    return SentenceTuple();
   else // neither all nor none => we have at least on missing entry
     ABORT("There are missing entries in the text tuples.");
 }

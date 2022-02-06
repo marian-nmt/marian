@@ -1033,12 +1033,14 @@ struct GatherNodeOp : public NaryNodeOp {
 
   NodeOps forwardOps() override {
     return {NodeOp(
+      // @TODO: rename to gather
       Select(val_, child(0)->val(), child(1)->val(), axis_))};
   }
 
   NodeOps backwardOps() override {
     return {NodeOp(
-      Insert(child(0)->grad(), adj_, child(1)->val(), axis_))};
+      // @TODO: rename to scatter
+      Insert</*add=*/true>(child(0)->grad(), adj_, child(1)->val(), axis_))};
   }
 
   Shape newShape(Expr a, int axis, Expr indices) {
@@ -1046,7 +1048,6 @@ struct GatherNodeOp : public NaryNodeOp {
     axis = shape.axis(axis);
     auto rank = shape.size();
     ABORT_IF(rank != indices->shape().size(), "Mismatching ranks for input ({}) and indices ({})", std::string(shape), std::string(indices->shape()));
-    axis = a->shape().axis(axis);
     shape.set(axis, indices->shape()[axis]);
     for (size_t i = 0; i < rank; ++i) {
       if (i != axis) {
@@ -1074,6 +1075,62 @@ struct GatherNodeOp : public NaryNodeOp {
     if(!NaryNodeOp::equal(node))
       return false;
     auto cnode = std::dynamic_pointer_cast<GatherNodeOp>(node);
+    if(!cnode)
+      return false;
+    if(axis_ != cnode->axis_)
+      return false;
+    return true;
+  }
+
+private:
+  friend class SerializationHelpers;
+  int axis_;
+};
+
+struct ScatterNodeOp : public NaryNodeOp {
+  ScatterNodeOp(Expr a, int axis, Expr indices, Expr source)
+      : NaryNodeOp({a, indices, source}, newShape(a, axis, indices, source), a->value_type()),
+        axis_(a->shape().axis(axis)) {
+    matchOrAbort<IndexType>(indices->value_type());
+  }
+
+  NodeOps forwardOps() override {
+    return {NodeOp(
+      CopyCast(val_, child(0)->val()); // @TODO: use normal copy
+      Insert</*add=*/false>(val_, child(2)->val(), child(1)->val(), axis_)
+    )};
+  }
+
+  NodeOps backwardOps() override {
+    ABORT("backward for ScatterNodeOp not yet implemented");
+  }
+
+  Shape newShape(Expr a, int axis, Expr indices, Expr source) {
+    ABORT_IF(axis != -1, "only last dimensions");
+    ABORT_IF(indices->shape() != source->shape(), "Shapes must match");
+
+    Shape shape = a->shape();
+    // @TODO: do proper checking
+    return shape;
+  }
+
+  const std::string type() override { return "scatter"; }
+
+  const std::string color() override { return "orange"; }
+
+  virtual size_t hash() override {
+    if(!hash_) {
+      size_t seed = NaryNodeOp::hash();
+      util::hash_combine(seed, axis_);
+      hash_ = seed;
+    }
+    return hash_;
+  }
+
+  virtual bool equal(Expr node) override {
+    if(!NaryNodeOp::equal(node))
+      return false;
+    auto cnode = std::dynamic_pointer_cast<ScatterNodeOp>(node);
     if(!cnode)
       return false;
     if(axis_ != cnode->axis_)

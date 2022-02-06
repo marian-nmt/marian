@@ -3,7 +3,9 @@
  *   SPDX-License-Identifier: MIT
  */
 
+#include "common/utils.h"
 #include "translator/nth_element.h"
+
 #include <algorithm>
 #include <iterator>
 #include <limits>

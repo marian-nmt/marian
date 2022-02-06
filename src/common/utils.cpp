@@ -70,21 +70,19 @@ void split(const std::string& line,
 // the function guarantees that the output has as many elements as requested
 void splitTsv(const std::string& line, std::vector<std::string>& fields, size_t numFields) {
   fields.clear();
+  fields.resize(numFields); // make sure there is as many elements as requested
 
   size_t begin = 0;
   size_t pos = 0;
   for(size_t i = 0; i < numFields; ++i) {
     pos = line.find('\t', begin);
     if(pos == std::string::npos) {
-      fields.push_back(line.substr(begin));
+      fields[i] = line.substr(begin);
       break;
     }
-    fields.push_back(line.substr(begin, pos - begin));
+    fields[i] = line.substr(begin, pos - begin);
     begin = pos + 1;
   }
-
-  if(fields.size() < numFields)  // make sure there is as many elements as requested
-    fields.resize(numFields);
 
   ABORT_IF(pos != std::string::npos, "Excessive field(s) in the tab-separated line: '{}'", line);
 }

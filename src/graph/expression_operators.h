@@ -687,9 +687,22 @@ Expr stopGradient(Expr a);
  * @param indices The indices to be gathered
  * @returns       Gathered expression with the same shape as @p indices
  * @note @p a and @p indices must have the same rank
- * @note The non-target axes of @p a and @p indicies must have the same size, or be broadcastable.
+ * @note The non-target axes of @p a and @p indices must have the same size, or be broadcastable.
  */
 Expr gather(Expr a, int axis, Expr indices);
+
+/**
+ * Scatter elements from source along an axis into a. Unindexed elements from a remain unchanged.
+ * This is the reverse operation to gather.
+ * @param a       The input expression
+ * @param axis    The axis along which to index
+ * @param indices The indices to be scattered
+ * @param source  Expression with values to scatter. 
+ * @returns       Scattered expression with the same shape as @p a now containing values from @p source in positions @p indices
+ * @note @p source and @p indices must have the same rank
+ * @note In this version @p source and @p indicies must have the same shape
+ */
+Expr scatter(Expr a, int axis, Expr indices, Expr source);
 
 #if 0
  // reverse operation to gather. a is expression into with values from b are inserted and positions indices along axis.

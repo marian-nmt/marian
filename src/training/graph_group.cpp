@@ -10,25 +10,19 @@ GraphGroup::GraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
     mbRoundUp_(options_->get<bool>("mini-batch-round-up", true)) {
   if(options_->hasAndNotEmpty("cost-scaling")) {
     auto vcs = options_->get<std::vector<std::string>>("cost-scaling");
-    costScale_ = true;
-    float costExponent = std::stof(vcs[0]);
-    costScaleFactor_ = std::pow(2.0f, costExponent);
-    
-    if(vcs.size() > 1) costScaleFreq_ = std::stoul(vcs[1]);
-    if(vcs.size() > 2) costScaleMultiplier_ = std::stof(vcs[2]);
-    if(vcs.size() > 3) costScaleNanTolerance_ = std::stof(vcs[3]);
-    if(vcs.size() > 4) costScaleNanRange_ = std::stoul(vcs[4]);
-    if(vcs.size() > 5) costScaleFactorMinimum_ = std::stof(vcs[5]);
+
+    costScaling_                                 = true;
+    costScalingFactor_                           = std::stof( vcs[0]);
+    if(vcs.size() > 1) costScalingFreq_          = std::stoul(vcs[1]);
+    if(vcs.size() > 2) costScalingMultiplier_    = std::stof( vcs[2]);
+    if(vcs.size() > 3) costScalingFactorMinimum_ = std::stof( vcs[3]);
     
     LOG_ONCE(info,
-             "Training with cost scaling - factor: 2^{} = {}, frequency: {}, multiplier: {}, tolerance: {}, range: {}, minimum: {}",
-             costExponent,
-             costScaleFactor_,
-             costScaleFreq_,
-             costScaleMultiplier_,
-             costScaleNanTolerance_,
-             costScaleNanRange_,
-             costScaleFactorMinimum_);
+             "Training with cost scaling - factor: {}, frequency: {}, multiplier: {}, minimum: {}",
+             costScalingFactor_,
+             costScalingFreq_,
+             costScalingMultiplier_,
+             costScalingFactorMinimum_);
   }
 
   if(options_->hasAndNotEmpty("dynamic-gradient-scaling")) {
@@ -37,11 +31,16 @@ GraphGroup::GraphGroup(Ptr<Options> options, Ptr<IMPIWrapper> mpi)
 
     if(vgc.size() > 0) dynamicGradientScalingFactor_  = std::stof(vgc[0]);
     if(vgc.size() > 1) dynamicGradientScalingUseLogs_ = vgc[1] == "log";
+    if(vgc.size() > 2) dynamicGradientScalingFadeout_ = std::stoul(vgc[2]);
 
     LOG_ONCE(info,
              "Re-scaling gradient to have average gradient norm if (log={}) gradient norm diverges from average by {} sigmas",
              dynamicGradientScalingUseLogs_,
              dynamicGradientScalingFactor_);
+    if(dynamicGradientScalingFadeout_ > 0)
+      LOG_ONCE(info,
+               "Dynamic gradient re-scaling will fade out linearly after {} updates",
+               dynamicGradientScalingFadeout_);
   }
 
   if(options_->get<bool>("check-gradient-nan")) {
@@ -96,21 +95,17 @@ void GraphGroup::initGraphsAndOpts() {
 // given number of iterations. Usually we increase by 2 which adds
 // one more bit for precision.
 void GraphGroup::increaseCostScaleFactor() {
-  if(!costScale_)
+  if(!costScaling_)
     return;
 
   noNanSeen_++;
 
   size_t total = nanSeen_ + noNanSeen_;
-  float nanPercent = noNanSeen_ == (float)nanSeen_ / (float)total; // total is at least 1 because of noNanSeen_++
 
-  if(noNanSeen_ % costScaleFreq_ == 0) {
-    costScaleFactor_ *= costScaleMultiplier_;
-    LOG(debug,
-        "NaN/Inf percentage {:.2f} after {} gradient updates. Increasing cost-scaling factor to {}",
-        nanPercent,
-        total,
-        costScaleFactor_);
+  if(noNanSeen_ % costScalingFreq_ == 0) {
+    costScalingFactor_ *= costScalingMultiplier_;
+    if(isMainProcess())
+      LOG(debug, "No NaN/Inf after {} gradient updates. Increasing cost-scaling factor to {}", total, costScalingFactor_);
 
     // Resetting counts after cost-scale change
     noNanSeen_ = 0;
@@ -120,48 +115,56 @@ void GraphGroup::increaseCostScaleFactor() {
 
 // call when a NaN was seen to decrease cost-scaling factor
 void GraphGroup::decreaseCostScaleFactor() {
-  if(!costScale_)
+  if(!costScaling_)
     return;
 
   nanSeen_++;
   
   size_t total = nanSeen_ + noNanSeen_;
-  float nanPercent = (float)nanSeen_ / (float)total; // total is at least 1 because of nanSeen_++
-  if(total >= costScaleNanRange_ && nanPercent > costScaleNanTolerance_) {
-    if(costScaleFactor_ > costScaleFactorMinimum_) {
-      costScaleFactor_ /= costScaleMultiplier_;
-      LOG(debug,
-          "NaN/Inf percentage {:.2f} in {} gradient updates, reducing cost-scaling factor to {}",
-          nanPercent,
-          total,
-          costScaleFactor_);
-    } else {
-      // @TODO: think if should this rather abort?
-      LOG(warn,
-          "NaN/Inf percentage {:.2f} in {} gradient updates, but cost-scaling factor {} is already at minimum",
-          nanPercent,
-          total,
-          costScaleFactor_);
-    }
 
-    // Resetting counts after cost-scale change
-    noNanSeen_ = 0;
-    nanSeen_ = 0;
+  // do not reduce cost-scaling factor below minimum
+  if(costScalingFactor_ > costScalingFactorMinimum_)
+    costScalingFactor_ /= costScalingMultiplier_;
+
+  if(isMainProcess()) {
+    if(costScalingFactor_ > costScalingFactorMinimum_)
+      LOG(debug, "Seen NaN/Inf after {} gradient updates. Reduced cost-scaling factor to {}", total, costScalingFactor_);
+    else
+      LOG(debug, "Seen NaN/Inf after {} gradient updates, Reduced cost-scaling factor to minimum {}. Pruning NaNs now.", total, costScalingFactor_);
   }
+
+  // Resetting counts after cost-scale change
+  noNanSeen_ = 0;
+  nanSeen_ = 0;
 }
 
 float GraphGroup::checkNanOrNorm(size_t i, size_t begin, size_t end) {
   auto curGrad = graphs_[i]->params()->grads()->subtensor(begin, end-begin);
   
-  if(checkGradientNan_ || costScale_) {
-    bool hasNan = false, hasInf = false;
-    IsNaN(curGrad, graphs_[i]->allocator(), hasNan, hasInf); // @TODO: make safe with different compiler options
-    if(hasNan || hasInf) {
-      LOG(debug, "Found Nan ({}) or Inf ({})", hasNan, hasInf);
+  // If costScaling_ then check for NaN values if the costScalingFactor_ is larger than
+  // the minimum. If a NaN value is seen we exit here and will reduce the factor next and 
+  // this skips an update. 
+  // If costScalingFactor_ is already at the minimum, prune the NaN values away. This replaces 
+  // NaNs with 0. Updates are not skipped any more.
+  // Regardless of NaNs, we clip +/-inf to the largest corresponding values for the gradient value type.
+  // This changes the gradient but seems to be quite stable. In effect, for fp16 this is equivalent 
+  // to gradient clipping at (65504.f / costScalingFactor_) which in most cases is still large. 
+  if(costScaling_ || checkGradientNan_) {
+    bool pruneNaN = !checkGradientNan_ && costScalingFactor_ == costScalingFactorMinimum_;
+    bool clipInf  = !checkGradientNan_;
+    bool saneGradient = SanitizeGradient(curGrad, graphs_[i]->allocator(), pruneNaN, clipInf);
+
+    // This should never happen, if it does, something is wrong with the kernel above and needs to be fixed.
+    ABORT_IF(pruneNaN && clipInf && !saneGradient, "We are removing NaNs and clipping Infs, but gradient is still not sane??");
+
+    if(!saneGradient) {
+      LOG(debug, "Found NaN");
       return std::numeric_limits<float>::quiet_NaN();
     }
   }
-  
+
+  // The optional clipping above will affect the norm here. The norm can be non-finite despite the above
+  // gradient sanitization, hence check again and propagate a NaN.
   if(dynamicGradientScaling_) {
     auto gNorm = L2Norm(curGrad, graphs_[i]->allocator());
     if(isFinite(gNorm) && gNorm > 0.0)
@@ -197,8 +200,8 @@ float GraphGroup::executeAndCollectNorm(const std::function<float(size_t, size_t
 float GraphGroup::computeNormalizationFactor(float gNorm, size_t updateTrgWords) {
   float normalizationFactor = 1.f;
 
-  if(costScale_)
-    normalizationFactor *= costScaleFactor_;
+  if(costScaling_)
+    normalizationFactor *= costScalingFactor_;
 
   if(options_->get<bool>("normalize-gradient"))
     normalizationFactor *= updateTrgWords;
@@ -207,9 +210,9 @@ float GraphGroup::computeNormalizationFactor(float gNorm, size_t updateTrgWords)
     return normalizationFactor;
   
   if(dynamicGradientScaling_) {
-    // make gradient norm invariant to changes in costScaleFactor_, luckily norm(c * g) = c * norm(g)
-    if(costScale_)
-      gNorm = gNorm / costScaleFactor_;
+    // make gradient norm invariant to changes in costScalingFactor_, luckily norm(c * g) = c * norm(g)
+    if(costScaling_)
+      gNorm = gNorm / costScalingFactor_;
     
     // Normalize gradient norm w.r.t. number of labels in batch for statistics, 
     // there should be no gradient normalization before this point, @TODO: check this
@@ -231,11 +234,17 @@ float GraphGroup::computeNormalizationFactor(float gNorm, size_t updateTrgWords)
     auto deltaTransform    = gNormTransform - gNormAvgTransform; // compute the difference between the current transformer gradient norm and the running average.
     auto gNormStdTransform = std::sqrt(gNormVarTransform);       // compute STD for the running average of (log) gradient norms.
 
+    float fadeoutMultiplier = 1.f;
+    if(dynamicGradientScalingFadeout_ > 0ul) // fade out linearly after that many updates @TODO: allow units other than updates
+      fadeoutMultiplier = (float)std::max(dynamicGradientScalingFadeout_, scheduler_->numberOfBatches()) / (float)dynamicGradientScalingFadeout_;
+
+    float dynamicGradientScalingFactorWithFadeout = dynamicGradientScalingFactor_ * fadeoutMultiplier; // if fadeoutMultiplier increases dynamic gradient scaling becomes less and less likely to happen over time.
     // delta of (log) gradient norm vs (log) gradient norm average is larger than N standard deviations
     // hence rescale gradient using the average.
-    if(scheduler_->numberOfBatches() >= window && deltaTransform > dynamicGradientScalingFactor_ * gNormStdTransform) {
-      LOG(debug, "log gradient norms: {} :: {:.4f} - {:.4f} = {:.4f} > {:.4f} * {:.4f}",
-          dynamicGradientScalingUseLogs_, gNormTransform, gNormAvgTransform, deltaTransform, dynamicGradientScalingFactor_, gNormStdTransform);
+    if(scheduler_->numberOfBatches() >= window && deltaTransform > dynamicGradientScalingFactorWithFadeout * gNormStdTransform) {
+      if(isMainProcess())
+        LOG(debug, "log gradient norms: {} :: {:.4f} - {:.4f} = {:.4f} > {:.4f} * {:.4f} - scaling gradient by {:.4f}",
+            dynamicGradientScalingUseLogs_, gNormTransform, gNormAvgTransform, deltaTransform, dynamicGradientScalingFactorWithFadeout, gNormStdTransform, gNormAvg / gNorm);
 
       normalizationFactor *= gNorm / gNormAvg; // since we later do gradient / normalizationFactor this divides by norm and multiplies by the average, rescaling to the average. 
     }
@@ -288,9 +297,7 @@ void GraphGroup::load(const OptimizerBase::ScatterStateFunc& scatterFn) {
       restoreFromCheckpoint(modelFileName, scatterFn);
     } else if(options_->hasAndNotEmpty("pretrained-model")) {
       std::string nameInit = options_->get<std::string>("pretrained-model");
-      LOG(info,
-          "[training] Initializing model weights with pre-trained model {}",
-          nameInit);
+      LOG(info, "[training] Initializing model weights with pre-trained model {}", nameInit);
 
       size_t i = 0;
       for(auto graph : graphs_)

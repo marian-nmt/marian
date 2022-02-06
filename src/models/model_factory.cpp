@@ -370,10 +370,25 @@ Ptr<IModel> createModelFromOptions(Ptr<Options> options, usage use) {
   // add (log)softmax if requested
   if (use == usage::translation) {
     if(std::dynamic_pointer_cast<EncoderDecoder>(baseModel)) {
-      if(options->get<bool>("output-sampling", false))
-        return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<GumbelSoftmaxStep>());
-      else
+      if(options->hasAndNotEmpty("output-sampling")) {
+        auto sampling = options->get<std::vector<std::string>>("output-sampling", {});
+        std::string method = sampling.size() > 0 ? sampling[0] : "full";
+
+        if(method == "full" || method == "1" /*for backwards-compat when output-sampling: true in yaml file*/) {
+          LOG(info, "Output sampling from the full softmax distribution");
+          return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<GumbelSoftmaxStep>());
+        } else if(method == "topk") {
+          int k = sampling.size() > 1 ? std::stoi(sampling[1]) : 10;
+          if(k == 1)
+            LOG(info, "Output sampling with k=1 is equivalent to beam search with beam size 1");
+          LOG(info, "Output sampling via top-{} sampling", k);
+          return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<TopkGumbelSoftmaxStep>(k));
+        } else {
+          ABORT("Unknown sampling method: {}", method);
+        }
+      } else {
         return New<Stepwise>(std::dynamic_pointer_cast<EncoderDecoder>(baseModel), New<LogSoftmaxStep>());
+      }
     }
 #ifdef COMPILE_EXAMPLES
     // note: 'usage::translation' here means 'inference'

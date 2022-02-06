@@ -16,16 +16,16 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
   auto opt   = optimizerShards_[0];
 
   auto lossNode = model->build(graph, batch);
-  if(costScaleFactor_ != 1.f) {
+  if(costScalingFactor_ != 1.f) {
     // for fp16 training, it's ok to go out of scope, we do not use the scaled version for anything
-    auto scaledLoss = lossNode->loss() * costScaleFactor_;
+    auto scaledLoss = lossNode->loss() * costScalingFactor_;
   }
 
   graph->forward();
   graph->backward();
 
   bool noNanOrInf = true;
-  if(costScale_) {
+  if(costScaling_) {
     // Are there NaNs in the gradient?
     bool hasNan = false, hasInf = false;
     IsNaN(graph->params()->grads(), graph->allocator(), hasNan, hasInf);
@@ -39,7 +39,7 @@ void SingletonGraph::execute(Ptr<data::Batch> batch) {
     opt->update(graph->params()->vals(),
                 graph->params()->grads(),
                 batch->wordsTrg(),
-                costScaleFactor_);
+                costScalingFactor_);
 
   if(scheduler_) {
     scheduler_->update(*lossNode, batch);

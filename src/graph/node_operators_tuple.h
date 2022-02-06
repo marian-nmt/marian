@@ -133,7 +133,7 @@ public:
   }
 
   void backward() override {
-    Insert(/*out*/child(0)->grad(), adj_, val_, axis_);
+    Insert</*add=*/true>(/*out*/child(0)->grad(), adj_, val_, axis_);
   }
 
   const std::string type() override { return "topk"; }

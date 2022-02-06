@@ -357,6 +357,13 @@ Expr gather(Expr a, int axis, Expr indices) {
   return Expression<GatherNodeOp>(a, axis, indices);
 }
 
+// scatter() -- scatter arbitrary elements along an axis; batched or non-batched
+// This is the reverse operation to gather.
+Expr scatter(Expr a, int axis, Expr indices, Expr source) {
+  return Expression<ScatterNodeOp>(a, axis, indices, source);
+}
+
+
 // index_select() -- gather arbitrary elements along an axis from an unbatched
 // input 'a'. Indices are specified as a 1D vector.
 // This is used e.g. for embedding lookup.

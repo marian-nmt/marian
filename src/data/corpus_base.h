@@ -11,6 +11,8 @@
 #include "data/rng_engine.h"
 #include "data/vocab.h"
 
+#include <future>
+
 namespace marian {
 namespace data {
 
@@ -22,7 +24,7 @@ namespace data {
  * construction of marian::data::CorpusBatch objects. They are not a part of
  * marian::data::CorpusBatch.
  */
-class SentenceTuple {
+class SentenceTupleImpl {
 private:
   size_t id_;
   std::vector<Words> tuple_;    // [stream index][step index]
@@ -34,11 +36,16 @@ public:
   typedef Words value_type;
 
   /**
+   * @brief Creates an empty tuple with 0 id (default constructor).
+   */
+  SentenceTupleImpl() : id_(0) {}
+
+  /**
    * @brief Creates an empty tuple with the given Id.
    */
-  SentenceTuple(size_t id) : id_(id) {}
+  SentenceTupleImpl(size_t id) : id_(id) {}
 
-  ~SentenceTuple() { tuple_.clear(); }
+  ~SentenceTupleImpl() {}
 
   /**
    * @brief Returns the sentence's ID.
@@ -112,6 +119,92 @@ public:
 
   const WordAlignment& getAlignment() const { return alignment_; }
   void setAlignment(const WordAlignment& alignment) { alignment_ = alignment; }
+};
+
+class SentenceTuple {
+private:
+  std::shared_ptr<std::future<SentenceTupleImpl>> fImpl_;
+  mutable std::shared_ptr<SentenceTupleImpl> impl_;
+
+public:
+  typedef Words value_type;
+
+  /**
+   * @brief Creates an empty tuple with no associated future.
+   */
+  SentenceTuple() {}
+  
+  SentenceTuple(const SentenceTupleImpl& tupImpl) 
+    : impl_(std::make_shared<SentenceTupleImpl>(tupImpl)) {}
+
+  SentenceTuple(std::future<SentenceTupleImpl>&& fImpl) 
+    : fImpl_(new std::future<SentenceTupleImpl>(std::move(fImpl))) {}
+
+  SentenceTupleImpl& get() const {
+    if(!impl_) {
+      ABORT_IF(!fImpl_ || !fImpl_->valid(), "No future tuple associated with SentenceTuple");
+      impl_ = std::make_shared<SentenceTupleImpl>(fImpl_->get());
+    }
+    return *impl_;
+  }
+
+  /**
+   * @brief Returns the sentence's ID.
+   */
+  size_t getId() const { return get().getId(); }
+
+  /**
+   * @brief Returns whether this Tuple was altered or augmented from what
+   * was provided to Marian in input.
+   */
+  bool isAltered() const { return get().isAltered(); }
+
+  /**
+   * @brief The size of the tuple, e.g. two for parallel data with a source and
+   * target sentences.
+   */
+  size_t size() const { return get().size(); }
+
+  /**
+   * @brief confirms that the tuple has been populated with data
+   */
+  bool valid() const {
+    return fImpl_ || impl_;
+  }
+
+  /**
+   * @brief The i-th tuple sentence.
+   *
+   * @param i Tuple's index.
+   */
+  Words& operator[](size_t i) { return get()[i]; }
+  const Words& operator[](size_t i) const { return get()[i]; }
+
+  /**
+   * @brief The last tuple sentence, i.e. the target sentence.
+   */
+  Words& back() { return get().back(); }
+  const Words& back() const { return get().back(); }
+
+  /**
+   * @brief Checks whether the tuple is empty.
+   */
+  bool empty() const { return get().empty(); }
+
+  auto begin() const -> decltype(get().begin()) { return get().begin(); }
+  auto end() const -> decltype(get().end()) { return get().end(); }
+
+  auto rbegin() const -> decltype(get().rbegin()) { return get().rbegin(); }
+  auto rend() const -> decltype(get().rend()) { return get().rend(); }
+
+  /**
+   * @brief Get sentence weights.
+   *
+   * For sentence-level weights the vector contains only one element.
+   */
+  const std::vector<float>& getWeights() const { return get().getWeights(); }
+
+  const WordAlignment& getAlignment() const { return get().getAlignment(); }
 };
 
 /**
@@ -583,17 +676,17 @@ protected:
    * @brief Helper function converting a line of text into words using the i-th
    * vocabulary and adding them to the sentence tuple.
    */
-  void addWordsToSentenceTuple(const std::string& line, size_t batchIndex, SentenceTuple& tup) const;
+  void addWordsToSentenceTuple(const std::string& line, size_t batchIndex, SentenceTupleImpl& tup) const;
   /**
    * @brief Helper function parsing a line with word alignments and adding them
    * to the sentence tuple.
    */
-  void addAlignmentToSentenceTuple(const std::string& line, SentenceTuple& tup) const;
+  void addAlignmentToSentenceTuple(const std::string& line, SentenceTupleImpl& tup) const;
   /**
    * @brief Helper function parsing a line of weights and adding them to the
    * sentence tuple.
    */
-  void addWeightsToSentenceTuple(const std::string& line, SentenceTuple& tup) const;
+  void addWeightsToSentenceTuple(const std::string& line, SentenceTupleImpl& tup) const;
 
   void addAlignmentsToBatch(Ptr<CorpusBatch> batch, const std::vector<Sample>& batchVector);
 

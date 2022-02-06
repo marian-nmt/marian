@@ -267,10 +267,16 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Pool encoder states instead of using cross attention (selects first encoder state, best used with special token)");
   cli.add<int>("--transformer-dim-ffn",
       "Size of position-wise feed-forward network (transformer)",
-      2048);
+      2048);  
+  cli.add<int>("--transformer-decoder-dim-ffn",
+      "Size of position-wise feed-forward network in decoder (transformer). Uses --transformer-dim-ffn if 0.",
+      0);
   cli.add<int>("--transformer-ffn-depth",
       "Depth of filters (transformer)",
       2);
+  cli.add<int>("--transformer-decoder-ffn-depth",
+      "Depth of filters in decoder (transformer). Uses --transformer-ffn-depth if 0",
+      0);
   cli.add<std::string>("--transformer-ffn-activation",
       "Activation between filters: swish or relu (transformer)",
       "swish");
@@ -528,15 +534,15 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   // mixed precision training
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision training with float16 and cost-scaling, "
-      "corresponds to: --precision float16 float32 --cost-scaling 0 1000 2 0.05 10 1e-5f");
+      "corresponds to: --precision float16 float32 --cost-scaling 256.f 1000 2.f 256.f");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision training for forward/backward pass and optimizaton. "
       "Defines types for: forward/backward pass, optimization.",
       {"float32", "float32"});
   cli.add<std::vector<std::string>>("--cost-scaling",
       "Dynamic cost scaling for mixed precision training: "
-      "power of 2, scaling window, scaling factor, tolerance, range, minimum factor")
-      ->implicit_val("0.f 1000 2.f 0.05f 10 1e-5f");
+      "scaling factor, frequency, multiplier, minimum factor")
+      ->implicit_val("256.f 1000 2.f 256.f");
   cli.add<size_t>("--gradient-norm-average-window",
       "Window size over which the exponential average of the gradient norm is recorded (for logging and scaling). "
       "After this many updates about 90% of the mass of the exponential average comes from these updates",
@@ -702,9 +708,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
      "Use softmax shortlist: path first best prune");
   cli.add<std::vector<float>>("--weights",
       "Scorer weights");
-  cli.add<bool>("--output-sampling",
-     "Noise output layer with gumbel noise",
-      false);
+  cli.add<std::vector<std::string>>("--output-sampling",
+     "Noise output layer with gumbel noise. Implicit default is 'full' for sampling from full distribution. "
+     " Also accepts 'topk num' (e.g. topk 100) for top-100 sampling.")
+     ->implicit_val("full");
   cli.add<std::vector<int>>("--output-approx-knn",
      "Use approximate knn search in output layer (currently only in transformer)")
      ->implicit_val("100 1024");
@@ -889,6 +896,10 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
   if(mode_ == cli::mode::training) {
     cli.add<bool>("--shuffle-in-ram",
         "Keep shuffled corpus in RAM, do not write to temp file");
+
+    cli.add<size_t>("--data-threads",
+        "Number of concurrent threads to use during data reading and processing", 1);
+
     // @TODO: Consider making the next two options options of the vocab instead, to make it more local in scope.
     cli.add<size_t>("--all-caps-every",
         "When forming minibatches, preprocess every Nth line on the fly to all-caps. Assumes UTF-8");
@@ -907,6 +918,9 @@ void ConfigParser::addSuboptionsBatching(cli::CLIWrapper& cli) {
     cli.add<bool>("--mini-batch-round-up",
         "Round up batch size to next power of 2 for more efficient training, but this can make batch size less stable. Disable with --mini-batch-round-up=false",
         true);
+  } else {
+    cli.add<size_t>("--data-threads",
+        "Number of concurrent threads to use during data reading and processing", 1);
   }
   // clang-format on
 }

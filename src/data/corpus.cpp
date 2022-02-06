@@ -14,18 +14,30 @@ namespace data {
 
 Corpus::Corpus(Ptr<Options> options, bool translate /*= false*/, size_t seed /*= Config:seed*/)
     : CorpusBase(options, translate, seed),
-        shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
-        allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
-        titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
+      shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
+      allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
+      titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {
+
+  auto numThreads = options_->get<size_t>("data-threads", 1);
+  if(numThreads > 1)
+    threadPool_.reset(new ThreadPool(numThreads));
+
+}
 
 Corpus::Corpus(std::vector<std::string> paths,
                std::vector<Ptr<Vocab>> vocabs,
                Ptr<Options> options,
                size_t seed /*= Config:seed*/)
     : CorpusBase(paths, vocabs, options, seed),
-        shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
-        allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
-        titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {}
+      shuffleInRAM_(options_->get<bool>("shuffle-in-ram", false)),
+      allCapsEvery_(options_->get<size_t>("all-caps-every", 0)),
+      titleCaseEvery_(options_->get<size_t>("english-title-case-every", 0)) {
+  
+  auto numThreads = options_->get<size_t>("data-threads", 1);
+  if(numThreads > 1)
+    threadPool_.reset(new ThreadPool(numThreads));
+
+}
 
 void Corpus::preprocessLine(std::string& line, size_t streamId, bool& altered) {
   bool isFactoredVocab = vocabs_.back()->tryAs<FactoredVocab>() != nullptr;
@@ -52,16 +64,10 @@ void Corpus::preprocessLine(std::string& line, size_t streamId, bool& altered) {
 }
 
 SentenceTuple Corpus::next() {
-  // Used for handling TSV inputs
-  // Determine the total number of fields including alignments or weights
-  auto tsvNumAllFields = tsvNumInputFields_;
-  if(alignFileIdx_ > -1)
-    ++tsvNumAllFields;
-  if(weightFileIdx_ > -1)
-    ++tsvNumAllFields;
-  std::vector<std::string> fields(tsvNumAllFields);
+  size_t numStreams = corpusInRAM_.empty() ? files_.size() : corpusInRAM_.size();    
+  std::vector<std::string> fields(numStreams);
 
-  for(;;) { // (this is a retry loop for skipping invalid sentences)
+  while(true) { // retry loop
     // get index of the current sentence
     size_t curId = pos_; // note: at end, pos_  == total size
     // if corpus has been shuffled, ids_ contains sentence indexes
@@ -69,83 +75,91 @@ SentenceTuple Corpus::next() {
       curId = ids_[pos_];
     pos_++;
 
-    // fill up the sentence tuple with sentences from all input files
-    SentenceTuple tup(curId);
     size_t eofsHit = 0;
-    size_t numStreams = corpusInRAM_.empty() ? files_.size() : corpusInRAM_.size();
-    for(size_t i = 0; i < numStreams; ++i) {
-      std::string line;
-
+    for(size_t i = 0; i < numStreams; ++i) { // looping of all streams
       // fetch line, from cached copy in RAM or actual file
       if (!corpusInRAM_.empty()) {
         if (curId < corpusInRAM_[i].size())
-          line = corpusInRAM_[i][curId];
+          fields[i] = corpusInRAM_[i][curId];
         else {
           eofsHit++;
           continue;
         }
       }
       else {
-        bool gotLine = io::getline(*files_[i], line).good();
+        bool gotLine = io::getline(*files_[i], fields[i]).good();
         if(!gotLine) {
           eofsHit++;
           continue;
         }
       }
-
-      if(i > 0 && i == alignFileIdx_) {
-        addAlignmentToSentenceTuple(line, tup);
-      } else if(i > 0 && i == weightFileIdx_) {
-        addWeightsToSentenceTuple(line, tup);
-      } else {
-        if(tsv_) {  // split TSV input and add each field into the sentence tuple
-          utils::splitTsv(line, fields, tsvNumAllFields);
-          size_t shift = 0;
-          for(size_t j = 0; j < tsvNumAllFields; ++j) {
-            // index j needs to be shifted to get the proper vocab index if guided-alignment or
-            // data-weighting are preceding source or target sequences in TSV input
-            if(j == alignFileIdx_ || j == weightFileIdx_) {
-              ++shift;
-            } else {
-              size_t vocabId = j - shift;
-              bool altered;
-              preprocessLine(fields[j], vocabId, /*out=*/altered);
-              if (altered)
-                tup.markAltered();
-              addWordsToSentenceTuple(fields[j], vocabId, tup);
-            }
-          }
-
-          // weights are added last to the sentence tuple, because this runs a validation that needs
-          // length of the target sequence
-          if(alignFileIdx_ > -1)
-            addAlignmentToSentenceTuple(fields[alignFileIdx_], tup);
-          if(weightFileIdx_ > -1)
-            addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
-
-        } else {
-          bool altered;
-          preprocessLine(line, i, /*out=*/altered);
-          if (altered)
-            tup.markAltered();
-          addWordsToSentenceTuple(line, i, tup);
-        }
-      }
     }
 
-    if (eofsHit == numStreams)
-      return SentenceTuple(0);
+    if(eofsHit == numStreams)
+      return SentenceTuple(); // unintialized SentenceTuple which will be invalid when tested
+
     ABORT_IF(eofsHit != 0, "not all input files have the same number of lines");
 
-    // check if all streams are valid, that is, non-empty and no longer than maximum allowed length
-    if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
-         return words.size() > 0 && words.size() <= maxLength_;
-       }))
-      return tup;
+    auto makeSentenceTuple = [this](size_t curId, std::vector<std::string> fields) {
+      if(tsv_) {
+        // with tsv inputs data, there is only one input stream, hence we only have one field 
+        // which needs to be tokenized into tab-separated fields
+        ABORT_IF(fields.size() != 1, "Reading TSV file, but we have don't have exactly one stream??");
+        size_t numAllFields = tsvNumInputFields_;
+        if(alignFileIdx_ > -1)
+          ++numAllFields;
+        if(weightFileIdx_ > -1)
+          ++numAllFields;
+        // replace single-element fields array with extracted tsv fields
+        std::vector<std::string> tmpFields;
+        utils::splitTsv(fields[0], tmpFields, numAllFields); // this verifies the number of fields
+        fields.swap(tmpFields);
+      }
 
-    // otherwise skip this sentence and try the next one
-    // @TODO: tail recursion?
-  }
+      // fill up the sentence tuple with sentences from all input files
+      SentenceTupleImpl tup(curId);
+      size_t shift = 0;
+      for(size_t i = 0; i < fields.size(); ++i) {
+        // index j needs to be shifted to get the proper vocab index if guided-alignment or
+        // data-weighting are preceding source or target sequences in TSV input
+        if(i == alignFileIdx_ || i == weightFileIdx_) {
+          ++shift;
+        } else {
+          size_t vocabId = i - shift;
+          bool altered;
+          preprocessLine(fields[i], vocabId, /*out=*/altered);
+          if (altered)
+            tup.markAltered();
+          addWordsToSentenceTuple(fields[i], vocabId, tup);
+        }
+      
+        // weights are added last to the sentence tuple, because this runs a validation that needs
+        // length of the target sequence
+        if(alignFileIdx_ > -1)
+          addAlignmentToSentenceTuple(fields[alignFileIdx_], tup);
+        if(weightFileIdx_ > -1)
+          addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
+      }
+
+      // check if all streams are valid, that is, non-empty and no longer than maximum allowed length
+      if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {
+            return words.size() > 0 && words.size() <= maxLength_;
+          })) {
+        return tup;
+      } else {
+        return SentenceTupleImpl(); // return an empty tuple if above test does not pass
+      }
+    };
+
+    if(threadPool_) { // use thread pool if available
+      return SentenceTuple(threadPool_->enqueue(makeSentenceTuple, curId, fields));
+    } else { // otherwise launch here and just pass the result into the wrapper
+      auto tup = makeSentenceTuple(curId, fields);
+      if(!tup.empty())
+        return SentenceTuple(tup);
+    }
+
+  } // end of retry loop
 }
 
 // reset and initialize shuffled reading
@@ -167,6 +181,8 @@ void Corpus::reset() {
   pos_ = 0;
   for (size_t i = 0; i < paths_.size(); ++i) {
       if(paths_[i] == "stdin" || paths_[i] == "-") {
+        std::cin.tie(0);
+        std::ios_base::sync_with_stdio(false);
         files_[i].reset(new std::istream(std::cin.rdbuf()));
         // Probably not necessary, unless there are some buffers
         // that we want flushed.

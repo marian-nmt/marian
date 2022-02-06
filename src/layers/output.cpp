@@ -309,14 +309,24 @@ Logits Output::applyAsLogits(Expr input) /*override final*/ {
     }
     return Logits(std::move(allLogits), factoredVocab_);
   } else if(shortlist_) {
-    return Logits(affineOrDot(input,
-                              shortlist_->getCachedShortWt(),
-                              shortlist_->getCachedShortb(),
+    const Shape &inputShape = input->shape();
+    assert(inputShape[1] == 1); // time dimension always 1 for decoding
+    input = reshape(input, {inputShape[0], inputShape[2], 1, inputShape[3]});
+
+    Expr Wt = shortlist_->getCachedShortWt();
+    Expr b = shortlist_->getCachedShortb();
+    Expr ret = affineShortlist(input,
+                              Wt,
+                              b,
                               false,
-                              /*transB=*/isLegacyUntransposedW ? false : true));
+                              /*transB=*/isLegacyUntransposedW ? false : true);
+    const Shape &retShape = ret->shape();
+    assert(retShape[2] == 1); // time dimension always 1 for decoding
+    ret = reshape(ret, {retShape[0], 1, retShape[1], retShape[3]});
+    return Logits(ret);
   } else {
-    return Logits(
-        affineOrDot(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true));
+    Expr ret = affineOrDot(input, Wt_, b_, false, /*transB=*/isLegacyUntransposedW ? false : true);
+    return Logits(ret);
   }
 }
 

@@ -562,7 +562,11 @@ void ProdBatchedLegacy(marian::Tensor C,
     ProdBatchedTypedLegacy<float, float>(C, allocator, A, B, transA, transB, beta, scalar);
 #if COMPILE_FP16
   } else if(C->type() == Type::float16) { // not a *.cu file
-    ProdBatchedTypedLegacy<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
+    // we use computeType=float here for fp16 training as this seems more stable and roughly as fast
+    ProdBatchedTypedLegacy<half, float>(C, allocator, A, B, transA, transB, beta, scalar);
+
+    // original for reference:
+    // ProdBatchedTypedLegacy<half, half>(C, allocator, A, B, transA, transB, __float2half(beta), __float2half(scalar));
 #endif
   } else {
     ABORT("ProdBatchedLegacy not implemented for element type {}", C->type());

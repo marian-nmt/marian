@@ -252,8 +252,8 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
 
       { // let loss go out of scope, frees memory
         auto rationalLoss = models_[localDeviceIndex]->build(graph, subBatch);
-        if(costScaleFactor_ != 1.f)
-          rationalLoss->loss() * costScaleFactor_;
+        if(costScalingFactor_ != 1.f)
+          rationalLoss->loss() * costScalingFactor_;
         graph->forward();
 
         localDeviceLosses[localDeviceIndex] += *rationalLoss;
@@ -262,7 +262,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
       graph->backward(/*zero=*/false); // (gradients are reset before we get here)
     }
 
-#if 1 
+#if 0 // @TODO: this can probably be removed now, keep around until confirmed.
     // experimental and should eventually be somewhere else
     // Handle local gradient explosion but only clip to largest possible value
     // given number of GPUs and type. Should clip rarely. Also clips inf
@@ -284,7 +284,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
   comm_->scatterReduceAndResetGrads(); // reduce gradients across all devices (globally) into shards
   
   float gradNorm = 0.f; 
-  if(costScale_ || dynamicGradientScaling_ || checkGradientNan_) {
+  if(costScaling_ || dynamicGradientScaling_ || checkGradientNan_) {
     // Wrapping member function
     auto checkNanOrNorm = [&](size_t i, size_t begin, size_t end) { 
       return GraphGroup::checkNanOrNorm(i, begin, end); 
