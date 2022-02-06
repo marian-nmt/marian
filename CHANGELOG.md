@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
-- Adds option --add-lsh to marian-conv which allows the LSH to be memory-mapped.
+- Parallelized data reading with e.g. `--data-threads 8`
+- Top-k sampling during decoding with e.g. `--output-sampling topk 10`
+- Improved mixed precision training with `--fp16`
+- Set FFN width in decoder independently from encoder with e.g. `--transformer-dim-ffn 4096 --transformer-decoder-dim-ffn 2048`
+- Adds option `--add-lsh` to marian-conv which allows the LSH to be memory-mapped.
 - Early stopping based on first, all, or any validation metrics via `--early-stopping-on`
 - Compute 8.6 support if using CUDA>=11.1
 - Support for RMSNorm as drop-in replace for LayerNorm from `Biao Zhang; Rico Sennrich (2019). Root Mean Square Layer Normalization`. Enabled in Transformer model via `--transformer-postprocess dar` instead of `dan`.

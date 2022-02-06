@@ -566,23 +566,7 @@ size_t CorpusBase::getNumberOfTSVInputFields(Ptr<Options> options) {
   return 0;
 }
 
-<<<<<<< HEAD
-void SentenceTuple::setWeights(const std::vector<float>& weights) {
-  if(weights.size() != 1) {  // this assumes a single sentence-level weight is always fine
-    ABORT_IF(empty(), "Source and target sequences should be added to a tuple before data weights");
-    auto numWeights = weights.size();
-    auto numTrgWords = back().size();
-    // word-level weights may or may not contain a weight for EOS tokens
-    if(numWeights != numTrgWords && numWeights != numTrgWords - 1)
-      LOG(warn,
-          "[warn] "
-          "Number of weights ({}) does not match the number of target words ({}) in line #{}",
-          numWeights,
-          numTrgWords,
-          id_);
-  }
-  weights_ = weights;
-=======
+#if 0
 // experimental: hide inline-fix source tokens from cross attention
 std::vector<float> SubBatch::crossMaskWithInlineFixSourceSuppressed() const
 {
@@ -630,8 +614,8 @@ std::vector<float> SubBatch::crossMaskWithInlineFixSourceSuppressed() const
     ABORT_IF(batchWords() != 0/*n/a*/ && numWords != batchWords(), "batchWords() inconsistency??");
   }
   return m;
->>>>>>> master
 }
+#endif
 
 }  // namespace data
 }  // namespace marian
