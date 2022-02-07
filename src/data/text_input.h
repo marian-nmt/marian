@@ -37,12 +37,10 @@ private:
   bool maxLengthCrop_{false};
 
 public:
-  typedef SentenceTuple Sample;
-
   TextInput(std::vector<std::string> inputs, std::vector<Ptr<Vocab>> vocabs, Ptr<Options> options);
   virtual ~TextInput() {}
 
-  Sample next() override;
+  SentenceTuple next() override;
 
   void shuffle() override {}
   void reset() override {}
@@ -52,7 +50,7 @@ public:
 
   // TODO: There are half dozen functions called toBatch(), which are very
   // similar. Factor them.
-  batch_ptr toBatch(const std::vector<Sample>& batchVector) override {
+  batch_ptr toBatch(const std::vector<SentenceTuple>& batchVector) override {
     size_t batchSize = batchVector.size();
 
     std::vector<size_t> sentenceIds;

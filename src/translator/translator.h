@@ -330,7 +330,7 @@ public:
                       ? convertTsvToLists(input, options_->get<size_t>("tsv-fields", 1))
                       : std::vector<std::string>({input});
     auto corpus_ = New<data::TextInput>(inputs, srcVocabs_, options_);
-    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_);
+    data::BatchGenerator<data::TextInput> batchGenerator(corpus_, options_, nullptr, /*runAsync=*/false);
 
     auto collector = New<StringCollector>(options_->get<bool>("quiet-translation", false));
     auto printer = New<OutputPrinter>(options_, trgVocab_);

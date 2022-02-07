@@ -13,7 +13,7 @@ void TextIterator::increment() {
 }
 
 bool TextIterator::equal(TextIterator const& other) const {
-  return this->pos_ == other.pos_ || (this->tup_.empty() && other.tup_.empty());
+  return this->pos_ == other.pos_ || (!this->tup_.valid() && !other.tup_.valid());
 }
 
 const SentenceTuple& TextIterator::dereference() const {
@@ -59,7 +59,7 @@ SentenceTuple TextInput::next() {
   if(tup.size() == files_.size()) // check if each input file provided an example
     return SentenceTuple(tup);
   else if(tup.size() == 0) // if no file provided examples we are done
-    return SentenceTuple();
+    return SentenceTupleImpl(); // return an empty tuple if above test does not pass();
   else // neither all nor none => we have at least on missing entry
     ABORT("There are missing entries in the text tuples.");
 }
