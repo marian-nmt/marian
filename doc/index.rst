@@ -12,6 +12,7 @@ This is developer documentation. User documentation is available at https://mari
    :maxdepth: 2
    :caption: Contents:
 
+   structure
    graph
    operators
    layer
