@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+
+### Fixed
+
+### Changed
+
+## [1.11.0] - 2022-02-08
+
+### Added
 - Parallelized data reading with e.g. `--data-threads 8`
 - Top-k sampling during decoding with e.g. `--output-sampling topk 10`
 - Improved mixed precision training with `--fp16`
