@@ -470,7 +470,7 @@ stages:
 
 
 # Marian is built in the same job where the regression tests are run to make sure that executables
-# is compiled and run on a machine with the same CPU architecture, which is required for
+# are compiled and run on a machine with the same CPU architecture, which is required for
 # compilations with FBGEMM.
 - stage: Tests
   jobs:
@@ -530,6 +530,7 @@ stages:
           -DCMAKE_MAKE_PROGRAM="ninja.exe" ^
           -DCMAKE_TOOLCHAIN_FILE="$(VCPKG_DIR)\scripts\buildsystems\vcpkg.cmake" ^
           -DVCPKG_TARGET_TRIPLET="x64-windows-static" ^
+          -DDETERMINISTIC="TRUE" ^
           ^
           -DCOMPILE_CPU="TRUE" ^
           -DCOMPILE_CUDA="FALSE" ^
@@ -634,6 +635,7 @@ stages:
           -DCMAKE_BUILD_TYPE=slim \
           -DCOMPILE_CPU=on \
           -DCOMPILE_CUDA=off \
+          -DDETERMINISTIC=on \
           -DUSE_FBGEMM=on \
           -DUSE_SENTENCEPIECE=on \
           -DUSE_STATIC_LIBS=on

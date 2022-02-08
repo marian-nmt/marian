@@ -98,6 +98,7 @@ jobs:
           -DCOMPILE_SERVER=on \
           -DCOMPILE_TESTS=${{ matrix.unit_tests }} \
           -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${{ matrix.cuda }} \
+          -DDETERMINISTIC=on \
           -DUSE_FBGEMM=${{ matrix.cpu }} \
           -DUSE_SENTENCEPIECE=on \
           -DUSE_STATIC_LIBS=on \

@@ -1163,7 +1163,7 @@ void PasteRows(Tensor out,
   size_t rowsToCopy = indices->size();
 
   int threads = std::min(MAX_THREADS, (int)cols);
-#if 0   // @TODO: make this configurable with a 'deterministic' flag
+#if DETERMINISTIC
   // If we only use one block, then each core operates on a different column,
   // hence the summation becomes deterministic.
   // However, we only use e.g. 512 cores out of possibly 3000+, so this will be
