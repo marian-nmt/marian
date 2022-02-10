@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 
 - Changed minimal C++ standard to C++-17
+- Faster LSH top-k search on CPU
 
 ## [1.11.0] - 2022-02-08
 
