@@ -6,7 +6,7 @@ if (POLICY CMP0074)
 endif ()
 
 project(marian CXX C)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_ARCH native CACHE STRING "Compile for this CPU architecture.")
 
@@ -91,10 +91,11 @@ if(MSVC)
   # C4310: cast truncates constant value
   # C4324: 'marian::cpu::int16::`anonymous-namespace'::ScatterPut': structure was padded due to alignment specifier
   # C4702: unreachable code; note it is also disabled globally in the VS project file
+  # C4996: warning STL4015: The std::iterator class template (used as a base class to provide typedefs) is deprecated in C++17
   if(USE_SENTENCEPIECE)
-    set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\" /wd\"4702\" /wd\"4100\"")
+    set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\" /wd\"4702\" /wd\"4996\" /wd\"4100\"")
   else()
-    set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\" /wd\"4702\"")
+    set(DISABLE_GLOBALLY "/wd\"4310\" /wd\"4324\" /wd\"4702\" /wd\"4996\"")
   endif()
 
   # set(INTRINSICS "/arch:AVX")
