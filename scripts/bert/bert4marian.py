@@ -31,7 +31,7 @@ parser.add_argument('--marian', help='Output path for Marian weight file', requi
 args = parser.parse_args()
 
 print("Loading TensorFlow config from %s" % (args.bert_config,))
-bertConfig = yaml.load(open(args.bert_config))
+bertConfig = yaml.safe_load(open(args.bert_config))
 bertConfigYamlStr = yaml.dump(bertConfig, default_flow_style=False)
 print(bertConfigYamlStr)
 

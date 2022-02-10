@@ -18,7 +18,7 @@ def main():
 
     print("Loading model")
     model = np.load(args.model)
-    special = yaml.load(model["special:model.yml"][:-1].tobytes())
+    special = yaml.safe_load(model["special:model.yml"][:-1].tobytes())
 
     if special["tied-embeddings-all"] or special["tied-embeddings-src"]:
         all_emb = model["Wemb"]

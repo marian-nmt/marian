@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 ### Fixed
+- Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 
 ### Changed
 

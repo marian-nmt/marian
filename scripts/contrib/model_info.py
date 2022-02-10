@@ -27,9 +27,9 @@ def main():
         # fix the invalid trailing unicode character '#x0000' added to the YAML
         # string by the C++ cnpy library
         try:
-            yaml_node = yaml.load(yaml_text)
+            yaml_node = yaml.safe_load(yaml_text)
         except yaml.reader.ReaderError:
-            yaml_node = yaml.load(yaml_text[:-1])
+            yaml_node = yaml.safe_load(yaml_text[:-1])
 
         print(yaml_node[args.key])
     else:
