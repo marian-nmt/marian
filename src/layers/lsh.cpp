@@ -3,12 +3,14 @@
 #include "common/utils.h"
 
 #include "3rd_party/faiss/utils/hamming.h"
-#include "3rd_party/faiss/Index.h"
 
 #if BLAS_FOUND
 #include "3rd_party/faiss/VectorTransform.h"
 #endif
 
+#include "common/timer.h"
+
+#include "layers/lsh_impl.h"
 
 namespace marian {
 namespace lsh {
@@ -98,24 +100,22 @@ Expr encode(Expr input, Expr rotation) {
   return lambda(inputs, encodedShape, Type::uint8, encodeFwd, encodeHash);
 }
 
-Expr rotator(Expr weights, int nBits) {
+Expr rotator(Expr weights, int inDim, int nBits) {
   auto rotator = [](Expr out, const std::vector<Expr>& inputs) {
     inputs;
     fillRandomRotationMatrix(out->val(), out->graph()->allocator());
   };
 
   static const size_t rotatorHash = (size_t)&rotator; 
-  int dim = weights->shape()[-1];
-  return lambda({weights}, {dim, nBits}, Type::float32, rotator, rotatorHash);
+  return lambda({weights}, {inDim, nBits}, Type::float32, rotator, rotatorHash);
 }
 
-Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int k, int firstNRows) {
+Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int dimK, int firstNRows, bool noSort/*= false*/) {
   ABORT_IF(encodedQuery->shape()[-1] != encodedWeights->shape()[-1],
            "Query and index bit vectors need to be of same size ({} != {})", encodedQuery->shape()[-1], encodedWeights->shape()[-1]);
 
   int currBeamSize = encodedQuery->shape()[0];
   int batchSize    = encodedQuery->shape()[2];
-  int numHypos = currBeamSize * batchSize;
 
   auto search = [=](Expr out, const std::vector<Expr>& inputs) {
     Expr encodedQuery   = inputs[0];
@@ -128,30 +128,25 @@ Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int k, int firstNRows
     if(firstNRows != 0)
       wRows = firstNRows;
 
-    int qRows = encodedQuery->shape().elements() / bytesPerVector;
+    ABORT_IF(dimK > wRows, "k is larger than number of candidate values?"); // @TODO: use min(k, wRows) silently?
 
-    uint8_t* qCodes = encodedQuery->val()->data<uint8_t>();
-    uint8_t* wCodes = encodedWeights->val()->data<uint8_t>();
+    IndexType* outData = out->val()->data<IndexType>();
+    auto gather = [outData, dimK](IndexType rowId, IndexType k, IndexType kthColId, DistType /*dist*/) { 
+      outData[rowId * dimK + k] = kthColId; 
+    };
 
-    // use actual faiss code for performing the hamming search. 
-    std::vector<int> distances(qRows * k);
-    std::vector<faiss::Index::idx_t> ids(qRows * k);
-    faiss::int_maxheap_array_t res = {(size_t)qRows, (size_t)k, ids.data(), distances.data()};
-    faiss::hammings_knn_hc(&res, qCodes, wCodes, (size_t)wRows, (size_t)bytesPerVector, 0);
+    Parameters params;
+    params.k              = dimK;
+    params.queryRows      = encodedQuery->val()->data<uint8_t>();
+    params.numQueryRows   = encodedQuery->shape().elements() / bytesPerVector;
+    params.codeRows       = encodedWeights->val()->data<uint8_t>();
+    params.numCodeRows    = wRows;
+    params.bytesPerVector = bytesPerVector;
 
-    // Copy int64_t indices to Marian index type and sort by increasing index value per hypothesis.
-    // The sorting is required as we later do a binary search on those values for reverse look-up.
-    uint32_t* outData = out->val()->data<uint32_t>();
-    for (size_t hypoIdx = 0; hypoIdx < numHypos; ++hypoIdx) {
-      size_t startIdx = k * hypoIdx;
-      size_t endIdx = startIdx + k;
-      for(size_t i = startIdx; i < endIdx; ++i)
-        outData[i] = (uint32_t)ids[i];
-      std::sort(outData + startIdx, outData + endIdx);
-    }
+    hammingTopK(params, gather);
   };
 
-  Shape kShape({currBeamSize, batchSize, k});
+  Shape kShape({currBeamSize, batchSize, dimK});
   return lambda({encodedQuery, encodedWeights}, kShape, Type::uint32, search);
 }
 
@@ -166,7 +161,7 @@ Expr search(Expr query, Expr weights, int k, int nBits, int firstNRows, bool abo
     } else {
       ABORT_IF(abortIfDynamic, "Dynamic creation of LSH rotation matrix prohibited");
       LOG_ONCE(info, "Creating ad-hoc rotation matrix with shape {}", Shape({dim, nBits}));
-      rotMat = rotator(weights, nBits);
+      rotMat = rotator(weights, dim, nBits);
     }
   }
 
@@ -195,33 +190,42 @@ Ptr<inits::NodeInitializer> randomRotation() {
   return New<RandomRotation>();
 }
 
-void addDummyParameters(Ptr<ExpressionGraph> graph, std::string weightsName, int nBitsRot) {
-  auto weights = graph->get(weightsName);
-
-  ABORT_IF(!weights, "Trying to encode non-existing weights matrix {}??", weightsName);
+void addDummyParameters(Ptr<ExpressionGraph> graph, ParamConvInfo paramInfo) {
+  auto weights = graph->get(paramInfo.name);
+  int nBitsRot = paramInfo.nBits;
+  
+  ABORT_IF(!weights, "Trying to encode non-existing weights matrix {}??", paramInfo.name);
 
   int nBits = weights->shape()[-1];
+  if(paramInfo.transpose)
+    nBits = weights->shape()[-2];
+
   int nRows = weights->shape().elements() / nBits;
 
   Expr rotation;
   if(nBits != nBitsRot) {
-    LOG(info, "Adding LSH rotation parameter lsh_output_rotation with shape {}", Shape({nBits, nBitsRot}));
-    rotation = graph->param("lsh_output_rotation", {nBits, nBitsRot}, inits::dummy(), Type::float32);
+    LOG(info, "Adding LSH rotation parameter {} with shape {}", paramInfo.rotationName, Shape({nBits, nBitsRot}));
+    rotation = graph->param(paramInfo.rotationName, {nBits, nBitsRot}, inits::dummy(), Type::float32);
     nBits = nBitsRot;
   }
   
   int bytesPerVector = lsh::bytesPerVector(nBits);
-  LOG(info, "Adding LSH encoded weights lsh_output_codes with shape {}", Shape({nRows, bytesPerVector}));
-  auto codes = graph->param("lsh_output_codes", {nRows, bytesPerVector}, inits::dummy(), Type::uint8);
+  LOG(info, "Adding LSH encoded weights {} with shape {}", paramInfo.codesName, Shape({nRows, bytesPerVector}));
+  auto codes = graph->param(paramInfo.codesName, {nRows, bytesPerVector}, inits::dummy(), Type::uint8);
 }
 
-void overwriteDummyParameters(Ptr<ExpressionGraph> graph, std::string weightsName) {
-  Expr weights  = graph->get(weightsName);
-  Expr codes    = graph->get("lsh_output_codes");
-  Expr rotation = graph->get("lsh_output_rotation");
+void overwriteDummyParameters(Ptr<ExpressionGraph> graph, ParamConvInfo paramInfo) {
+  Expr weights  = graph->get(paramInfo.name);
+  Expr codes    = graph->get(paramInfo.codesName);
+  Expr rotation = graph->get(paramInfo.rotationName);
 
-  ABORT_IF(!weights, "Trying to encode non-existing weights matrix {}??", weightsName);
+  ABORT_IF(!weights, "Trying to encode non-existing weights matrix {}??", paramInfo.name);
   ABORT_IF(!codes, "Trying to overwrite non-existing LSH parameters lsh_output_codes??");
+
+  if(paramInfo.transpose) {
+    weights = transpose(weights);
+    graph->forward();
+  }
 
   if(rotation) {
     fillRandomRotationMatrix(rotation->val(), weights->graph()->allocator());

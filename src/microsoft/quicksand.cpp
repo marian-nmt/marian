@@ -178,8 +178,7 @@ public:
         auto score = std::get<2>(result);
         // determine alignment if present
         AlignmentSets alignmentSets;
-        if (options_->hasAndNotEmpty("alignment"))
-        {
+        if (options_->hasAndNotEmpty("alignment")) {
           float alignmentThreshold;
           auto alignment = options_->get<std::string>("alignment"); // @TODO: this logic now exists three times in Marian
           if (alignment == "soft")
@@ -287,7 +286,7 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
     // Add dummy parameters for the LSH before the model gets actually initialized.
     // This create the parameters with useless values in the tensors, but it gives us the memory we need.
     graph->setReloaded(false);
-    lsh::addDummyParameters(graph, /*weights=*/lshOutputWeights, /*nBits=*/lshNBits);
+    lsh::addDummyParameters(graph, /*paramInfo=*/{lshOutputWeights, "lsh_output_codes", "lsh_output_rotation", lshNBits});
     graph->setReloaded(true);
   }
 
@@ -296,7 +295,7 @@ bool convertModel(std::string inputFile, std::string outputFile, int32_t targetP
   if(addLsh) {
     // After initialization, hijack the paramters for the LSH and force-overwrite with correct values.
     // Once this is done we can just pack and save as normal.
-    lsh::overwriteDummyParameters(graph, /*weights=*/lshOutputWeights);
+    lsh::overwriteDummyParameters(graph, /*paramInfo=*/{lshOutputWeights, "lsh_output_codes", "lsh_output_rotation", lshNBits});
   }
 
   Type targetPrecType = (Type) targetPrec;

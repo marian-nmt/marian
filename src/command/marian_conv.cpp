@@ -86,11 +86,17 @@ int main(int argc, char** argv) {
     graph->setDevice(CPU0);
     graph->load(modelFrom);
 
+    std::vector<lsh::ParamConvInfo> toBeLSHed;
     if(addLsh) {
       // Add dummy parameters for the LSH before the model gets actually initialized.
       // This create the parameters with useless values in the tensors, but it gives us the memory we need.
+      toBeLSHed = {
+        {lshOutputWeights, "lsh_output_codes", "lsh_output_rotation", lshNBits}
+      };
+
       graph->setReloaded(false);
-      lsh::addDummyParameters(graph, /*weights=*/lshOutputWeights, /*nBits=*/lshNBits);
+      for(auto p : toBeLSHed)
+        lsh::addDummyParameters(graph, /*paramInfo=*/p);
       graph->setReloaded(true);
     }
 
@@ -99,7 +105,8 @@ int main(int argc, char** argv) {
     if(addLsh) {
       // After initialization, hijack the paramters for the LSH and force-overwrite with correct values.
       // Once this is done we can just pack and save as normal.
-      lsh::overwriteDummyParameters(graph, /*weights=*/lshOutputWeights);
+      for(auto p : toBeLSHed)
+        lsh::overwriteDummyParameters(graph, /*paramInfo=*/p);
     }
 
     // added a flag if the weights needs to be packed or not
