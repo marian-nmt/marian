@@ -132,14 +132,13 @@ SentenceTuple Corpus::next() {
             tup.markAltered();
           addWordsToSentenceTuple(fields[i], vocabId, tup);
         }
-      
-        // weights are added last to the sentence tuple, because this runs a validation that needs
-        // length of the target sequence
-        if(alignFileIdx_ > -1)
-          addAlignmentToSentenceTuple(fields[alignFileIdx_], tup);
-        if(weightFileIdx_ > -1)
-          addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
       }
+      // weights are added last to the sentence tuple, because this runs a validation that needs
+      // length of the target sequence
+      if(alignFileIdx_ > -1)
+        addAlignmentToSentenceTuple(fields[alignFileIdx_], tup);
+      if(weightFileIdx_ > -1)
+        addWeightsToSentenceTuple(fields[weightFileIdx_], tup);
 
       // check if all streams are valid, that is, non-empty and no longer than maximum allowed length
       if(std::all_of(tup.begin(), tup.end(), [=](const Words& words) {

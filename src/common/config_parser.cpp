@@ -510,7 +510,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
      "none");
   cli.add<std::string>("--guided-alignment-cost",
      "Cost type for guided alignment: ce (cross-entropy), mse (mean square error), mult (multiplication)",
-     "mse");
+     "ce");
   cli.add<double>("--guided-alignment-weight",
      "Weight for guided alignment cost",
      0.1);

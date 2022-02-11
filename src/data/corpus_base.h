@@ -338,7 +338,7 @@ public:
 class CorpusBatch : public Batch {
 protected:
   std::vector<Ptr<SubBatch>> subBatches_;
-  std::vector<float> guidedAlignment_; // [max source len, batch size, max target len] flattened
+  std::vector<WordAlignment> guidedAlignment_; // [max source len, batch size, max target len] flattened
   std::vector<float> dataWeights_;
 
 public:
@@ -444,8 +444,17 @@ public:
 
     if(options->get("guided-alignment", std::string("none")) != "none") {
       // @TODO: if > 1 encoder, verify that all encoders have the same sentence lengths
-      std::vector<float> alignment(batchSize * lengths.front() * lengths.back(),
-          0.f);
+      
+      std::vector<data::WordAlignment> alignment;
+      for(size_t k = 0; k < batchSize; ++k) {
+        data::WordAlignment perSentence;
+        // fill with random alignment points, add more twice the number of words to be safe.
+        for(size_t j = 0; j < lengths.back() * 2; ++j) {
+          size_t i = rand() % lengths.back();
+          perSentence.push_back(i, j, 1.0f);
+        }
+        alignment.push_back(std::move(perSentence));
+      }
       batch->setGuidedAlignment(std::move(alignment));
     }
 
@@ -501,29 +510,14 @@ public:
     }
 
     if(!guidedAlignment_.empty()) {
-      size_t oldTrgWords = back()->batchWidth();
-      size_t oldSize = size();
-
       pos = 0;
       for(auto split : splits) {
         auto cb = std::static_pointer_cast<CorpusBatch>(split);
-        size_t srcWords = cb->front()->batchWidth();
-        size_t trgWords = cb->back()->batchWidth();
         size_t dimBatch = cb->size();
-
-        std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
-
-        for(size_t i = 0; i < dimBatch; ++i) {
-          size_t bi = i + pos;
-          for(size_t sid = 0; sid < srcWords; ++sid) {
-            for(size_t tid = 0; tid < trgWords; ++tid) {
-              size_t bidx = sid * oldSize  * oldTrgWords + bi * oldTrgWords + tid; // [sid, bi, tid]
-              size_t idx  = sid * dimBatch *    trgWords +  i *    trgWords + tid;
-              aligns[idx] = guidedAlignment_[bidx];
-            }
-          }
-        }
-        cb->setGuidedAlignment(std::move(aligns));
+        std::vector<WordAlignment> batchAlignment;
+        for(size_t i = 0; i < dimBatch; ++i)
+          batchAlignment.push_back(std::move(guidedAlignment_[i + pos]));
+        cb->setGuidedAlignment(std::move(batchAlignment));
         pos += dimBatch;
       }
     }
@@ -556,13 +550,9 @@ public:
     return splits;
   }
 
-  const std::vector<float>& getGuidedAlignment() const { return guidedAlignment_; }  // [dimSrcWords, dimBatch, dimTrgWords] flattened
-  void setGuidedAlignment(std::vector<float>&& aln) override {
+  const std::vector<WordAlignment>& getGuidedAlignment() const { return guidedAlignment_; }  // [dimSrcWords, dimBatch, dimTrgWords] flattened
+  void setGuidedAlignment(std::vector<WordAlignment>&& aln) override {
     guidedAlignment_ = std::move(aln);
-  }
-
-  size_t locateInGuidedAlignments(size_t b, size_t s, size_t t) {
-    return ((s * size()) + b) * widthTrg() + t;
   }
 
   std::vector<float>& getDataWeights() { return dataWeights_; }

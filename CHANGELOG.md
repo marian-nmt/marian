@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 
 ### Changed
+- Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce.
+- Changed minimal C++ standard to C++-17
+- Faster LSH top-k search on CPU
 
 ## [1.11.0] - 2022-02-08
 

@@ -429,11 +429,13 @@ void CorpusBase::addWordsToSentenceTuple(const std::string& line,
 
 void CorpusBase::addAlignmentToSentenceTuple(const std::string& line,
                                              SentenceTupleImpl& tup) const {
-  ABORT_IF(rightLeft_,
-           "Guided alignment and right-left model cannot be used "
-           "together at the moment");
+  ABORT_IF(rightLeft_, "Guided alignment and right-left model cannot be used together at the moment");
+  ABORT_IF(tup.size() != 2, "Using alignment between source and target, but sentence tuple has {} elements??", tup.size());
 
-  auto align = WordAlignment(line);
+  size_t srcEosPos = tup[0].size() - 1;
+  size_t tgtEosPos = tup[1].size() - 1;
+
+  auto align = WordAlignment(line, srcEosPos, tgtEosPos);  
   tup.setAlignment(align);
 }
 
@@ -457,22 +459,17 @@ void CorpusBase::addWeightsToSentenceTuple(const std::string& line, SentenceTupl
 
 void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
                                       const std::vector<Sample>& batchVector) {
-  int srcWords = (int)batch->front()->batchWidth();
-  int trgWords = (int)batch->back()->batchWidth();
+  std::vector<WordAlignment> aligns;
+  
   int dimBatch = (int)batch->getSentenceIds().size();
-
-  std::vector<float> aligns(srcWords * dimBatch * trgWords, 0.f);
-
+  aligns.reserve(dimBatch);
+  
   for(int b = 0; b < dimBatch; ++b) {
-
     // If the batch vector is altered within marian by, for example, case augmentation,
     // the guided alignments we received for this tuple cease to be valid.
     // Hence skip setting alignments for that sentence tuple..
     if (!batchVector[b].isAltered()) {
-      for(auto p : batchVector[b].getAlignment()) {
-        size_t idx = p.srcPos * dimBatch * trgWords + b * trgWords + p.tgtPos;
-        aligns[idx] = 1.f;
-      }
+      aligns.push_back(std::move(batchVector[b].getAlignment()));
     }
   }
   batch->setGuidedAlignment(std::move(aligns));

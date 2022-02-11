@@ -77,7 +77,7 @@ public:
 
   size_t size() const override { return inputs_.front().shape()[0]; }
 
-  void setGuidedAlignment(std::vector<float>&&) override {
+  void setGuidedAlignment(std::vector<WordAlignment>&&) override {
     ABORT("Guided alignment in DataBatch is not implemented");
   }
   void setDataWeights(const std::vector<float>&) override {

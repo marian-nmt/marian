@@ -286,6 +286,8 @@ Expr operator/(float a, Expr b) {
 /*********************************************************/
 
 Expr concatenate(const std::vector<Expr>& concats, int ax) {
+  if(concats.size() == 1)
+    return concats[0];
   return Expression<ConcatenateNodeOp>(concats, ax);
 }
 
