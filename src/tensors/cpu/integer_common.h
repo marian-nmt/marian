@@ -11,21 +11,21 @@
 namespace intgemm {
   struct Int8;
   struct Int16;
-  namespace ssse3 {
+  namespace SSSE3 {
     struct Kernels8;
   }
-  namespace sse2 {
+  namespace SSE2 {
     struct Kernels16;
   }
-  namespace avx2 {
-    struct Kernels8;
-    struct Kernels16;
-  }
-  namespace avx512bw {
+  namespace AVX2 {
     struct Kernels8;
     struct Kernels16;
   }
-  namespace avx512vnni {
+  namespace AVX512BW {
+    struct Kernels8;
+    struct Kernels16;
+  }
+  namespace AVX512VNNI {
     struct Kernels8;
   }
 }
@@ -57,22 +57,22 @@ template <> struct intgemm_<Type::intgemm8> {
 };
 
 template <> struct intgemm_<Type::intgemm8ssse3> {
-  using width = intgemm::ssse3::Kernels8;
+  using width = intgemm::SSSE3::Kernels8;
   using type = int8_t;
 };
 
 template <> struct intgemm_<Type::intgemm8avx2> {
-  using width = intgemm::avx2::Kernels8;
+  using width = intgemm::AVX2::Kernels8;
   using type = int8_t;
 };
 
 template <> struct intgemm_<Type::intgemm8avx512> {
-  using width = intgemm::avx512bw::Kernels8;
+  using width = intgemm::AVX512BW::Kernels8;
   using type = int8_t;
 };
 
 template <> struct intgemm_<Type::intgemm8avx512vnni> {
-  using width = intgemm::avx512vnni::Kernels8;
+  using width = intgemm::AVX512VNNI::Kernels8;
   using type = int8_t;
 };
 
@@ -82,17 +82,17 @@ template <> struct intgemm_<Type::intgemm16> {
 };
 
 template <> struct intgemm_<Type::intgemm16sse2> {
-  using width = intgemm::sse2::Kernels16;
+  using width = intgemm::SSE2::Kernels16;
   using type = int16_t;
 };
 
 template <> struct intgemm_<Type::intgemm16avx2> {
-  using width = intgemm::avx2::Kernels16;
+  using width = intgemm::AVX2::Kernels16;
   using type = int16_t;
 };
 
 template <> struct intgemm_<Type::intgemm16avx512> {
-  using width = intgemm::avx512bw::Kernels16;
+  using width = intgemm::AVX512BW::Kernels16;
   using type = int16_t;
 };
 

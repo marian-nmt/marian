@@ -172,19 +172,19 @@ public:
           // Hardware-specific conversions which allow to implement memory-mapping and avoid conversion at runtime
           cpu::integer::passOrAbort(gemmElementType); // Check if the hardware supports the GEMM type
           if(isSsse3(gemmElementType)) {
-            intgemm::ssse3::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::SSSE3::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
                                                     paramMat->data<int8_t>(), /*output*/
                                                     quantMult, /*Quant Mult*/
                                                     rows(val),
                                                     cols(val));
           } else if(isAvx2(gemmElementType)) {
-            intgemm::avx2::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::AVX2::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
                                                    paramMat->data<int8_t>(), /*output*/
                                                    quantMult, /*Quant Mult*/
                                                    rows(val),
                                                    cols(val));
           } else if(isAvx512(gemmElementType)) {
-            intgemm::avx512bw::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::AVX512BW::Kernels8::PrepareBTransposed(tmp->data(), /*input*/
                                                      paramMat->data<int8_t>(), /*output*/
                                                      quantMult, /*Quant Mult*/
                                                      rows(val),
@@ -206,19 +206,19 @@ public:
            // Hardware-specific conversions which allow to implement memory-mapping and avoid conversion at runtime
            cpu::integer::passOrAbort(gemmElementType); // Check if the hardware supports the GEMM type
           if(isSse2(gemmElementType)) {
-            intgemm::sse2::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::SSE2::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
                                                     paramMat->data<int16_t>(), /*output*/
                                                     quantMult, /*Quant Mult*/
                                                     rows(val),
                                                     cols(val));
           } else if(isAvx2(gemmElementType)) {
-            intgemm::avx2::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::AVX2::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
                                                     paramMat->data<int16_t>(), /*output*/
                                                     quantMult, /*Quant Mult*/
                                                     rows(val),
                                                     cols(val));
           } else if(isAvx512(gemmElementType)) {
-            intgemm::avx512bw::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
+            intgemm::AVX512BW::Kernels16::PrepareBTransposed(tmp->data(), /*input*/
                                                       paramMat->data<int16_t>(), /*output*/
                                                       quantMult, /*Quant Mult*/
                                                       rows(val),

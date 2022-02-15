@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce.
 - Changed minimal C++ standard to C++-17
 - Faster LSH top-k search on CPU
+- Updated intgemm to the latest upstream version
 
 ## [1.11.0] - 2022-02-08
 
