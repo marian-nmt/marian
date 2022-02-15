@@ -90,6 +90,9 @@ void addMetaToItems(const std::string& meta,
 void loadItemsFromNpz(const std::string& fileName, std::vector<Item>& items) {
   auto numpy = cnpy::npz_load(fileName);
   for(auto it : numpy) {
+    ABORT_IF(
+        it.second->fortran_order, "Numpy item '{}' is not stored in row-major order", it.first);
+
     Shape shape;
     shape.resize(it.second->shape.size());
     for(size_t i = 0; i < it.second->shape.size(); ++i)

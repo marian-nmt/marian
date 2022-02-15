@@ -12,12 +12,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
+- Fixed check for `fortran_ordering` in cnpy
 
 ### Changed
-- Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce.
+- Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce
 - Changed minimal C++ standard to C++-17
 - Faster LSH top-k search on CPU
 - Updated intgemm to the latest upstream version
+- Parameters in npz files are no longer implicitly assumed to be row-ordered. Non row-ordered parameters will result in an abort
 
 ## [1.11.0] - 2022-02-08
 
