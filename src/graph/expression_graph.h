@@ -637,7 +637,7 @@ public:
     ABORT_IF(paramsByElementType_.empty(), "No parameter object has been created");
 
     // Safeguard against accessing parameters from the outside with multiple parameter types, not yet supported
-    ABORT_IF(paramsByElementType_.size() > 1, "Calling of params() is currently not supported with multiple ({}) parameters", paramsByElementType_.size());
+    ABORT_IF(paramsByElementType_.size() > 1, "Calling of params() is currently not supported with multiple ({}) parameter types (did you try to access a quantized model?)", paramsByElementType_.size());
 
     // Safeguard against accessing parameters from the outside with other than default parameter type, not yet supported
     auto it = paramsByElementType_.find(defaultElementType_);
