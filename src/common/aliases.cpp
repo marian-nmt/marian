@@ -32,7 +32,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
     if(mode_ == cli::mode::training) {
       config["precision"] = std::vector<std::string>({"float16", "float32"}); // inference type, optimization type, save type
       // scaling factor, frequency, multiplier at increase, minium scaling factor
-      config["cost-scaling"] = std::vector<std::string>({"256.f", "1000", "2.f", "256.f"});
+      config["cost-scaling"] = std::vector<std::string>({"8.f", "10000", "1.f", "8.f"});
     } else {
       config["precision"] = std::vector<std::string>({"float16"}); // for inference we do not need the other types
     }

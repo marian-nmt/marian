@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 
 ### Changed
+- Set default parameters for cost-scaling to 8.f 10000 1.f 8.f, i.e. when scaling scale by 8 and do not try to automatically scale up or down. This seems most stable.
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce.
 - Changed minimal C++ standard to C++-17
 - Faster LSH top-k search on CPU
