@@ -57,8 +57,7 @@ Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
   auto lemmaEmbs = rows(E_, lemmaIndices);
   int dimFactors = FactorEmbMatrix_->shape()[0];
   auto factEmbs
-      = dot(graph->constant(
-                {(int)data.size(), dimFactors}, inits::fromVector(factorIndices), Type::float32),
+      = dot(graph->constant({(int)data.size(), dimFactors}, inits::fromVector(factorIndices)),
             FactorEmbMatrix_);
 
   return concatenate({lemmaEmbs, factEmbs}, -1);
