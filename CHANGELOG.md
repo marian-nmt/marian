@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 ### Fixed
+- Fix incorrect/missing gradient accumulation with delay > 1 or large effective batch size of biases of affine operations.
 - Fixed case augmentation with multi-threaded reading.
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 
