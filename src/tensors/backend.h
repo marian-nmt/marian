@@ -29,6 +29,7 @@ public:
   // for GPU only, calls cudaSetDevice, does nothing on CPU. Maybe change name.
   virtual void setDevice() = 0;
   virtual void synchronize() = 0;
+  virtual size_t getGlobalMemorySize() = 0;
 
   // for CPU, sets to use optimized code for inference.
   // for GPU, this is invalid. for gpu, isOptimized() function always returns false.

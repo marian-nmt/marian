@@ -96,6 +96,12 @@ public:
 
   CudaCompute getCudaComputeCapability() { return compute_; }
 
+  size_t getGlobalMemorySize() override {
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, (int)deviceId_.no));
+    return prop.totalGlobalMem;
+  }
+
 private:
   cublasHandle_t cublasHandle_{0};     // make sure it's 0, so it can be initalized lazily
   cusparseHandle_t cusparseHandle_{0}; // as above

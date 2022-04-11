@@ -20,6 +20,10 @@ public:
   void setDevice() override {}
   void synchronize() override {}
 
+  size_t getGlobalMemorySize() override {
+   ABORT("Not implemented on CPU");
+  }
+
   // for CPU & inference only, sets to use optimized code for inference. Does nothing for GPU.
   void setOptimized(bool optimize) override { optimized_ = optimize; }
   bool isOptimized() override { return optimized_; }

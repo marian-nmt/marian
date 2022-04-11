@@ -244,11 +244,10 @@ public:
    * Preallocate workspace memory (MB) for the graph.
    * Sets the size of the memory available for the forward and backward step of the training procedure.
    * This does not include model size and optimizer parameters that are allocated outsize workspace.
+   * If memory is negative (<0) the total available GPU memory is used with the absolute value substracted.
+   * Negative workspace is not supported on CPU.
    */
-  void reserveWorkspaceMB(size_t num) {
-    size_t bytes = num * 1024 * 1024 - 1;
-    tensors_->reserve(bytes);
-  }
+  void reserveWorkspaceMB(int num);
 
   /** Copy tensor objects from one graph to current graph */
   void reuseWorkspace(Ptr<ExpressionGraph> graph) {
@@ -277,7 +276,7 @@ public:
       tensors_->throwAtReallocation(true);
       backprop();
       tensors_->throwAtReallocation(false);
-    } catch(AllocationException&) {
+    } catch(const AllocationException&) {
       tensors_->throwAtReallocation(false);
       return false;
     }

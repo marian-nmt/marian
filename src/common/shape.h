@@ -12,6 +12,26 @@
 
 namespace marian {
 
+class ShapeSizeException : public std::exception {
+private:
+  char* message_;
+
+public:
+  ShapeSizeException(size_t available, size_t asked) {
+    std::string mstr = "Expanded shape size " + std::to_string(asked)
+                       + " exceeds numeric capcacity " + std::to_string(available);
+
+    message_ = new char[mstr.size() + 1];
+    std::copy(mstr.begin(), mstr.end(), message_);
+    message_[mstr.size()] = 0;
+  }
+
+  ~ShapeSizeException() { delete[] message_; }
+
+  virtual const char* what() const noexcept override { return message_; }
+};
+
+
 struct Slice // Python-like slice/index descriptor
 {
   Slice(int b, int e, int s) : begin(b), end(e), stride(s) {}
@@ -110,10 +130,12 @@ public:
 
   template<typename T = int> // using a template so that FactoredSegmenter, which uses this as well, can pass size_t
   inline T elements() const {
-    T el = 1;
+    size_t el = 1;
     for(auto s : shape_)
-      el *= (T)s;
-    return el;
+      el *= (size_t)s;
+    if(el > std::numeric_limits<T>::max())
+      throw ShapeSizeException(std::numeric_limits<T>::max(), el);
+    return (T)el;
   }
 
   inline void dims(int i, std::vector<int>& d) const {

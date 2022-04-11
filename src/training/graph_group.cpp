@@ -82,7 +82,7 @@ void GraphGroup::initGraphsAndOpts() {
 
     graph->setDevice(device);
     
-    graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+    graph->reserveWorkspaceMB(options_->get<int>("workspace"));
 
     graphs_.push_back(graph);
 
@@ -510,8 +510,18 @@ Ptr<data::BatchStats> GraphGroup::collectStats(Ptr<ExpressionGraph> graph,
       lengths[j] = std::min(lengths[j], localMaxes[j]);
 
     auto batch = data::CorpusBatch::fakeBatch(lengths, vocabs, maxBatch, options_);
-    auto loss = model->build(graph, batch);
-    fits = graph->fits();
+
+    // We check for a ShapeSizeException (happens if total shape size would exceed max int).
+    // If caught, we reduce the batch size. In any other context, this exception will cause
+    // an error and exit Marian.
+    try {
+      auto loss = model->build(graph, batch);
+      fits = graph->fits();
+    } catch(const ShapeSizeException& e) {
+      LOG(debug, "Exception for maxBatch size {}: {}", maxBatch, e.what());
+      fits = false;
+    }
+
     if(fits)
       maxBatch *= 2;
   }
@@ -530,8 +540,15 @@ Ptr<data::BatchStats> GraphGroup::collectStats(Ptr<ExpressionGraph> graph,
     do {
       size_t current = (start + end) / 2;
       auto batch = data::CorpusBatch::fakeBatch(lengths, vocabs, current, options_);
-      auto loss = model->build(graph, batch);
-      fits = graph->fits();
+
+      // Same as above.
+      try {
+        auto loss = model->build(graph, batch);
+        fits = graph->fits();
+      } catch(const ShapeSizeException& e) {
+        LOG(debug, "Exception for maxBatch size {}: {}", maxBatch, e.what());
+        fits = false;
+      }
 
       LOG(debug, "[batching] length: {} - size: {} - fits: {}", lengths[0], current, fits);
 

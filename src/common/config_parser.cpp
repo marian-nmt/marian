@@ -118,8 +118,8 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
     ->implicit_val("basic");
   cli.add<std::vector<std::string>>("--config,-c",
     "Configuration file(s). If multiple, later overrides earlier");
-  cli.add<size_t>("--workspace,-w",
-    "Preallocate arg MB of work space",
+  cli.add<int>("--workspace,-w",
+    "Preallocate arg MB of work space. Negative `--workspace -N` value allocates workspace as total available GPU memory minus N megabytes.",
     defaultWorkspace);
   cli.add<std::string>("--log",
     "Log training process information to file given by arg");
