@@ -1,0 +1,126 @@
+# Azure pipelines for Marian NMT
+#
+# The pipeline need to be added manually to the repository, for example:
+# 1. Go to Your repository > Pipelines, click "New pipeline"
+# 2. Choose "Azure Repos Git" and a repository
+# 3. Choose "Existing Azure Pipelines YAML file" and specify path to this file
+# 4. "More actions" > "Save"
+
+# The pipeline has no CI trigger and needs to be started manually, for example:
+# 1. Got to the Pipeline created above
+# 2. Click "Run pipeline" and select a "Branch/tag" you want to run it with
+trigger: none
+
+# Hosted Azure DevOps Pool determining OS, CUDA version and available GPUs
+pool: mariandevops-pool-m60-eus
+
+stages:
+- stage: TestsGPU
+  jobs:
+
+  ######################################################################
+  - job: TestsGPULinux
+    displayName: Linux GPU tests
+    timeoutInMinutes: 120
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    # librt.* from the default anaconda environment are deleted because they crash the linker at the
+    # end of compilation. This is an issue with the pre-defined VM image that is used for the Pool
+    # and will not persist for other images
+    # TODO: There should be no need to install python3
+    - bash: |
+        rm -f /anaconda/envs/py38_default/x86_64-conda-linux-gnu/sysroot/usr/lib/librt.*
+        sudo apt-get install -y gcc-8 g++-8 p7zip-full python3-pip
+      displayName: Clean and install packages
+
+    # Collect details about CPU and GPU.
+    # Because the outputs goes into regression-tests/*.log files, they will be included in the artifact.
+    - bash: |
+        echo ">>> lscpu"
+        lscpu | tee lscpu.log
+        echo ">>> cpuinfo"
+        cat /proc/cpuinfo | tee cpuinfo.log
+        /usr/bin/gcc-8 --version | tee gcc.log
+        echo ">>> nvidia-smi"
+        nvidia-smi | tee nvidia-smi.log
+        echo ">>> python"
+        which python3 | tee python.log
+        python3 --version | tee -a python.log
+        python3 -m pip --version | tee -a python.log
+        echo ">>> df"
+        df -h | tee df.log
+      displayName: Collect system info
+      workingDirectory: regression-tests
+
+    # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
+    - bash: |
+        wget -qO- "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB" | sudo apt-key add -
+        sudo sh -c "echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get update -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/intel-mkl.list"
+        sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
+      displayName: Install MKL
+
+    - bash: |
+        mkdir -p build
+        cd build
+        CC=/usr/bin/gcc-8 CXX=/usr/bin/g++-8 CUDAHOSTCXX=/usr/bin/g++-8 \
+        cmake .. \
+          -DCOMPILE_CPU=on \
+          -DUSE_FBGEMM=on \
+          -DCOMPILE_CUDA=on \
+          -DDETERMINISTIC=on \
+          -DUSE_STATIC_LIBS=on \
+          -DCOMPILE_EXAMPLES=on \
+          -DCOMPILE_SERVER=on \
+          -DCOMPILE_TESTS=on \
+          -DCOMPILE_MAXWELL=on -DCOMPILE_PASCAL=off -DCOMPILE_VOLTA=off -DCOMPILE_TURING=off -DCOMPILE_AMPERE=off -DCOMPILE_AMPERE_RTX=off \
+          -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-11.1
+      displayName: Configure CMake
+
+    - bash: make -j5
+      displayName: Compile
+      workingDirectory: build
+
+    - bash: |
+        ./marian --version
+        ./marian-decoder --version
+        ./marian-scorer --version
+        ./spm_encode --version
+      displayName: Print versions
+      workingDirectory: build
+
+    # Run unit tests with verbose output
+    - bash: ctest --verbose --output-on-failure
+      displayName: Run unit tests
+      workingDirectory: build
+
+    # Always run regression tests from the master branch
+    - bash: |
+        git checkout master
+        git pull origin master
+        make install
+      displayName: Prepare regression tests
+      workingDirectory: regression-tests
+
+    # Continue on error to be able to collect outputs and publish them as an artifact
+    - bash: MARIAN=../build ./run_mrt.sh
+      continueOnError: true
+      displayName: Run regression tests
+      workingDirectory: regression-tests
+
+    - bash: |
+        nvidia-smi
+        # cut -c3- removes './' from paths making 7z to retain the directory structure
+        find . -type f \( -name "*.log" -o -name "*.out" -o -name "*.diff" \) -print | cut -c3- > listing.txt
+        echo "Creating an artifact with the following files:"
+        cat listing.txt
+        7z a -tzip ../regression-tests-ci-public_linux-x64-static_cuda_m60.zip @listing.txt
+      displayName: Collect outputs
+      workingDirectory: regression-tests
+
+    - publish: regression-tests-ci-public_linux-x64-static_cuda_m60.zip
+      artifact: regression-tests-ci-public_linux-x64-static_cuda_m60
+      displayName: Publish outputs
