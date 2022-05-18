@@ -79,7 +79,7 @@ echo "CUDA_PACKAGES ${CUDA_PACKAGES}"
 
 PIN_FILENAME="cuda-ubuntu${UBUNTU_VERSION}.pin"
 PIN_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/${PIN_FILENAME}"
-APT_KEY_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/7fa2af80.pub"
+APT_KEY_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/3bf863cc.pub"
 REPO_URL="https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION}/x86_64/"
 
 echo "PIN_FILENAME ${PIN_FILENAME}"

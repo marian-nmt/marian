@@ -6,3 +6,4 @@ myst-parser==0.14.0a3
 mistune<2.0.0
 m2r
 sphinx-mathjax-offline
+Jinja2<3.1
