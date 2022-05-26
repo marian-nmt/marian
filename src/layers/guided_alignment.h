@@ -53,9 +53,9 @@ static inline RationalLoss guidedAlignmentCost(Ptr<ExpressionGraph> graph,
   auto attentionAtAligned = cols(flatten(attention), alignmentIndices);
 
   float epsilon           = 1e-6f;
-  Expr alignmentLoss      = -sum(alignmentValues * log(attentionAtAligned + epsilon));
+  Expr alignmentLoss      = -sum(cast(alignmentValues * log(attentionAtAligned + epsilon), Type::float32));
   size_t numLabels        = alignmentIndices->shape().elements();
-  
+
   // Create label node, also weigh by scalar so labels and cost are in the same domain.
   // Fractional label counts are OK. But only if combined as "sum".
   // @TODO: It is ugly to check the multi-loss type here, but doing this right requires

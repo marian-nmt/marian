@@ -34,7 +34,7 @@ variables:
   - name: MKL_URL
     value: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
   - name: VCPKG_COMMIT
-    value: c69096659f49e2b1aca532ea5c2f8c135182519b
+    value: 2022.03.10
   - name: VCPKG_DIR
     value: "$(Build.SourcesDirectory)/vcpkg"
   - name: VCPKG_PACKAGES
@@ -67,7 +67,7 @@ stages:
           cuda_version: 10.2
 
     pool:
-      vmImage: windows-latest
+      vmImage: windows-2019
 
     steps:
     - checkout: self
@@ -438,7 +438,7 @@ stages:
     displayName: Windows CPU+FBGEMM
 
     pool:
-      vmImage: windows-latest
+      vmImage: windows-2019
 
     steps:
     # Due to multiple checkouts this will be commonly cloned into D:\a\1\s\marian-dev

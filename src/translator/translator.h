@@ -98,7 +98,7 @@ public:
           graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
           graph->getBackend()->setQuantizeRange(options_->get<float>("quantize-range"));
         }
-        graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+        graph->reserveWorkspaceMB(options_->get<int>("workspace"));
         graphs_[id] = graph;
 
         std::vector<Ptr<Scorer>> scorers;
@@ -311,7 +311,7 @@ public:
         graph->getBackend()->setGemmType(options_->get<std::string>("gemm-type"));
         graph->getBackend()->setQuantizeRange(options_->get<float>("quantize-range"));
       }
-      graph->reserveWorkspaceMB(options_->get<size_t>("workspace"));
+      graph->reserveWorkspaceMB(options_->get<int>("workspace"));
       graphs_.push_back(graph);
 
       auto scorers = createScorers(options_, model_items_);

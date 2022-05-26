@@ -39,10 +39,10 @@ Corpus::Corpus(std::vector<std::string> paths,
 
 }
 
-void Corpus::preprocessLine(std::string& line, size_t streamId, bool& altered) {
+void Corpus::preprocessLine(std::string& line, size_t streamId, size_t lineId, bool& altered) {
   bool isFactoredVocab = vocabs_.back()->tryAs<FactoredVocab>() != nullptr;
   altered = false; 
-  if (allCapsEvery_ != 0 && pos_ % allCapsEvery_ == 0 && !inference_) {
+  if (allCapsEvery_ != 0 && lineId % allCapsEvery_ == 0 && !inference_) {
     line = vocabs_[streamId]->toUpper(line);
     if (streamId == 0)
       LOG_ONCE(info, "[data] Source all-caps'ed line to: {}", line);
@@ -50,7 +50,7 @@ void Corpus::preprocessLine(std::string& line, size_t streamId, bool& altered) {
       LOG_ONCE(info, "[data] Target all-caps'ed line to: {}", line);
     altered = isFactoredVocab ? false : true; // FS vocab does not really "alter" the token lemma for all caps
   }
-  else if (titleCaseEvery_ != 0 && pos_ % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
+  else if (titleCaseEvery_ != 0 && lineId % titleCaseEvery_ == 1 && !inference_ && streamId == 0) {
     // Only applied to stream 0 (source) since this feature is aimed at robustness against
     // title case in the source (and not at translating into title case).
     // Note: It is user's responsibility to not enable this if the source language is not English.
@@ -127,7 +127,7 @@ SentenceTuple Corpus::next() {
         } else {
           size_t vocabId = i - shift;
           bool altered;
-          preprocessLine(fields[i], vocabId, /*out=*/altered);
+          preprocessLine(fields[i], vocabId, curId, /*out=*/altered);
           if (altered)
             tup.markAltered();
           addWordsToSentenceTuple(fields[i], vocabId, tup);

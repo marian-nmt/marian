@@ -334,7 +334,7 @@ public:
                       false,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 1.f, 1.f, computeTypeC))
       };
 
     if(transA_ && !transB_)
@@ -353,7 +353,7 @@ public:
                       false,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 1.f, 1.f, computeTypeC))
       };
 
     if(transA_ && transB_)
@@ -372,7 +372,7 @@ public:
                       true,
                       1.0,
                       scalar_, computeTypeB)),
-          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+          NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 1.f, 1.f, computeTypeC))
       };
 
     return {
@@ -390,7 +390,7 @@ public:
                     false,
                     1.0,
                     scalar_, computeTypeB)),
-        NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 0.f, 1.f, computeTypeC))
+        NodeOp(Prod(child(2)->grad(), child(3)->val(), adj_, true, false, 1.f, 1.f, computeTypeC))
     };
   }
 

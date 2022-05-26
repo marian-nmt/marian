@@ -118,8 +118,8 @@ void ConfigParser::addOptionsGeneral(cli::CLIWrapper& cli) {
     ->implicit_val("basic");
   cli.add<std::vector<std::string>>("--config,-c",
     "Configuration file(s). If multiple, later overrides earlier");
-  cli.add<size_t>("--workspace,-w",
-    "Preallocate arg MB of work space",
+  cli.add<int>("--workspace,-w",
+    "Preallocate arg MB of work space. Negative `--workspace -N` value allocates workspace as total available GPU memory minus N megabytes.",
     defaultWorkspace);
   cli.add<std::string>("--log",
     "Log training process information to file given by arg");
@@ -534,7 +534,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   // mixed precision training
   cli.add<bool>("--fp16",
       "Shortcut for mixed precision training with float16 and cost-scaling, "
-      "corresponds to: --precision float16 float32 --cost-scaling 256.f 1000 2.f 256.f");
+      "corresponds to: --precision float16 float32 --cost-scaling 8.f 10000 1.f 8.f");
   cli.add<std::vector<std::string>>("--precision",
       "Mixed precision training for forward/backward pass and optimizaton. "
       "Defines types for: forward/backward pass, optimization.",
@@ -542,7 +542,7 @@ void ConfigParser::addOptionsTraining(cli::CLIWrapper& cli) {
   cli.add<std::vector<std::string>>("--cost-scaling",
       "Dynamic cost scaling for mixed precision training: "
       "scaling factor, frequency, multiplier, minimum factor")
-      ->implicit_val("256.f 1000 2.f 256.f");
+      ->implicit_val("8.f 10000 1.f 8.f");
   cli.add<size_t>("--gradient-norm-average-window",
       "Window size over which the exponential average of the gradient norm is recorded (for logging and scaling). "
       "After this many updates about 90% of the mass of the exponential average comes from these updates",
