@@ -30,7 +30,6 @@ set(MARIAN_SOURCES
   common/filesystem.cpp
   common/file_stream.cpp
   common/file_utils.cpp
-  common/hash.cpp
   common/signal_handling.cpp
   common/types.cpp
 
