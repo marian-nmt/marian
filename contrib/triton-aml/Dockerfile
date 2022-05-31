@@ -1,5 +1,6 @@
 # It is recommended to use a machine which supports CUDA to build this image.
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04 AS BUILDER
+# Remove 'mcr.microsoft.com/mirror/nvcr/' below if you want to pull from the official NVIDIA image
+FROM mcr.microsoft.com/mirror/nvcr/nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04 AS BUILDER
 RUN apt-get update --fix-missing
 RUN apt-get install -y curl git autoconf automake libtool curl make g++ unzip cmake build-essential cpio
 RUN apt-get -y clean && \
@@ -58,7 +59,8 @@ RUN cmake .. -DCOMPILE_CPU=on -DCOMPILE_CUDA=on -DUSE_SENTENCEPIECE=on -DUSE_STA
 RUN make -j $(grep -c ^processor /proc/cpuinfo)
 
 # build cmarian static library
-FROM nvcr.io/nvidia/tritonserver:20.09-py3
+# Replace 'mcr.microsoft.com/mirror/nvcr/' with 'nvcr.io/' below if you want to pull from the official NVIDIA image. Tested using 'nvidia/tritonserver:20.09-py3'.
+FROM mcr.microsoft.com/mirror/nvcr/nvidia/tritonserver:22.03-py3
 RUN mkdir -p /marian-dev/build/src/3rd_party/sentencepiece/src
 COPY --from=BUILDER /usr/lib/libprotobuf.a /usr/lib
 COPY --from=BUILDER /usr/lib/libboost_system.a /usr/lib
