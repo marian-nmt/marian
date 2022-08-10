@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
 import numpy as np
 import yaml
@@ -44,7 +43,10 @@ def main():
                 print(model[args.key])
         else:
             for key in model:
-                print(key)
+                if args.matrix_shapes:
+                    print(key, model[key].shape)
+                else:
+                    print(key)
 
 
 def parse_args():
@@ -54,7 +56,9 @@ def parse_args():
     parser.add_argument("-s", "--special", action="store_true",
                         help="print values from special:model.yml node")
     parser.add_argument("-f", "--full-matrix", action="store_true",
-                        help="force numpy to print full arrays")
+                        help="force numpy to print full arrays for single key")
+    parser.add_argument("-ms", "--matrix-shapes", action="store_true",
+                        help="print shapes of all arrays in the model")
     return parser.parse_args()
 
 
