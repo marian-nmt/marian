@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 - Fixed check for `fortran_ordering` in cnpy
 - Fixed fp16 training/inference with factors-combine concat method
+- Fixed clang 13.0.1 compatibility
 
 ### Changed
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce
