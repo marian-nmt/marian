@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Faster LSH top-k search on CPU
 - Updated intgemm to the latest upstream version
 - Parameters in npz files are no longer implicitly assumed to be row-ordered. Non row-ordered parameters will result in an abort
+- Updated Catch2 header from 2.10.1 to 2.13.9
 
 ## [1.11.0] - 2022-02-08
 
