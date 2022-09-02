@@ -13,56 +13,58 @@ jobs:
         include:
           # Ubuntu CPU-only build
           - name: "Ubuntu CPU-only"
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             cuda: ""
-            gcc: 7
+            gcc: 9
             clang: ""
             cpu: true
             gpu: false
             unit_tests: true
             examples: false
           # Using Clang compiler
-          - name: "Ubuntu CPU-only clang-12"
-            os: ubuntu-20.04
+          - name: "Ubuntu CPU-only clang-14"
+            os: ubuntu-22.04
             cuda: ""
             gcc: ""
-            clang: 12
+            clang: 14
             cpu: true
             gpu: false
             unit_tests: true
             examples: false
           # Ubuntu GPU-only build
           - name: "Ubuntu GPU-only"
-            os: ubuntu-18.04
-            cuda: "10.2"
-            gcc: 7
-            clang: ""
-            cpu: false
-            gpu: true
-            unit_tests: false
-            examples: true
-          # Ubuntu 20.04 supports CUDA 11+
-          # Unit tests and examples are not compiled to save disk space
-          - name: "Ubuntu 20.04 CUDA 11.2 gcc-9"
             os: ubuntu-20.04
-            cuda: "11.2"
+            cuda: "11.1"
             gcc: 9
             clang: ""
             cpu: false
             gpu: true
             unit_tests: false
-            examples: false
-          # Ubuntu 18.04 supports CUDA 10.1+
+            examples: true
+          # Ubuntu 22.04 supports CUDA 11.7
           # Unit tests and examples are not compiled to save disk space
-          - name: "Ubuntu 18.04 CUDA 10.2 gcc-8"
-            os: ubuntu-18.04
-            cuda: "10.2"
-            gcc: 8
+          - name: "Ubuntu 22.04 CUDA 11.7 gcc-11"
+            os: ubuntu-22.04
+            cuda: "11.7"
+            gcc: 11
+            clang: ""
+            cpu: false
+            gpu: true
+            unit_tests: false
+            examples: false
+          # Ubuntu 20.04 supports CUDA 11+
+          # Unit tests and examples are not compiled to save disk space
+          - name: "Ubuntu 20.04 CUDA 11.1 gcc-9"
+            os: ubuntu-20.04
+            cuda: "11.1"
+            gcc: 9
             clang: ""
             cpu: true
             gpu: true
             unit_tests: false
             examples: false
+          # Ubuntu 18.04 supports CUDA 10.1+
+          # But it will soon be removed from GitHub workflows
           # Ubuntu 16.04 supports CUDA 8+
           # But it is no longer available in GitHub workflows
 
@@ -78,10 +80,12 @@ jobs:
     # The following packages are already installed on GitHub-hosted runners: build-essential openssl libssl-dev
     # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
     # Boost is no longer pre-installed on GitHub-hosted runners
-    # Clang 12.0 is pre-installed on the ubuntu-20.04 image
+    # Clang 12, 13 and 14 are pre-installed on the ubuntu-22.04 image
+    # Note that installation of libunwind-dev is a bug fix for ubuntu-22.04 images on Azure/GitHub-hosted machines
+    # and is normally not required
     - name: Install dependencies
       run: |
-        sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler libboost-system-dev
+        sudo apt-get install -y libunwind-dev libgoogle-perftools-dev libprotobuf-dev protobuf-compiler libboost-system-dev
         [ -z "${{ matrix.gcc }}" ] || sudo apt-get install -y gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
 
     # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
