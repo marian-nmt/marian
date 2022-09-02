@@ -54,8 +54,10 @@ void ConfigValidator::validateOptionsTranslation() const {
   ABORT_IF(models.empty() && configs.empty(),
            "You need to provide at least one model file or a config file");
 
+#ifdef COMPILE_CPU
   ABORT_IF(get<bool>("model-mmap") && get<size_t>("cpu-threads") == 0,
            "Model MMAP is CPU-only, please use --cpu-threads");
+#endif
 
   for(const auto& modelFile : models) {
     filesystem::Path modelPath(modelFile);
