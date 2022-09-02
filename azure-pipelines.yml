@@ -190,7 +190,7 @@ stages:
   - job: BuildUbuntu
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Ubuntu
-    timeoutInMinutes: 90
+    timeoutInMinutes: 120
 
     # Minimal tested configurations for marian-dev v1.11 and C++17:
     # * Ubuntu 16.04, GCC 7.5, CMake 3.10.2, CUDA 9.2 (probably GCC 6 would work too)
@@ -200,51 +200,50 @@ stages:
         ################################################################
         # Ubuntu CPU-only build
         "CPU-only":
-          image: ubuntu-18.04
+          image: ubuntu-20.04
           boost: true
           cpu: true
           gpu: false
           cuda: ""
-          gcc: 7
+          gcc: 9
           unit_tests: true
           examples: false
           static: true
         # Ubuntu GPU-only build
         "GPU-only":
-          image: ubuntu-18.04
+          image: ubuntu-20.04
           boost: true
           cpu: false
           gpu: true
-          cuda: 10.2
-          gcc: 7
+          cuda: 11.1
+          gcc: 9
           unit_tests: false
           examples: false
           static: false
         ################################################################
-        # Ubuntu 20.04 supports CUDA 11+
+        # Ubuntu 22.04 supports CUDA 11+
         #
         # CPU is disabled because FBGEMM + GCC 9+ do not compile on machines with
         # avx512_vnni, see https://github.com/marian-nmt/marian-dev/issues/709
-        #
-        "20.04 CUDA 11.1 gcc-9":
-          image: ubuntu-20.04
-          boost: false      # ubuntu-20.04 does not have Boost pre-installed yet
-          cpu: false        # the used fbgemm does not compile with gcc 9+
+        "22.04 CUDA 11.7 gcc-11":
+          image: ubuntu-22.04
+          boost: false
+          cpu: false
           gpu: true
-          cuda: 11.1
-          gcc: 9
+          cuda: 11.7
+          gcc: 11
           unit_tests: false # disable unit tests to minimize compilation time
           examples: false   # disable examples to minimize compilation time
           static: false
         ################################################################
-        # Ubuntu 18.04 supports CUDA 10.1+
-        "18.04 CUDA 10.2 gcc-8":
-          image: ubuntu-18.04
+        # Ubuntu 20.04 supports CUDA 11+
+        "20.04 CUDA 11.1 gcc-9":
+          image: ubuntu-20.04
           boost: true
           cpu: true
           gpu: true
-          cuda: 10.2
-          gcc: 8
+          cuda: 11.1
+          gcc: 9
           unit_tests: true
           examples: true
           static: true
@@ -260,8 +259,9 @@ stages:
 
     # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
     # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
-    # GCC 8 and lower are no longer pre-installed
-    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-$(gcc) g++-$(gcc)
+    # Note that installation of libunwind-dev is a bug fix for ubuntu-22.04 images on Azure/GitHub-hosted machines
+    # and is normally not required
+    - bash: sudo apt-get install -y libunwind-dev libgoogle-perftools-dev libprotobuf-dev protobuf-compiler
       displayName: Install packages
 
     # Boost is no longer pre-installed on Azure/GitHub-hosted runners
@@ -377,7 +377,7 @@ stages:
     displayName: Linux CPU library install
 
     pool:
-      vmImage: ubuntu-18.04
+      vmImage: ubuntu-20.04
 
     steps:
     - checkout: self
@@ -396,14 +396,14 @@ stages:
         sudo apt-get install -y --no-install-recommends intel-mkl-64bit-2020.0-088
       displayName: Install MKL
 
-    - bash: /usr/bin/gcc-7 --version
+    - bash: /usr/bin/gcc-9 --version
       displayName: Print GCC version
 
     - bash: |
         mkdir -p install
         mkdir -p build
         cd build
-        CC=/usr/bin/gcc-7 CXX=/usr/bin/g++-7 \
+        CC=/usr/bin/gcc-9 CXX=/usr/bin/g++-9 \
         cmake .. \
           -DCMAKE_INSTALL_PREFIX=../install \
           -DCMAKE_BUILD_TYPE=slim \
@@ -528,6 +528,7 @@ stages:
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
+    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
@@ -571,7 +572,7 @@ stages:
 
     # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
     # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
-    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-8 g++-8
+    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-9 g++-9
       displayName: Install packages
 
     # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
@@ -588,7 +589,7 @@ stages:
         mkdir -p install
         mkdir -p build
         cd build
-        CC=/usr/bin/gcc-8 CXX=/usr/bin/g++-8 \
+        CC=/usr/bin/gcc-9 CXX=/usr/bin/g++-9 \
         cmake .. \
           -DCMAKE_BUILD_TYPE=slim \
           -DCOMPILE_CPU=on \
@@ -624,10 +625,11 @@ stages:
         lscpu | tee lscpu.log
         echo ">>> cpuinfo"
         cat /proc/cpuinfo | tee cpuinfo.log
-        /usr/bin/gcc-8 --version | tee gcc.log
+        /usr/bin/gcc-9 --version | tee gcc.log
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
+    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
