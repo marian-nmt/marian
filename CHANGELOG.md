@@ -13,17 +13,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Multi-loss casts type to first loss-type before accumulation (aborted before due to missing cast)
 - Throw `ShapeSizeException` if total expanded shape size exceeds numeric capacity of the maximum int value (2^31-1)
-- During mini-batch-fitting, catch `ShapeSizeException` and use another sizing hint. Aborts outside mini-batch-fitting. 
+- During mini-batch-fitting, catch `ShapeSizeException` and use another sizing hint. Aborts outside mini-batch-fitting.
 - Fix incorrect/missing gradient accumulation with delay > 1 or large effective batch size of biases of affine operations.
 - Fixed case augmentation with multi-threaded reading.
 - Scripts using PyYAML now use `safe_load`; see https://msg.pyyaml.org/load
 - Fixed check for `fortran_ordering` in cnpy
 - Fixed fp16 training/inference with factors-combine concat method
 - Fixed clang 13.0.1 compatibility
+- Fixed potential vulnerabilities from lxml<4.9.1 or mistune<2.0.3
 
 ### Changed
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce
-- Negative `--workspace -N` value allocates workspace as total available GPU memory minus N megabytes.  
+- Negative `--workspace -N` value allocates workspace as total available GPU memory minus N megabytes.
 - Set default parameters for cost-scaling to 8.f 10000 1.f 8.f, i.e. when scaling scale by 8 and do not try to automatically scale up or down. This seems most stable.
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce.
 - Changed minimal C++ standard to C++-17
