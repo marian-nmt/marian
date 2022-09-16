@@ -199,6 +199,8 @@ void CopyCastFrom(Tensor out, const T* in, int length) {
 #endif
   } else if(out->type() == Type::float64) {
     CopyCastTo<add>(out->data<double>(), in, length);
+  } else if(out->type() == Type::uint32) {
+    CopyCastTo<add>(out->data<uint32_t>(), in, length);
   } else {
     ABORT("CopyCastTo to type {} not implemented", out->type());
   }
@@ -313,6 +315,8 @@ void Concatenate1(Tensor out, const std::vector<Tensor>& inputs) {
     } else if(out->type() == Type::float16) {
       gInsertCols<false><<<blocks, threads>>>(out->data<half>(), in->data<half>(), rows, cols_in, cols_out, cols_in, offset, 0);
 #endif
+    } else if(out->type() == Type::uint32) {
+      gInsertCols<false><<<blocks, threads>>>(out->data<uint32_t>(), in->data<uint32_t>(), rows, cols_in, cols_out, cols_in, offset, 0);
     } else {
       ABORT("Concatenate1 not implemented for type {}", out->type());
     }
@@ -392,6 +396,14 @@ void Concatenate2(Tensor out, Tensor in1, Tensor in2) {
                                  in2->data<half>(),
                                  rowStride2);
 #endif
+  } else if(out->type() == Type::uint32) {
+     gJoin2<<<blocks, threads>>>(out->data<uint32_t>(),
+                                 rowBatch,
+                                 cols,
+                                 in1->data<uint32_t>(),
+                                 rowStride1,
+                                 in2->data<uint32_t>(),
+                                 rowStride2);
   } else {
     ABORT("Concatenate2 not implemented for type {}", out->type());
   }

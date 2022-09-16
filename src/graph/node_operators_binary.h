@@ -1040,7 +1040,7 @@ struct GatherNodeOp : public NaryNodeOp {
   NodeOps backwardOps() override {
     return {NodeOp(
       // @TODO: rename to scatter
-      Insert</*add=*/true>(child(0)->grad(), adj_, child(1)->val(), axis_))};
+      Insert</*add=*/true>(child(0)->grad(), adj_, /*indices=*/child(1)->val(), axis_))};
   }
 
   Shape newShape(Expr a, int axis, Expr indices) {
@@ -1097,7 +1097,7 @@ struct ScatterNodeOp : public NaryNodeOp {
   NodeOps forwardOps() override {
     return {NodeOp(
       CopyCast(val_, child(0)->val()); // @TODO: use normal copy
-      Insert</*add=*/false>(val_, child(2)->val(), child(1)->val(), axis_)
+      Insert</*add=*/false>(val_, /*source=*/child(2)->val(), /*indices=*/child(1)->val(), axis_)
     )};
   }
 
@@ -1107,7 +1107,7 @@ struct ScatterNodeOp : public NaryNodeOp {
 
   Shape newShape(Expr a, int axis, Expr indices, Expr source) {
     ABORT_IF(axis != -1, "only last dimensions");
-    ABORT_IF(indices->shape() != source->shape(), "Shapes must match");
+    // ABORT_IF(indices->shape() != source->shape(), "Shapes must match"); or broadcast
 
     Shape shape = a->shape();
     // @TODO: do proper checking

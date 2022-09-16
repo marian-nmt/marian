@@ -297,32 +297,6 @@ public:
   virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
 };
 
-// Gumbel-max noising for sampling during translation.
-// Produces accurate sampling with beam=1. Turn on
-// with --output-sampling [full] during translation
-// with marian-decoder for samnpling from the full
-// softmax distribution.
-class GumbelSoftmaxStep : public ILogProbStep {
-public:
-  virtual ~GumbelSoftmaxStep() {}
-  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
-};
-
-
-// Gumbel-max noising for top-k sampling during translation.
-// Produces accurate sampling with beam=1. Turn on
-// with --output-sampling topk [10] during translation
-// with marian-decoder for top-10 sampling.
-class TopkGumbelSoftmaxStep : public ILogProbStep {
-private:
-  int k_{1};
-
-public:
-  TopkGumbelSoftmaxStep(int k);
-  virtual ~TopkGumbelSoftmaxStep() {}
-  virtual Ptr<DecoderState> apply(Ptr<DecoderState> state) override;
-};
-
 // class to wrap an IEncoderDecoder and a ILogProbStep that are executed in sequence,
 // wrapped again in the IEncoderDecoder interface
 // @TODO: seems we are conflating an interface defition with its implementation?

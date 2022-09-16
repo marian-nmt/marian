@@ -681,6 +681,11 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::string>("--alignment",
      "Return word alignment. Possible values: 0.0-1.0, hard, soft")
     ->implicit_val("1");
+  cli.add<bool>("--force-decode",
+     "Use force-decoding of given prefixes. Forces decoding to follow vocab IDs from last stream in the batch (or the first stream, if there is only one). "
+     "Use either as `./marian-decoder --force-decode --input source.txt prefixes.txt [...]` where inputs and prefixes align on line-level or as "
+     "`paste source.txt prefixes.txt | ./marian-decoder --force-decode --tsv --tsv-fields 2 [...]` when reading from stdin."
+  );
   cli.add<bool>("--word-scores",
       "Print word-level scores. One score per subword unit, not normalized even if --normalize");
   cli.add<std::string/*SchedulerPeriod*/>("--stat-freq",
@@ -709,9 +714,10 @@ void ConfigParser::addOptionsTranslation(cli::CLIWrapper& cli) {
   cli.add<std::vector<float>>("--weights",
       "Scorer weights");
   cli.add<std::vector<std::string>>("--output-sampling",
-     "Noise output layer with gumbel noise. Implicit default is 'full' for sampling from full distribution. "
-     " Also accepts 'topk num' (e.g. topk 100) for top-100 sampling.")
-     ->implicit_val("full");
+     "Noise output layer with gumbel noise. Implicit default is 'full 1.0' for sampling from full distribution"
+     " with softmax temperature 1.0. Also accepts 'topk num temp' (e.g. topk 100 0.1) for top-100 sampling with"
+     " temperature 0.1")
+     ->implicit_val("full 1.0");
   cli.add<std::vector<int>>("--output-approx-knn",
      "Use approximate knn search in output layer (currently only in transformer)")
      ->implicit_val("100 1024");

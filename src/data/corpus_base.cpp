@@ -347,11 +347,18 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate, size_t seed)
 
     auto vocabDims = options_->get<std::vector<int>>("dim-vocabs");
     vocabDims.resize(numVocs, 0);
-    for(size_t i = 0; i + 1 < numVocs; ++i) {
+
+    // when force-decoding we want the last vocab to be part of the batch,
+    // hence we do not drop it from the input batch.
+    bool forceDecoding = options_->get<bool>("force-decode", false);
+    size_t shift = !forceDecoding ? 1 : 0;
+
+    for(size_t i = 0; i + shift < numVocs; ++i) {
       Ptr<Vocab> vocab = New<Vocab>(options_, i);
       vocabDims[i] = (int) vocab->load(vocabPaths[i], maxVocabs[i]);
       vocabs_.emplace_back(vocab);
-    }
+    } 
+
     // TODO: As above, this is not nice as it modifies the option object and needs to expose the changes
     // outside the corpus as models need to know about the vocabulary size; extract the vocab
     // creation functionality from the class.
@@ -368,10 +375,11 @@ CorpusBase::CorpusBase(Ptr<Options> options, bool translate, size_t seed)
     }
   }
 
-  ABORT_IF(!tsv_ && vocabs_.size() != files_.size(),
+  size_t numStreams = files_.size();
+  ABORT_IF(!tsv_ && vocabs_.size() != numStreams,
            "Number of {} files ({}) and vocab files ({}) does not agree",
            training ? "corpus" : "input",
-           files_.size(),
+           numStreams,
            vocabs_.size());
 
   // Handle guided alignment and data weighting files. Alignments and weights in TSV input were

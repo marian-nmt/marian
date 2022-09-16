@@ -1,10 +1,9 @@
-#include "translator/beam_search.h"
-
-#include "data/factored_vocab.h"
-#include "translator/helpers.h"
-#include "translator/nth_element.h"
-#include "data/shortlist.h"
 #include "common/utils.h"
+#include "data/factored_vocab.h"
+#include "data/shortlist.h"
+#include "translator/beam_search.h"
+#include "translator/helpers.h"
+#include "translator/sampling.h"
 
 namespace marian {
 
@@ -316,6 +315,8 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
       suppressedWordIndices = graph->indices(suppressed);
   }
 
+  auto distMod = New<DistModifier>(options_, batch, INVALID_PATH_SCORE);
+
   // the decoding process updates the following state information in each output time step:
   //  - beams: array [origDimBatch] of array [maxBeamSize] of Hypothesis
   //     - current output time step's set of active hypotheses, aka active search space
@@ -413,9 +414,9 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
 
       //**********************************************************************
       // compute expanded path scores with word prediction probs from all scorers
-      auto expandedPathScores = prevPathScores; // will become [maxBeamSize, 1, currDimBatch, dimVocab]
-      Expr logProbs;
+      Expr stepScores;
       for(size_t i = 0; i < scorers_.size(); ++i) {
+        Expr logProbs;
         if (factorGroup == 0) {
           // compute output probabilities for current output time step
           //  - uses hypIndices[index in beam, 1, batch index, 1] to reorder scorer state to reflect the top-N in beams[][]
@@ -449,10 +450,19 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
           logProbs = states[i]->getLogProbs().getFactoredLogits(factorGroup, /*shortlist=*/ nullptr, hypIndices, maxBeamSize); // [maxBeamSize, 1, currentDimBatch, dimVocab]
         }
         // expand all hypotheses, [maxBeamSize, 1, currentDimBatch, 1] -> [maxBeamSize, 1, currentDimBatch, dimVocab]
-        expandedPathScores = expandedPathScores + scorers_[i]->getWeight() * logProbs;
+        if(i == 0)
+          stepScores = scorers_[i]->getWeight() * logProbs;
+        else
+          stepScores = stepScores + scorers_[i]->getWeight() * logProbs;
+      }
+
+      if(factorGroup == 0) {
+        stepScores = distMod->force(stepScores, (int)t, (int)maxBeamSize, batchIndices);
+        stepScores = distMod->sample(stepScores);
       }
 
       // make beams continuous
+      auto expandedPathScores = prevPathScores + stepScores; // will become [maxBeamSize, 1, currDimBatch, dimVocab]
       expandedPathScores = swapAxes(expandedPathScores, 0, 2); // -> [currentDimBatch, 1, maxBeamSize, dimVocab]
 
       // perform NN computation
@@ -463,6 +473,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
 
       //**********************************************************************
       // suppress specific symbols if not at right positions
+      // @TODO: move this to DistributionModifier
       if(suppressedWordIndices && factorGroup == 0)
         suppressWords(expandedPathScores, suppressedWordIndices);
 
@@ -477,6 +488,7 @@ Histories BeamSearch::search(Ptr<ExpressionGraph> graph, Ptr<data::CorpusBatch> 
                   /*out*/   nBestPathScores,
                    /*out*/  nBestKeys,
                   /*first=*/t == 0 && factorGroup == 0); // @TODO: this is only used for checking presently, and should be removed altogether
+
       // Now, nBestPathScores contain N-best expandedPathScores for each batch and beam,
       // and nBestKeys for each their original location (batchIdx, beamHypIdx, word).
 
