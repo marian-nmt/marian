@@ -141,16 +141,6 @@ public:
               output->Write((long)batch->getSentenceIds()[i],
                             sentVector);
           }
-        
-          // progress heartbeat for MS-internal Philly compute cluster
-          // otherwise this job may be killed prematurely if no log for 4 hrs
-          if (getenv("PHILLY_JOB_ID")   // this environment variable exists when running on the cluster
-              && id % 1000 == 0)  // hard beat once every 1000 batches
-          {
-            auto progress = id / 10000.f; //fake progress for now, becomes >100 after 1M batches
-            fprintf(stderr, "PROGRESS: %.2f%%\n", progress);
-            fflush(stderr);
-          }
         };
 
         pool.enqueue(task, batchId++);

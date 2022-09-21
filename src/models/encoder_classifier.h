@@ -153,6 +153,12 @@ public:
   void push_back(Ptr<ClassifierBase> classifier) { classifiers_.push_back(classifier); }
 
   void load(Ptr<ExpressionGraph> graph,
+            const std::vector<io::Item>& items,
+            bool markedReloaded) override {
+    graph->load(items, markedReloaded && !opt<bool>("ignore-model-config", false));
+  }
+
+  void load(Ptr<ExpressionGraph> graph,
             const std::string& name,
             bool markedReloaded) override {
     graph->load(name, markedReloaded && !opt<bool>("ignore-model-config", false));

@@ -180,7 +180,8 @@ std::string exec(const std::string& cmd, const std::vector<std::string>& args /*
 
 std::pair<std::string, int> hostnameAndProcessId() {  // helper to get hostname:pid
 #ifdef _WIN32
-  std::string hostname = getenv("COMPUTERNAME");
+  const char* res = getenv("COMPUTERNAME");
+  std::string hostname = res ? std::string(res) : ""; 
   auto processId = (int)GetCurrentProcessId();
 #else
   static std::string hostname = []() {  // not sure if gethostname() is expensive. This way we call it only once.
@@ -191,6 +192,15 @@ std::pair<std::string, int> hostnameAndProcessId() {  // helper to get hostname:
   auto processId = (int)getpid();
 #endif
   return {hostname, processId};
+}
+
+// returns MPI rank from environment variable if set, otherwise 0
+int getMPIRankEnv() {
+  const char* rank = getenv("OMPI_COMM_WORLD_RANK");
+  if(rank)
+    return std::atoi(rank);
+  else
+    return 0;
 }
 
 // format a long number with comma separators

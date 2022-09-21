@@ -134,11 +134,12 @@ public:
 
     // get the limit for int count
     size_t limit = (size_t)std::numeric_limits<int>::max();
-    size_t remaining = count, offset = 0;
+    size_t remaining = count;
+    size_t offset = 0;
 
     // while there are elements that we have not sent yet, loop until all has been sent in chunks of at most `limit`.
     while(remaining > 0) {
-      int intCount = (int)std::min(remaining, limit);
+      int intCount = (int)std::min(remaining, limit);      
       HANDLE_MPI_ERROR(MPI_Bcast((char*)buf + offset * (size_t)datatypeSize, intCount, datatype, (int)rootRank, comm));
       offset    += (size_t)intCount;
       remaining -= (size_t)intCount;
@@ -193,6 +194,49 @@ public:
   virtual void finalize() override {
     HANDLE_MPI_ERROR(MPI_Finalize());
   }
+
+  virtual void bCast(io::Item& item, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    if(isMainProcess())
+      ABORT_IF(item.bytes.empty(), "Broadcasting empty item via MPI should not happen. Please report.");
+
+    unsigned long long bytesLen = item.bytes.size();
+    bCast(&bytesLen, 1, getDataType(&bytesLen), rootRank, comm);
+
+    item.bytes.resize(bytesLen);
+    bCast(item.bytes.data(), bytesLen, getDataType(item.bytes.data()), rootRank, comm);
+
+    unsigned long long shapeLen = item.shape.size();
+    bCast(&shapeLen, 1, getDataType(&shapeLen), rootRank, comm);
+    item.shape.resize(shapeLen);
+    bCast(item.shape.data(), shapeLen, getDataType(item.shape.data()), rootRank, comm);
+
+    bCast(item.name, rootRank, comm);
+
+    size_t type = (size_t)item.type;
+    bCast(&type, 1, getDataType(&type), rootRank, comm);
+    item.type = (Type)type;
+  }
+
+  virtual void bCast(std::vector<io::Item>& items, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    size_t numItems = 0;
+    if(isMainProcess())
+      numItems = items.size();
+
+    bCast(&numItems, 1, getDataType(&numItems), rootRank, comm);
+    items.resize(numItems);
+    for(auto& item : items)
+      bCast(item, rootRank, comm);
+  }
+
+  virtual void bCast(std::string& str, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    size_t length = 0;
+    if(isMainProcess())
+      length = str.size();
+
+    bCast(&length, 1, getDataType(&length), rootRank, comm);
+    str.resize(length);
+    bCast(str.data(), length, getDataType(str.data()), rootRank, comm);
+  }
 };
 #endif
 
@@ -232,6 +276,19 @@ public:
     //        to only accept one parameter, and remove this error check can be removed.
     ABORT_IF(sendbuf != recvbuf, "FakeMPIWrapper::allReduce() only implemented for in-place operation"); // otherwise it's not a no-op, we must copy data
   }
+
+  virtual void bCast(io::Item& item, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    item; rootRank; comm;
+  }
+
+  virtual void bCast(std::vector<io::Item>& items, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    items; rootRank; comm;
+  }
+
+  virtual void bCast(std::string& str, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const override {
+    str; rootRank; comm;
+  }
+
 #pragma warning(pop)
   virtual void finalize() override { }
 };

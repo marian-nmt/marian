@@ -75,6 +75,10 @@ public:
     return Logits(apply(graph, batch, inference_));
   }
 
+  void load(Ptr<ExpressionGraph> /*graph*/, const std::vector<io::Item>& /*items*/, bool) override {
+    LOG(critical, "Loading MNIST model is not supported");
+  }
+    
   void load(Ptr<ExpressionGraph> /*graph*/, const std::string& /*name*/, bool) override {
     LOG(critical, "Loading MNIST model is not supported");
   }

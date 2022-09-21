@@ -46,6 +46,7 @@ public:
   bool empty();
   void setbufsize(size_t size);
   std::string getFileName() const;
+  std::string readToString() const;
 
 protected:
   marian::filesystem::Path file_;
@@ -92,7 +93,7 @@ public:
 
 protected:
   bool unlink_;
-  UPtr<InputFileStream> inSteam_;
+  UPtr<InputFileStream> inStream_;
 
   void NormalizeTempPrefix(std::string& base) const;
   void MakeTemp(const std::string& base);

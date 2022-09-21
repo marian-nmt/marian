@@ -43,6 +43,9 @@ std::string exec(const std::string& cmd, const std::vector<std::string>& args = 
 
 std::pair<std::string, int> hostnameAndProcessId();
 
+// returns MPI rank from environment variable if set, otherwise 0
+int getMPIRankEnv();
+
 std::string withCommas(size_t n);
 bool beginsWith(const std::string& text, const std::string& prefix);
 bool endsWith(const std::string& text, const std::string& suffix);

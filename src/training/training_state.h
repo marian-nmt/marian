@@ -1,11 +1,12 @@
 #pragma once
 
 #include "common/definitions.h"
+#include "common/file_stream.h"
 #include "common/filesystem.h"
 #include "common/scheduling_parameter.h"
 #include "common/utils.h"
 
-#include <fstream>
+#include <sstream>
 #include <vector>
 
 namespace marian {
@@ -194,11 +195,8 @@ public:
     }
   }
 
-  void load(const std::string& name) {
-    if(!filesystem::exists(name))
-      return;
-
-    YAML::Node config = YAML::LoadFile(name);
+  void loadFromString(const std::string& yamlString) {
+    YAML::Node config = YAML::Load(yamlString);
 
     epochs = config["epochs"].as<size_t>();
     batches = config["batches"].as<size_t>();
@@ -240,6 +238,13 @@ public:
 
     seedBatch = config["seed-batch"].as<std::string>();
     seedCorpus = config["seed-corpus"].as<std::string>();
+  }
+
+  void load(const std::string& name) {
+    if(!filesystem::exists(name))
+      return;
+
+    loadFromString(io::InputFileStream(name).readToString());
   }
 
   void save(const std::string& name) const {

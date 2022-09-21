@@ -19,24 +19,6 @@ static inline std::string interpolateEnvVars(std::string str) {
     return str;
   }
 
-#if 1
-  if(getenv("PHILLY_JOB_ID")) {
-    const char* cluster = getenv("PHILLY_CLUSTER");
-    const char* vc = getenv("PHILLY_VC");
-    // this environment variable exists when running on the cluster
-    if(cluster && vc) {
-      static const std::string s_gfsPrefix
-          = std::string("/gfs/") + cluster + "/" + vc + "/";
-      static const std::string s_hdfsPrefix
-          = std::string("/hdfs/") + cluster + "/" + vc + "/";
-      if(str.find(s_gfsPrefix) == 0)
-        str = std::string("/hdfs/") + vc + "/" + str.substr(s_gfsPrefix.size());
-      else if(str.find(s_hdfsPrefix) == 0)
-        str = std::string("/hdfs/") + vc + "/"
-              + str.substr(s_hdfsPrefix.size());
-    }
-  }
-#endif
   for(;;) {
     const auto pos = str.find("${");
     if(pos == std::string::npos)

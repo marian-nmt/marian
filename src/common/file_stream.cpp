@@ -74,6 +74,12 @@ std::string InputFileStream::getFileName() const {
   return file_.string();
 }
 
+std::string InputFileStream::readToString() const {
+  std::stringstream ss;
+  ss << this->rdbuf();
+  return ss.str();
+}
+
 // wrapper around std::getline() that handles Windows input files with extra CR
 // chars at the line end
 std::istream &getline(std::istream &in, std::string &line) {
@@ -85,6 +91,7 @@ std::istream &getline(std::istream &in, std::string &line) {
     line.pop_back();
   return in;
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 OutputFileStream::OutputFileStream(const std::string &file)
     : std::ostream(NULL), file_(file) {
@@ -119,7 +126,7 @@ TemporaryFile::TemporaryFile(const std::string &base, bool earlyUnlink)
   NormalizeTempPrefix(baseTemp);
   MakeTemp(baseTemp);
 
-  inSteam_ = UPtr<io::InputFileStream>(new io::InputFileStream(file_.string()));
+  inStream_ = UPtr<io::InputFileStream>(new io::InputFileStream(file_.string()));
   if(unlink_) {
     ABORT_IF(remove(file_.string().c_str()), "Error while deleting '{}'", file_.string());
   }
@@ -190,7 +197,7 @@ void TemporaryFile::MakeTemp(const std::string &base) {
 }
 
 UPtr<InputFileStream> TemporaryFile::getInputStream() {
-  return std::move(inSteam_);
+  return std::move(inStream_);
 }
 
 std::string TemporaryFile::getFileName() const {

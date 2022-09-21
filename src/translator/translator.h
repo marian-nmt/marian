@@ -165,15 +165,6 @@ public:
     // abort early to avoid potentially costly batching and translation before error message
     ABORT_IF(statFreq.unit != SchedulingUnit::updates, "Units other than 'u' are not supported for --stat-freq value {}", statFreq);
 
-    // Override display for progress heartbeat for MS-internal Philly compute cluster
-    // otherwise this job may be killed prematurely if no log for 4 hrs
-    if(getenv("PHILLY_JOB_ID")) { // this environment variable exists when running on the cluster
-      if(statFreq.n == 0) {
-        statFreq.n = 10000;
-        statFreq.unit = SchedulingUnit::updates;
-      }
-    }
-
     bool doNbest = options_->get<bool>("n-best");
 
     bg.prepare();

@@ -68,7 +68,7 @@ public:
 #if MPI_FOUND
 #else
 enum MPI_Comm { MPI_COMM_WORLD };
-enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE, MPI_INT };
+enum MPI_Datatype { MPI_FLOAT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG, MPI_BYTE, MPI_INT, MPI_CXX_BOOL };
 enum MPI_Op { MPI_SUM };
 struct MPI_Status { int MPI_SOURCE; };
 #define MPI_ANY_SOURCE ((size_t)-2)
@@ -88,30 +88,16 @@ struct/*interface*/ IMPIWrapper {
   static const size_t RECV_ANY_SOURCE = (size_t)MPI_ANY_SOURCE;
 
   static MPI_Datatype getDataType(const char*)               { return MPI_BYTE; }
+  static MPI_Datatype getDataType(const bool*)               { return MPI_CXX_BOOL; }
   static MPI_Datatype getDataType(const int*)                { return MPI_INT; }
   static MPI_Datatype getDataType(const float*)              { return MPI_FLOAT; }
   static MPI_Datatype getDataType(const unsigned long*)      { return MPI_UNSIGNED_LONG; }
   static MPI_Datatype getDataType(const unsigned long long*) { return MPI_UNSIGNED_LONG_LONG; }
 
-  void bCast(io::Item& item, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) {
-    ABORT_IF(item.bytes.empty(), "Broadcasting empty item via MPI??");
-
-    unsigned long long bytesLen = item.bytes.size();
-    bCast(&bytesLen, 1, getDataType(&bytesLen), rootRank, comm);
-
-    item.bytes.resize(bytesLen);
-    bCast(item.bytes.data(), item.bytes.size(), getDataType(item.bytes.data()), rootRank, comm);
-
-    unsigned long long shapeLen = item.shape.size();
-    bCast(&shapeLen, 1, getDataType(&shapeLen), rootRank, comm);
-
-    bCast(item.shape.data(), item.shape.size(), getDataType(item.shape.data()), rootRank, comm);
-
-    size_t type = (size_t)item.type;
-    bCast(&type, 1, getDataType(&type), rootRank, comm);
-    item.type = (Type)type;
-  }
-
+  virtual void bCast(io::Item& item, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(std::vector<io::Item>& items, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  virtual void bCast(std::string& str, size_t rootRank = 0, MPI_Comm comm = MPI_COMM_WORLD) const = 0;
+  
   std::string idStr() const;
 };
 

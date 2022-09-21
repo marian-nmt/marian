@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- `--force-decode` option for marian-decoder
+- `--output-sampling` now works with ensembles (requires proper normalization via e.g `--weights 0.5 0.5`)
 
 ### Fixed
+- Read/restore checkpoints from main process only when training with MPI
 - Multi-loss casts type to first loss-type before accumulation (aborted before due to missing cast)
 - Throw `ShapeSizeException` if total expanded shape size exceeds numeric capacity of the maximum int value (2^31-1)
 - During mini-batch-fitting, catch `ShapeSizeException` and use another sizing hint. Aborts outside mini-batch-fitting. 

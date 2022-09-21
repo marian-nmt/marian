@@ -15,7 +15,8 @@ public:
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::vector<io::Item>& items,
-                    bool markedReloaded = true) = 0;
+                    bool markedReloaded = true) override 
+      = 0;
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,

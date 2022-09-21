@@ -478,24 +478,11 @@ public:
       state_->samplesDisp  = 0;
       state_->wordsDisp    = 0;
     }
-
-    // progress heartbeat for MS-internal Philly compute cluster
-    // This environment variable exists when running on the cluster.
-    using namespace std::chrono;
-    if((!mpi_ || mpi_->myMPIRank() == 0) && getenv("PHILLY_JOB_ID")
-       && heartBeatTimer_.elapsed<std::chrono::minutes>() >= 30) {
-      fprintf(stderr, "PROGRESS: %.2f%%\nEVALERR: %.7f%%\n",
-          (double)calculateLogicalEpoch(),
-          state_->costSum / (state_->costCount ? state_->costCount : 1));
-      fflush(stderr);
-      heartBeatTimer_.start();
-    }
   }
 
-  void load(const std::string& name) {
-    std::string nameYaml = name + ".progress.yml";
-    if(filesystem::exists(nameYaml))
-      state_->load(nameYaml);
+  void loadFromString(const std::string yamlString) {
+    if(!yamlString.empty())
+      state_->loadFromString(yamlString);
 
     if(options_->get<bool>("no-restore-corpus")) {
       state_->samplesEpoch = 0;
@@ -517,6 +504,19 @@ public:
     }
 
     state_->newLoad();
+  }
+
+  void load(const std::string& name) {
+    std::string nameYaml = name + ".progress.yml";
+    std::string yamlStr;
+    if(mpi_->isMainProcess())
+      if(filesystem::exists(nameYaml))
+        yamlStr = io::InputFileStream(nameYaml).readToString();
+    
+    if(mpi_)
+      mpi_->bCast(yamlStr);
+    
+    loadFromString(yamlStr);
   }
 
   void save(const std::string& name) {

@@ -217,6 +217,12 @@ public:
 
   Ptr<IModel> getModel() { return model_; }
 
+  void load(Ptr<ExpressionGraph> graph,
+            const std::vector<io::Item>& items,
+            bool markedReloaded) override {
+    model_->load(graph, items, markedReloaded);
+  }
+
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
                     bool markedReloaded = true) override {
@@ -262,6 +268,12 @@ public:
   virtual ~Scorer() {}
 
   Ptr<IModel> getModel() { return model_; }
+
+  virtual void load(Ptr<ExpressionGraph> graph,
+                    const std::vector<io::Item>& items,
+                    bool markReloaded = true) override {
+    model_->load(graph, items, markReloaded);
+  }
 
   virtual void load(Ptr<ExpressionGraph> graph,
                     const std::string& name,
