@@ -491,15 +491,21 @@ if(USE_STATIC_LIBS)
 endif()
 
 ###############################################################################
-# Find Tcmalloc
+# Find Tcmalloc_minimal 
+# re-used from sentencepiece
 if(NOT WIN32)
-  find_package(Tcmalloc)
-  if(Tcmalloc_FOUND)
-    include_directories(${Tcmalloc_INCLUDE_DIR})
+  if(USE_STATIC_LIBS)
+    find_library(TCMALLOC_LIB NAMES libtcmalloc_minimal.a)
+  else()
+    find_library(TCMALLOC_LIB NAMES tcmalloc_minimal)
+  endif()
+  if (TCMALLOC_LIB)
+    message(STATUS "Found TCMalloc: ${TCMALLOC_LIB}")
     set(EXT_LIBS ${EXT_LIBS} ${Tcmalloc_LIBRARIES})
-  else(Tcmalloc_FOUND)
-    message(WARNING "Cannot find TCMalloc library. Continuing.")
-  endif(Tcmalloc_FOUND)
+    add_definitions(-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free)
+  else()
+    message(STATUS "Not Found TCMalloc: ${TCMALLOC_LIB}")
+  endif()
 endif()
 
 ###############################################################################
