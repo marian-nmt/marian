@@ -595,7 +595,7 @@ void tests(DeviceType device, Type floatType = Type::float32) {
     auto aff1 = affine(A, B, bias);
     auto aff2 = dot(A, B) + bias;
 
-    auto affRelu1 = affineWithRelu(A, B, bias);
+    auto affRelu1 = affineWithReluDropout(A, B, bias);
     auto affRelu2 = relu(dot(A, B) + bias);
 
     graph->forward();

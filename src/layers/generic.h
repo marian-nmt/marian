@@ -234,12 +234,16 @@ static inline Expr denseInline(Expr x,
   auto b = graph->param(prefix + "_b" + suffix, {1, outDim}, inits::zeros());
 
   if(actName == "relu") {
-    x = affineWithRelu(x, W, b); // speed optimization for inference, @TODO: handle better in future layer framework
+    x = affineWithReluDropout(x, W, b, dropProb); // fused operator for transformer FFN
   } else {
     x = affine(x, W, b);
     x = activationByName(actName)(x);
+    
+    int dimModel = x->shape()[-1];
+    int dimTime  = x->shape()[-2];
+    x = dropout(x, dropProb, {dimTime, dimModel});
   }
-  x = dropout(x, dropProb);  // @TODO: check for infernce?
+  
   return x;
 }
 

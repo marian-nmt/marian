@@ -7,7 +7,7 @@
 using namespace marian;
 
 int main(int argc, char** argv) {
-  auto c = New<Config>(argc, argv);
+  auto c = parseOptions(argc, argv, cli::mode::scoring, false);
 
   auto type = c->get<size_t>("cpu-threads") > 0
     ? DeviceType::cpu
@@ -20,11 +20,7 @@ int main(int argc, char** argv) {
 
   for(int i = 0; i < 10; ++i) {
     g->clear();
-    auto mask1 = g->dropoutMask(0.2, {10, 3072});
-    auto mask2 = g->dropoutMask(0.3, {1, 3072});
-    auto mask = mask1 + mask2;
-    debug(mask1, "mask1");
-    debug(mask2, "mask2");
+    auto mask = g->dropoutMask(0.2, {1000, 16384});
     debug(mask, "mask");
     g->forward();
   }

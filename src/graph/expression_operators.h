@@ -493,12 +493,10 @@ Expr affine(Expr a,
 /**
  * As above, but efficiently applies relu transformation to output. For inference only.
  */
-Expr affineWithRelu(Expr a,
-                    Expr b,
-                    Expr bias,
-                    bool transA = false,
-                    bool transB = false,
-                    float scalar = 1.f);
+Expr affineWithReluDropout(Expr a,
+                           Expr b,
+                           Expr bias,
+                           float dropProb = 0.f);
 
 /**
  * Computes the dot product of CSR-tensor @p A with @p B.
@@ -971,6 +969,7 @@ static inline Expr dropout(Expr x, float dropProb, Shape shape) {
   return dropout(x, mask);
 }
 
+
 /**
  * Performs dropout with a given probably.
  */
@@ -979,6 +978,8 @@ static inline Expr dropout(Expr x, float dropProb) {
     return x;
   return dropout(x, dropProb, x->shape());
 }
+
+Expr dropoutReluInplace(Expr x, float dropProb, Shape shape);
 
 /**
  * Shifts the elements of an expression by a per-axis offset @p shift

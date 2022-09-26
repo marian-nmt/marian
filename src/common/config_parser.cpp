@@ -263,6 +263,8 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       8);
   cli.add<bool>("--transformer-no-projection",
       "Omit linear projection after multi-head attention (transformer)");
+  cli.add<bool>("--transformer-rnn-projection",
+      "Add linear projection after rnn layer (transformer)");
   cli.add<bool>("--transformer-pool",
       "Pool encoder states instead of using cross attention (selects first encoder state, best used with special token)");
   cli.add<int>("--transformer-dim-ffn",

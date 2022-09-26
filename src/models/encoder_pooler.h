@@ -130,6 +130,7 @@ public:
 
     modelFeatures_.insert("transformer-heads");
     modelFeatures_.insert("transformer-no-projection");
+    modelFeatures_.insert("transformer-rnn-projection");
     modelFeatures_.insert("transformer-dim-ffn");
     modelFeatures_.insert("transformer-ffn-depth");
     modelFeatures_.insert("transformer-ffn-activation");

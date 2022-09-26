@@ -170,8 +170,11 @@ public:
     auto output = input;
     for(auto op : ops) {
       // dropout
-      if (op == 'd')
-        output = dropout(output, dropProb);
+      if (op == 'd') {
+        int dimModel = output->shape()[-1];
+        int dimTime  = output->shape()[-2];
+        output = dropout(output, dropProb, {dimTime, dimModel});
+      }
       // layer normalization
       else if (op == 'n')
         output = layerNorm(output, prefix, "_pre");
@@ -435,7 +438,7 @@ public:
 
     // the stack of FF layers
     for(int i = 1; i < depthFfn; ++i)
-      output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actName, ffnDropProb);
+        output = denseInline(output, prefix, /*suffix=*/std::to_string(i), dimFfn, initFn, actName, ffnDropProb);
     output = denseInline(output, prefix, /*suffix=*/std::to_string(depthFfn), dimModel, initFn);
 
     auto opsPost = opt<std::string>("transformer-postprocess");
@@ -537,6 +540,13 @@ public:
     output = rnn->transduce(output, prevDecoderState);
     decoderState = rnn->lastCellStates()[0];
     output = transposeTimeBatch(output);
+
+    if(opt<bool>("transformer-rnn-projection", false)) {
+      int dimModel = output->shape()[-1];
+      auto Wo = graph_->param(prefix + "_Wo", {dimModel, dimModel}, inits::glorotUniform(true, true, depthScaling_ ? 1.f / sqrtf((float)depth_) : 1.f));
+      auto bo = graph_->param(prefix + "_bo", {1, dimModel}, inits::zeros());
+      output = affine(output, Wo, bo);  // [-4: beam depth, -3: batch size, -2: 1, -1: vector dim]
+    }
 
     auto opsPost = opt<std::string>("transformer-postprocess");
     output = postProcess(prefix + "_ffn", opsPost, output, input, dropProb);

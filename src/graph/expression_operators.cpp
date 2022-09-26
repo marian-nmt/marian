@@ -676,13 +676,29 @@ Expr affine(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
   }
 }
 
-Expr affineWithRelu(Expr a, Expr b, Expr bias, bool transA, bool transB, float scale) {
-  auto graph = a->graph();
+// @TODO: unify all these
+Expr affineWithReluDropout(Expr x, Expr W, Expr bias, float dropProb) {
+  auto graph = x->graph();
+  if(graph->isInference() && graph->getDeviceId().type == DeviceType::gpu) {
+    // not doing any dropout in inference mode
+    return Expression<AffineWithReluNodeOp>(x, W, bias);
+  } else {
+    Expr output = affine(x, W, bias);
+    int dimModel = output->shape()[-1];
+    int dimTime  = output->shape()[-2];
+    output = dropoutReluInplace(output, dropProb, {dimTime, dimModel});
+    return output;
+  }
+}
 
-  if(graph->isInference() && graph->getDeviceId().type == DeviceType::gpu)
-    return Expression<AffineWithReluNodeOp>(a, b, bias, transA, transB, scale);
-  else
-    return relu(affine(a, b, bias, transA, transB, scale));
+Expr dropoutReluInplace(Expr x, float dropProb, Shape shape) {
+  if(dropProb == 0) {
+    return relu(x);
+  } else {
+    auto graph = x->graph();
+    auto mask = graph->dropoutMask(dropProb, shape);
+    return Expression<DropoutReluInplaceNodeOp>(x, mask);
+  }
 }
 
 // @TODO: Not a great place to check this
