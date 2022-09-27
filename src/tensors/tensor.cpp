@@ -138,13 +138,13 @@ void TensorBase::set(const io::Item& item) {
        memory_->data<char>());
 }
 
-size_t TensorBase::hash() {
-  io::Item temp;
-  size_t seed = 0;
-  get(temp, "temp");
-  for(auto c : temp.bytes)
-    util::hash_combine(seed, c);
-  return seed;
+size_t TensorBase::hash(size_t seed, Ptr<Allocator> allocator) {
+#ifdef CUDA_FOUND
+  if(backend_->getDeviceId().type == DeviceType::gpu)
+    return marian::gpu::hashTensor(this, (uint32_t)seed, allocator);
+  else // we assmume CPU
+#endif
+    return marian::util::hashMem(memory_->data<char>(), memory_->size(), seed);
 }
 
 }  // namespace marian

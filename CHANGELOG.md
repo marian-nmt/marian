@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ### Added
+- Fused inplace-dropout in FFN layer in Transformer
 - `--force-decode` option for marian-decoder
 - `--output-sampling` now works with ensembles (requires proper normalization via e.g `--weights 0.5 0.5`)
 
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed fp16 training/inference with factors-combine concat method
 
 ### Changed
+- Parameter synchronization in local sharding model now executes hash checksum before syncing
 - Make guided-alignment faster via sparse memory layout, add alignment points for EOS, remove losses other than ce
 - Negative `--workspace -N` value allocates workspace as total available GPU memory minus N megabytes.  
 - Set default parameters for cost-scaling to 8.f 10000 1.f 8.f, i.e. when scaling scale by 8 and do not try to automatically scale up or down. This seems most stable.

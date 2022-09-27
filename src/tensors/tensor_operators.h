@@ -436,5 +436,12 @@ static inline float L2Norm(marian::Tensor in, Ptr<Allocator> allocator) {
 // clang-format off
 DISPATCH5(PoolingWithMaskingForward, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
 DISPATCH6(PoolingWithMaskingBackward, marian::Tensor, marian::Tensor, marian::Tensor, marian::Tensor, int, bool)
+
+#ifdef CUDA_FOUND
+namespace gpu {
+  uint32_t hashTensor(Tensor tensor, uint32_t seed, Ptr<Allocator> allocator);
+}
+#endif
+
 // clang-format on
 }  // namespace marian

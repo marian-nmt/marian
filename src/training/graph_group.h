@@ -85,6 +85,7 @@ public:
   GraphGroup(Ptr<Options> options);
 
   void initGraphsAndOpts();
+  void syncParametersAndShards();
 
   virtual ~GraphGroup() {}
 

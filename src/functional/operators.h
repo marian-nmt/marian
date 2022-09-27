@@ -750,5 +750,50 @@ UNARY(sReLUBack,   ReLUback,  Ops<ElementType>::reluBack(x));
 BINARY(sPReLU,     PReLU,     Ops<ElementType>::prelu(x, y));
 BINARY(sPReLUBack, PReLUback, Ops<ElementType>::preluBack(x, y));
 
+#ifdef __CUDACC__
+// only visible by nvcc
+
+DEVICE_INLINE uint32_t gf2u(float f32) {
+  // binary cast, bits stay the same
+  return __float_as_uint(f32);
+}
+
+DEVICE_INLINE float gu2f(uint32_t u32) {
+  // binary cast, bits stay the same
+  return __uint_as_float(u32);
+}
+
+// this is an adaptation of murmurhash3 as binary operator, all the 
+// magic numbers are present in the cpu implementation
+DEVICE_INLINE uint32_t murmur3_u32(uint32_t seed, uint32_t key) {
+  uint32_t h = seed;
+  uint32_t k = key;
+
+  k *= 0xcc9e2d51;
+  k = (k << 15) | (k >> 17);
+  k *= 0x1b873593;
+
+  h ^= k;
+
+  h = (h << 13) | (h >> 19);
+  h = h * 5 + 0xe6546b64;
+
+  return h;
+}
+
+DEVICE_INLINE float murmur3_f32(float seed, float key) {
+  // We cast from float to uint32_t and the hash back to float. 
+  // Not great, but allows us to hack the float-specific reduction function to accumulate a hash value.
+  // This is not exactly murmurhash3 since we do a tree-reduction of hashes while murmur hash combines
+  // values linearly in memory order. But when tested this seems to work just as well for hashing purposes.         
+  return gu2f(murmur3_u32(gf2u(seed), gf2u(key)));
+}
+
+// Define a binary operator that allows for hashing inside the Marian low-level operator framework.
+// For now, gpu-side only.
+BINARY(Murmur, murmur, murmur3_f32(x, y));
+
+#endif
+
 } // end namespace functional
 } // end namespace marian

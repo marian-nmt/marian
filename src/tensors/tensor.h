@@ -3,8 +3,10 @@
 #include "common/definitions.h"
 #include "common/shape.h"
 #include "common/types.h"
+#include "tensors/allocator.h"
 #include "tensors/backend.h"
 #include "tensors/memory_piece.h"
+
 #ifdef CUDA_FOUND
 #include "tensors/gpu/algorithm.h"
 #endif
@@ -327,7 +329,14 @@ public:
     DISPATCH_BY_TYPE2(type_, debug, precision, dispCols);
   }
 
-  size_t hash();
+  // Computes a hash value for the given tensor, for a cpu-side tensor this is 
+  // going to be the hash function from stdlib (64-bit), for gpu-side tensors
+  // it is going to be the result of a mumurhash3-like hash (32-bit).
+  // The argument seed can be used to define a new random hash function. 
+  // The allocator argument can be used to allocate memory via the standard 
+  // marian allocator instead of cudaMalloc (the default).
+  // The hashes are not the same for cpu and gpu!
+  size_t hash(size_t seed = 0, Ptr<Allocator> allocator = nullptr);
 
 };
 

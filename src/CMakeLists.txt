@@ -177,6 +177,7 @@ set_target_properties(marian PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY
 if(CUDA_FOUND)
   cuda_add_library(marian_cuda
     tensors/gpu/device.cu
+    tensors/gpu/hash.cu
     tensors/gpu/algorithm.cu
     tensors/gpu/prod.cpp
     tensors/gpu/prod.cu

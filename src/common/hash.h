@@ -18,8 +18,7 @@ inline void hash_combine(HashType& seed, T const& v) {
 
 // Hash a whole chunk of memory, mostly used for diagnostics
 template <class T, class HashType = std::size_t>
-inline HashType hashMem(const T* beg, size_t len) {
-  HashType seed = 0;
+inline HashType hashMem(const T* beg, size_t len, HashType seed = 0) {
   for(auto it = beg; it < beg + len; ++it)
     hash_combine(seed, *it);
   return seed;

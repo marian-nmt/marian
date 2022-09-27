@@ -346,11 +346,7 @@ void SyncGraphGroup::update(std::vector<Ptr<data::Batch>> subBatches, size_t num
     scheduler_->update(localLoss, numReadBatches, updateBatchSize, updateTargetWords, gradNorm);
 
     if(scheduler_->syncing()) {
-      if(shardingMode_ == ShardingMode::local) {
-        LOG(debug, "Syncing all parameters and optimizer shards across {} MPI processes", mpi_->numMPIProcesses());
-        comm_->broadcastParams();
-        comm_->broadcastShards(optimizerShards_);
-      }
+      syncParametersAndShards();
     }
 
     // save intermediate model (and optimizer state) to file

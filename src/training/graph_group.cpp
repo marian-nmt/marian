@@ -91,6 +91,42 @@ void GraphGroup::initGraphsAndOpts() {
   }
 }
 
+void GraphGroup::syncParametersAndShards() {
+  // In local model we have seen that parameters can diverge occasionally due to non-determinism in NCCL.
+  // Here, we try to catch this and if caught, re-sync everything (also optimizer state) across nodes.
+  if(shardingMode_ == ShardingMode::local) {
+    std::vector<size_t> hashes(mpi_->numMPIProcesses(), 0);
+    // compute hash value of parameters of 0-th graph (we only need to check one graph per node)
+    for(int i = 0; i < hashes.size(); i++) {
+      if(i == mpi_->myMPIRank()) {
+        hashes[i] = graphs_[0]->params()->vals()->hash(); // this is quite fast with on-GPU implementation
+        LOG(debug, "Parameter hash for graph 0 on node {}: {}", mpi_->myMPIRank(), hashes[i]);
+      }
+    }
+
+    // Collect hashes from all nodes, note changing rootRank.
+    // After this hashes contains all hashes from all nodes.
+    for(int i = 0; i < hashes.size(); i++)
+      mpi_->bCast(&hashes[i], 1, mpi_->getDataType(&hashes[i]), /*rootRank=*/i);
+
+    // If any of the hashes diverges, re-sync.
+    if(std::any_of(hashes.begin(), hashes.end(), [&hashes](size_t v){ return v != hashes[0]; })) {
+      if(isMainProcess()) {
+        LOG(warn, "Parameters diverged:");
+        for(int i = 0; i < hashes.size(); i++)
+          LOG(warn, "\tGot hash {} for node {}", hashes[i], i);
+        LOG(warn, "Syncing all parameters and optimizer shards across {} MPI processes", mpi_->numMPIProcesses());
+      }
+
+      comm_->broadcastParams();
+      comm_->broadcastShards(optimizerShards_);
+
+      if(isMainProcess())
+        LOG(warn, "Re-synced all shards");
+    }
+  }
+}
+
 // increase cost-scaling factor if no NaN has been detected for a
 // given number of iterations. Usually we increase by 2 which adds
 // one more bit for precision.
