@@ -99,7 +99,8 @@ void GraphGroup::syncParametersAndShards() {
     // compute hash value of parameters of 0-th graph (we only need to check one graph per node)
     for(int i = 0; i < hashes.size(); i++) {
       if(i == mpi_->myMPIRank()) {
-        hashes[i] = graphs_[0]->params()->vals()->hash(); // this is quite fast with on-GPU implementation
+        auto allocator = graphs_[0]->allocator();
+        hashes[i] = graphs_[0]->params()->vals()->hash(1234, allocator); // this is quite fast with on-GPU implementation
         LOG(debug, "Parameter hash for graph 0 on node {}: {}", mpi_->myMPIRank(), hashes[i]);
       }
     }

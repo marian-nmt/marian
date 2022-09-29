@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - `--output-sampling` now works with ensembles (requires proper normalization via e.g `--weights 0.5 0.5`)
 
 ### Fixed
+- Use allocator in hashing
 - Read/restore checkpoints from main process only when training with MPI
 - Multi-loss casts type to first loss-type before accumulation (aborted before due to missing cast)
 - Throw `ShapeSizeException` if total expanded shape size exceeds numeric capacity of the maximum int value (2^31-1)
