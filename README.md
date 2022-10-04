@@ -1,11 +1,9 @@
 Marian
 ======
 
-
-[![Build Status CUDA 10](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-10.2.svg?label=CUDA%2010.2)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-10.2/)
-[![Build Status CUDA 11](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cuda-11.4.svg?label=CUDA%2011.4)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cuda-11.4/)
-[![Build Status CPU](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-dev-cpu.svg?label=CPU)](http://vali.inf.ed.ac.uk/jenkins/job/marian-dev-cpu/)
-[![Tests Status](https://img.shields.io/jenkins/s/http/vali.inf.ed.ac.uk/jenkins/view/marian/job/marian-regression-tests.svg?label=tests)](http://vali.inf.ed.ac.uk/jenkins/job/marian-regression-tests/)
+[![Ubuntu](https://github.com/marian-nmt/marian-dev/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/marian-nmt/marian-dev/actions/workflows/ubuntu.yml)
+[![Windows](https://github.com/marian-nmt/marian-dev/actions/workflows/windows.yml/badge.svg)](https://github.com/marian-nmt/marian-dev/actions/workflows/windows.yml)
+[![MacOS](https://github.com/marian-nmt/marian-dev/actions/workflows/macos.yml/badge.svg)](https://github.com/marian-nmt/marian-dev/actions/workflows/macos.yml)
 [![Latest release](https://img.shields.io/github/release/marian-nmt/marian.svg?label=release)](https://github.com/marian-nmt/marian/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
 [![Twitter](https://img.shields.io/twitter/follow/marian_nmt.svg?style=social)](https://twitter.com/intent/follow?screen_name=marian_nmt)

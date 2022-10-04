@@ -130,7 +130,7 @@ namespace marian {
     // @TODO: add checks for empty factor groups until it stops crashing (training already works; decoder still crashes)
 
     io::InputFileStream in(modelPath);
-    for (WordIndex v = 0; io::getline(in, line); v++) {
+    for(; io::getline(in, line);) {
       utils::splitAny(line, tokBuf, " \t");
       factorMapTokenized.push_back(tokBuf);
     }
