@@ -557,7 +557,7 @@ stages:
         ls
       displayName: Prepare tests
       env:
-          SAS_TOKEN: $(blob-sas-token)
+          AZURE_STORAGE_SAS_TOKEN: $(blob-sas-token)
       workingDirectory: marian-prod-tests
 
     # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
