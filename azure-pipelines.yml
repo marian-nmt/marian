@@ -16,7 +16,24 @@ parameters:
 # The pipeline CI trigger is set on the branch master only and PR trigger on a
 # (non-draft) pull request to any branch
 trigger:
-- master
+  # This minimizes the number of parallel pipeline runs. When a pipeline is
+  # running, the CI waits until it is completed before starting another one.
+  batch: true
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - azure-regression-tests.yml
+    - contrib
+    - doc
+    - examples
+    - regression-tests
+    - scripts
+    - VERSION
+    - vs
+    - '**/*.md'
+    - '**/*.txt'
 
 pool:
   name: Azure Pipelines
@@ -32,7 +49,7 @@ variables:
   - name: MKL_DIR
     value: "$(Build.SourcesDirectory)/mkl"
   - name: MKL_URL
-    value: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+    value: "https://data.statmt.org/romang/marian-regression-tests/ci/mkl-2020.1-windows-static.zip"
   - name: VCPKG_COMMIT
     value: 2022.03.10
   - name: VCPKG_DIR
@@ -52,6 +69,7 @@ stages:
 
   ######################################################################
   - job: BuildWindows
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Windows
 
@@ -188,6 +206,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntu
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Ubuntu
     timeoutInMinutes: 120
@@ -324,6 +343,7 @@ stages:
 
   ######################################################################
   - job: BuildMacOS
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: macOS CPU clang
 
@@ -373,6 +393,7 @@ stages:
 
   ######################################################################
   - job: BuildInstall
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Linux CPU library install
 
@@ -435,6 +456,7 @@ stages:
 
   ######################################################################
   - job: TestWindows
+    cancelTimeoutInMinutes: 1
     displayName: Windows CPU+FBGEMM
 
     pool:
@@ -535,7 +557,7 @@ stages:
         ls
       displayName: Prepare tests
       env:
-          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+          SAS_TOKEN: $(blob-sas-token)
       workingDirectory: marian-prod-tests
 
     # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
@@ -560,6 +582,7 @@ stages:
 
   ######################################################################
   - job: TestLinux
+    cancelTimeoutInMinutes: 1
     displayName: Linux CPU+FBGEMM
 
     pool:
@@ -636,7 +659,7 @@ stages:
         ls
       displayName: Prepare tests
       env:
-          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+        AZURE_STORAGE_SAS_TOKEN: $(blob-sas-token)
       workingDirectory: marian-prod-tests
 
     - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics' '#devops'
