@@ -158,7 +158,7 @@ jobs:
 
     - name: Download MKL
       run: |
-        C:\msys64\usr\bin\wget.exe -nv https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip -O mkl.zip
+        C:\msys64\usr\bin\wget.exe -nv https://data.statmt.org/romang/marian-regression-tests/ci/mkl-2020.1-windows-static.zip -O mkl.zip
         Expand-Archive -Force mkl.zip ${{ github.workspace }}\mkl
         # Set the MKLROOT environment variable so that CMake can find MKL.
         # GITHUB_WORKSPACE is an environment variable available on all GitHub-hosted runners
