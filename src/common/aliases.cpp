@@ -46,6 +46,7 @@ void ConfigParser::addAliases(cli::CLIWrapper& cli) {
 
     // Options setting the BiDeep architecture proposed in http://www.aclweb.org/anthology/W17-4710
     cli.alias("best-deep", "true", [](YAML::Node& config) {
+      config["type"] = "s2s";
       config["layer-normalization"] = true;
       config["tied-embeddings"] = true;
       config["enc-type"] = "alternating";

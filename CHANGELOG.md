@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed fp16 training/inference with factors-combine concat method
 - Fixed clang 13.0.1 compatibility
 - Fixed potential vulnerabilities from lxml<4.9.1 or mistune<2.0.31
+- Fixed the `--best-deep` RNN alias not setting the s2s model type
 
 ### Changed
 - Parameter synchronization in local sharding model now executes hash checksum before syncing
