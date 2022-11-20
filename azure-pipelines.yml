@@ -39,7 +39,7 @@ pool:
   name: Azure Pipelines
 
 variables:
-  - group: marian-prod-tests
+  - group: marian-regression-tests
   - name: BOOST_ROOT_WINDOWS
     value: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
   - name: BOOST_URL
@@ -550,14 +550,14 @@ stages:
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
-    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
+    # The current SAS token will expire on 12/31/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
         ls
       displayName: Prepare tests
       env:
-          AZURE_STORAGE_SAS_TOKEN: $(blob-sas-token)
+        AZURE_STORAGE_SAS_TOKEN: $(marian-prod-tests-blob-sas-token)
       workingDirectory: marian-prod-tests
 
     # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
@@ -652,14 +652,14 @@ stages:
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
-    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
+    # The current SAS token will expire on 12/31/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
         ls
       displayName: Prepare tests
       env:
-        AZURE_STORAGE_SAS_TOKEN: $(blob-sas-token)
+        AZURE_STORAGE_SAS_TOKEN: $(marian-prod-tests-blob-sas-token)
       workingDirectory: marian-prod-tests
 
     - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics' '#devops'
