@@ -42,11 +42,15 @@ def main():
             else:
                 print(model[args.key])
         else:
+            total_nb_of_parameters = 0
             for key in model:
-                if args.matrix_shapes:
-                    print(key, model[key].shape)
+                if not key == S2S_SPECIAL_NODE:
+                    total_nb_of_parameters += np.prod(model[key].shape)
+                if args.matrix_info:
+                    print(key, model[key].shape, model[key].dtype)
                 else:
                     print(key)
+            print('Total number of parameters:', total_nb_of_parameters)
 
 
 def parse_args():
@@ -57,8 +61,8 @@ def parse_args():
                         help="print values from special:model.yml node")
     parser.add_argument("-f", "--full-matrix", action="store_true",
                         help="force numpy to print full arrays for single key")
-    parser.add_argument("-ms", "--matrix-shapes", action="store_true",
-                        help="print shapes of all arrays in the model")
+    parser.add_argument("-mi", "--matrix-info", action="store_true",
+                        help="print full matrix info for all keys. Includes shape and dtype")
     return parser.parse_args()
 
 
