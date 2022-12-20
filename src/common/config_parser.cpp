@@ -269,7 +269,7 @@ void ConfigParser::addOptionsModel(cli::CLIWrapper& cli) {
       "Pool encoder states instead of using cross attention (selects first encoder state, best used with special token)");
   cli.add<int>("--transformer-dim-ffn",
       "Size of position-wise feed-forward network (transformer)",
-      2048);  
+      2048);
   cli.add<int>("--transformer-decoder-dim-ffn",
       "Size of position-wise feed-forward network in decoder (transformer). Uses --transformer-dim-ffn if 0.",
       0);
@@ -591,7 +591,9 @@ void ConfigParser::addOptionsValidation(cli::CLIWrapper& cli) {
       "Multiple metrics can be specified",
       {"cross-entropy"});
   cli.add<bool>("--valid-reset-stalled",
-     "Reset all stalled validation metrics when the training is restarted");
+     "Reset stalled validation metrics when the training is restarted");
+  cli.add<bool>("--valid-reset-all",
+     "Reset all validation metrics when the training is restarted");
   cli.add<size_t>("--early-stopping",
      "Stop if the first validation metric does not improve for arg consecutive validation steps",
      10);

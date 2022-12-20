@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fused inplace-dropout in FFN layer in Transformer
 - `--force-decode` option for marian-decoder
 - `--output-sampling` now works with ensembles (requires proper normalization via e.g `--weights 0.5 0.5`)
+- `--valid-reset-all` option
 
 ### Fixed
 - Make concat factors not break old vector implementation
