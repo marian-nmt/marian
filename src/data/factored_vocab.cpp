@@ -21,8 +21,7 @@ namespace marian {
   maxSizeUnused;
   // If model has already been loaded, then assume this is a shared object, and skip loading it again.
   // This can be multi-threaded, so must run under lock.
-  static std::mutex s_mtx;
-  std::lock_guard<std::mutex> criticalSection(s_mtx);
+  std::lock_guard<std::mutex> criticalSection(loadMtx_);
   if (size() != 0) {
     //LOG(info, "[vocab] Attempting to load model a second time; skipping (assuming shared vocab)");
     return size();

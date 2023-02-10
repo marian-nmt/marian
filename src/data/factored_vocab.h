@@ -110,6 +110,7 @@ private:
   Word unkId_{};
   WordLUT vocab_;
   size_t lemmaSize_;
+  std::mutex loadMtx_;
 
   // factors
   char factorSeparator_ = '|';                         // separator symbol for parsing factored words
