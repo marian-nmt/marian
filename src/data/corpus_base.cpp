@@ -476,7 +476,10 @@ void CorpusBase::addAlignmentsToBatch(Ptr<CorpusBatch> batch,
     // If the batch vector is altered within marian by, for example, case augmentation,
     // the guided alignments we received for this tuple cease to be valid.
     // Hence skip setting alignments for that sentence tuple..
-    if (!batchVector[b].isAltered()) {
+    if (batchVector[b].isAltered()) {
+      LOG_ONCE(info, "Using guided-alignment with case-augmentation is not recommended and can result in unexpected behavior");
+      aligns.push_back(WordAlignment());
+    } else {
       aligns.push_back(std::move(batchVector[b].getAlignment()));
     }
   }

@@ -64,6 +64,14 @@ Expr ExpressionGraph::add(Expr node) {
   }
 }
 
+/**
+ * Removes the node from the set of roots (will not be initialized during back propagation)
+ * @param node a pointer to a expression node
+ */
+void ExpressionGraph::removeAsRoot(Expr node) {
+  topNodes_.erase(node);
+}
+
 // Call on every checkpoint in backwards order
 void createSubtape(Expr node) {
   auto subtape = New<std::list<Expr>>();

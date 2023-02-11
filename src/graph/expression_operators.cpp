@@ -27,6 +27,11 @@ Expr checkpoint(Expr a) {
   return a;
 }
 
+Expr removeAsRoot(Expr a) {
+  a->graph()->removeAsRoot(a); // ugly, hence why hidden here
+  return a;
+}
+
 Expr lambda(const std::vector<Expr>& nodes, Shape shape, Type type,
             LambdaNodeFunctor fwd, size_t hash) {
   return Expression<LambdaNodeOp>(nodes, shape, type, fwd, hash);

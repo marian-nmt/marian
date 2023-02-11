@@ -128,7 +128,7 @@ SentenceTuple Corpus::next() {
           size_t vocabId = i - shift;
           bool altered;
           preprocessLine(fields[i], vocabId, curId, /*out=*/altered);
-          if (altered)
+          if(altered)
             tup.markAltered();
           addWordsToSentenceTuple(fields[i], vocabId, tup);
         }
