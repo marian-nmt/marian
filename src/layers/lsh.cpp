@@ -1,16 +1,18 @@
-#include "layers/lsh.h"
-#include "tensors/tensor_operators.h"
+#include "common/timer.h"
 #include "common/utils.h"
+#include "layers/lsh.h"
+#include "layers/lsh_impl.h"
+#include "tensors/tensor_operators.h"
+
+#if _MSC_VER
+#include "3rd_party/faiss/Index.h"
+#endif
 
 #include "3rd_party/faiss/utils/hamming.h"
 
 #if BLAS_FOUND
 #include "3rd_party/faiss/VectorTransform.h"
 #endif
-
-#include "common/timer.h"
-
-#include "layers/lsh_impl.h"
 
 namespace marian {
 namespace lsh {
@@ -116,7 +118,7 @@ Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int dimK, int firstNR
 
   int currBeamSize = encodedQuery->shape()[0];
   int batchSize    = encodedQuery->shape()[2];
-
+  
   auto search = [=](Expr out, const std::vector<Expr>& inputs) {
     Expr encodedQuery   = inputs[0];
     Expr encodedWeights = inputs[1];
@@ -130,6 +132,32 @@ Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int dimK, int firstNR
 
     ABORT_IF(dimK > wRows, "k is larger than number of candidate values?"); // @TODO: use min(k, wRows) silently?
 
+#if _MSC_VER // unfortunately MSVC is horrible at loop unrolling, so we fall back to the old code (hrmph!) @TODO: figure this out one day
+    int qRows = encodedQuery->shape().elements() / bytesPerVector;
+
+    uint8_t* qCodes = encodedQuery->val()->data<uint8_t>();
+    uint8_t* wCodes = encodedWeights->val()->data<uint8_t>();
+
+    // use actual faiss code for performing the hamming search. 
+    std::vector<int> distances(qRows * dimK);
+    std::vector<faiss::Index::idx_t> ids(qRows * dimK);
+    faiss::int_maxheap_array_t res = {(size_t)qRows, (size_t)dimK, ids.data(), distances.data()};
+    faiss::hammings_knn_hc(&res, qCodes, wCodes, (size_t)wRows, (size_t)bytesPerVector, 0);
+
+    // Copy int64_t indices to Marian index type and sort by increasing index value per hypothesis.
+    // The sorting is required as we later do a binary search on those values for reverse look-up.
+    uint32_t* outData = out->val()->data<uint32_t>();
+    
+    int numHypos = out->shape().elements() / dimK;
+    for (size_t hypoIdx = 0; hypoIdx < numHypos; ++hypoIdx) {
+      size_t startIdx = dimK * hypoIdx;
+      size_t endIdx = startIdx + dimK;
+      for(size_t i = startIdx; i < endIdx; ++i)
+        outData[i] = (uint32_t)ids[i];
+      if(!noSort)
+        std::sort(outData + startIdx, outData + endIdx);
+    }
+#else // this is using the new code for search, other parts of the code, like conversion are fine.
     IndexType* outData = out->val()->data<IndexType>();
     auto gather = [outData, dimK](IndexType rowId, IndexType k, IndexType kthColId, DistType /*dist*/) { 
       outData[rowId * dimK + k] = kthColId; 
@@ -144,6 +172,7 @@ Expr searchEncoded(Expr encodedQuery, Expr encodedWeights, int dimK, int firstNR
     params.bytesPerVector = bytesPerVector;
 
     hammingTopK(params, gather);
+#endif
   };
 
   Shape kShape({currBeamSize, batchSize, dimK});
