@@ -16,6 +16,11 @@ Expr debug(Expr a, const std::string& message = "");
  */
 Expr checkpoint(Expr a);
 
+/**
+ * Removes the node from the set of root nodes, no-op otherwise
+ */
+Expr removeAsRoot(Expr node);
+
 typedef Expr(ActivationFunction)(Expr);  ///< ActivationFunction has signature Expr(Expr)
 
 /**

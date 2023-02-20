@@ -676,6 +676,12 @@ public:
    * @param node a pointer to a expression node
    */
   Expr add(Expr node);
+  
+  /**
+   * Removes the node from the set of roots (will not be initialized during back propagation)
+   * @param node a pointer to a expression node
+   */
+  void removeAsRoot(Expr node);
 
   /**
    * Allocate memory for the forward pass of the given node.

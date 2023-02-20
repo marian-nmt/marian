@@ -14,12 +14,16 @@ trigger: none
 # Hosted Azure DevOps Pool determining OS, CUDA version and available GPUs
 pool: mariandevops-pool-m60-eus
 
+variables:
+  - group: marian-regression-tests
+
 stages:
 - stage: TestsGPU
   jobs:
 
   ######################################################################
   - job: TestsGPULinux
+    cancelTimeoutInMinutes: 1
     displayName: Linux GPU tests
     timeoutInMinutes: 120
 
@@ -103,11 +107,14 @@ stages:
       workingDirectory: build
 
     # Always run regression tests from the master branch
+    # The current SAS token will expire on 12/31/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         git checkout master
         git pull origin master
         make install
       displayName: Prepare regression tests
+      env:
+        AZURE_STORAGE_SAS_TOKEN: $(marian-pub-tests-blob-sas-token)
       workingDirectory: regression-tests
 
     # Continue on error to be able to collect outputs and publish them as an artifact

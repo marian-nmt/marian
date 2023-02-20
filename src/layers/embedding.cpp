@@ -6,10 +6,8 @@ namespace marian {
 Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
     : LayerBase(graph, options), inference_(opt<bool>("inference")) {
   std::string name = opt<std::string>("prefix");
-  int dimVoc       = opt<int>("dimVocab");
-  int dimEmb       = opt<int>("dimEmb");
-  int dimFactorEmb = opt<int>("dimFactorEmb");
-
+  int dimVoc = opt<int>("dimVocab");
+  int dimEmb = opt<int>("dimEmb");
   bool fixed = opt<bool>("fixed", false);
 
   // Embedding layer initialization should depend only on embedding size, hence fanIn=false
@@ -21,6 +19,7 @@ Embedding::Embedding(Ptr<ExpressionGraph> graph, Ptr<Options> options)
     dimVoc = (int)factoredVocab_->factorVocabSize();
     LOG_ONCE(info, "[embedding] Factored embeddings enabled");
     if(opt<std::string>("factorsCombine") == "concat") {
+      int dimFactorEmb = opt<int>("dimFactorEmb", 0);
       ABORT_IF(dimFactorEmb == 0,
                "Embedding: If concatenation is chosen to combine the factor embeddings, a factor "
                "embedding size must be specified.");
@@ -179,8 +178,8 @@ Expr Embedding::applyIndices(const std::vector<WordIndex>& embIdx, const Shape& 
       "prefix",         (opt<bool>("tied-embeddings-src") || opt<bool>("tied-embeddings-all")) ? "Wemb"
                                                                                           : prefix_ + "_Wemb",
       "fixed",          embeddingFix_,
-      "dimFactorEmb",   opt<int>("factors-dim-emb"),  // for factored embeddings
-      "factorsCombine", opt<std::string>("factors-combine"),  // for factored embeddings
+      "dimFactorEmb",   opt<int>("factors-dim-emb", 0),  // for factored embeddings
+      "factorsCombine", opt<std::string>("factors-combine", ""),  // for factored embeddings
       "vocab",     opt<std::vector<std::string>>("vocabs")[batchIndex_]);  // for factored embeddings
   // clang-format on
   if(options_->hasAndNotEmpty("embedding-vectors")) {

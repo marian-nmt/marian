@@ -16,13 +16,30 @@ parameters:
 # The pipeline CI trigger is set on the branch master only and PR trigger on a
 # (non-draft) pull request to any branch
 trigger:
-- master
+  # This minimizes the number of parallel pipeline runs. When a pipeline is
+  # running, the CI waits until it is completed before starting another one.
+  batch: true
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - azure-regression-tests.yml
+    - contrib
+    - doc
+    - examples
+    - regression-tests
+    - scripts
+    - VERSION
+    - vs
+    - '**/*.md'
+    - '**/*.txt'
 
 pool:
   name: Azure Pipelines
 
 variables:
-  - group: marian-prod-tests
+  - group: marian-regression-tests
   - name: BOOST_ROOT_WINDOWS
     value: "C:/hostedtoolcache/windows/Boost/1.72.0/x86_64"
   - name: BOOST_URL
@@ -32,7 +49,7 @@ variables:
   - name: MKL_DIR
     value: "$(Build.SourcesDirectory)/mkl"
   - name: MKL_URL
-    value: "https://romang.blob.core.windows.net/mariandev/ci/mkl-2020.1-windows-static.zip"
+    value: "https://data.statmt.org/romang/marian-regression-tests/ci/mkl-2020.1-windows-static.zip"
   - name: VCPKG_COMMIT
     value: 2022.03.10
   - name: VCPKG_DIR
@@ -52,6 +69,7 @@ stages:
 
   ######################################################################
   - job: BuildWindows
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Windows
 
@@ -188,6 +206,7 @@ stages:
 
   ######################################################################
   - job: BuildUbuntu
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Ubuntu
     timeoutInMinutes: 120
@@ -324,6 +343,7 @@ stages:
 
   ######################################################################
   - job: BuildMacOS
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: macOS CPU clang
 
@@ -373,6 +393,7 @@ stages:
 
   ######################################################################
   - job: BuildInstall
+    cancelTimeoutInMinutes: 1
     condition: eq(${{ parameters.runBuilds }}, true)
     displayName: Linux CPU library install
 
@@ -435,6 +456,7 @@ stages:
 
   ######################################################################
   - job: TestWindows
+    cancelTimeoutInMinutes: 1
     displayName: Windows CPU+FBGEMM
 
     pool:
@@ -528,14 +550,14 @@ stages:
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
-    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
+    # The current SAS token will expire on 12/31/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
         ls
       displayName: Prepare tests
       env:
-          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+        AZURE_STORAGE_SAS_TOKEN: $(marian-prod-tests-blob-sas-token)
       workingDirectory: marian-prod-tests
 
     # Avoid using $(Build.SourcesDirectory) in bash tasks because on Windows pools it uses '\'
@@ -560,6 +582,7 @@ stages:
 
   ######################################################################
   - job: TestLinux
+    cancelTimeoutInMinutes: 1
     displayName: Linux CPU+FBGEMM
 
     pool:
@@ -572,7 +595,10 @@ stages:
 
     # The following packages are already installed on Azure-hosted runners: build-essential openssl libssl-dev
     # No need to install libprotobuf{17,10,9v5} on Ubuntu {20,18,16}.04 because it is installed together with libprotobuf-dev
-    - bash: sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-9 g++-9
+    # Installing libunwind-dev fixes a bug in 2204 (the libunwind-14 and libunwind-dev conflict)
+    - bash: |
+        sudo apt-get install -y libunwind-dev
+        sudo apt-get install -y libgoogle-perftools-dev libprotobuf-dev protobuf-compiler gcc-9 g++-9
       displayName: Install packages
 
     # https://software.intel.com/content/www/us/en/develop/articles/installing-intel-free-libs-and-python-apt-repo.html
@@ -629,14 +655,14 @@ stages:
       displayName: Machine statistics
       workingDirectory: marian-prod-tests
 
-    # The current SAS token will expire on 8/30/2023 and a new one will need to be set in Marian > Pipelines > Library
+    # The current SAS token will expire on 12/31/2023 and a new one will need to be set in Marian > Pipelines > Library
     - bash: |
         cd models
         bash download-models.sh
         ls
       displayName: Prepare tests
       env:
-          AWS_SECRET_SAS_TOKEN: $(blob-sas-token)
+        AZURE_STORAGE_SAS_TOKEN: $(marian-prod-tests-blob-sas-token)
       workingDirectory: marian-prod-tests
 
     - bash: MARIAN=../marian-dev/build bash ./run_mrt.sh '#cpu' '#basics' '#devops'

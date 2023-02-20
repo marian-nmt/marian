@@ -56,12 +56,16 @@ public:
    * @brief Returns whether this Tuple was altered or augmented from what
    * was provided to Marian in input.
    */
-  bool isAltered() const { return altered_; }
+  bool isAltered() const { 
+    return altered_; 
+  }
 
   /**
    * @brief Mark that this Tuple was internally altered or augmented by Marian
    */
-  void markAltered() { altered_ = true; }
+  void markAltered() { 
+    altered_ = true; 
+  }
 
   /**
    * @brief Adds a new sentence at the end of the tuple.
