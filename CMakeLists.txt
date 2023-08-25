@@ -410,7 +410,7 @@ if(CUDA_FOUND)
     # version that ships with CUDA 11 so we force the search to occur inside of the cuda toolkit directory.
     set(CUDA_LIBS ${CUDA_curand_LIBRARY} ${CUDA_cusparse_LIBRARY} ${CUDA_CUBLAS_LIBRARIES})
     if ((CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0"))
-      find_library(CUDA_cublasLt_LIBRARY NAMES cublasLt PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64 NO_DEFAULT_PATH)
+      find_library(CUDA_cublasLt_LIBRARY NAMES cublasLt PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64 ${CUDA_TOOLKIT_ROOT_DIR} /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/stubs NO_DEFAULT_PATH)
       if(NOT CUDA_cublasLt_LIBRARY)
         message(FATAL_ERROR "cuBLASLt library not found")
       endif()
