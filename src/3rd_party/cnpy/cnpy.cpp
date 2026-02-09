@@ -10,6 +10,7 @@
 #include<iomanip>
 #include <sstream>
 #include <exception>
+#include <cstdint>
 
 char cnpy::BigEndianTest() {
     unsigned char x[] = {1,0};

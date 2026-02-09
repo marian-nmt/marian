@@ -135,9 +135,9 @@ public:
     }
 
 private:
-    registry_t<Mutex>() {}
-    registry_t<Mutex>(const registry_t<Mutex>&) = delete;
-    registry_t<Mutex>& operator=(const registry_t<Mutex>&) = delete;
+    registry_t() {}
+    registry_t(const registry_t<Mutex>&) = delete;
+    registry_t& operator=(const registry_t<Mutex>&) = delete;
 
     void throw_if_exists(const std::string &logger_name)
     {
