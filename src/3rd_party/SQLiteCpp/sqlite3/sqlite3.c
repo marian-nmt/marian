@@ -29704,7 +29704,7 @@ SQLITE_PRIVATE VList *sqlite3VListAdd(
   assert( pIn==0 || pIn[0]>=3 );  /* Verify ok to add new elements */
   if( pIn==0 || pIn[1]+nInt > pIn[0] ){
     /* Enlarge the allocation */
-    int nAlloc = (pIn ? pIn[0]*2 : 10) + nInt;
+    sqlite3_int64 nAlloc = (pIn ? 2*(sqlite3_int64)pIn[0] : 10) + nInt;
     VList *pOut = sqlite3DbRealloc(db, pIn, nAlloc*sizeof(int));
     if( pOut==0 ) return pIn;
     if( pIn==0 ) pOut[1] = 2;
@@ -72775,7 +72775,7 @@ SQLITE_PRIVATE void sqlite3VdbeScanStatus(
   LogEst nEst,                    /* Estimated number of output rows */
   const char *zName               /* Name of table or index being scanned */
 ){
-  int nByte = (p->nScan+1) * sizeof(ScanStatus);
+  sqlite3_int64 nByte = (p->nScan+1) * sizeof(ScanStatus);
   ScanStatus *aNew;
   aNew = (ScanStatus*)sqlite3DbRealloc(p->db, p->aScan, nByte);
   if( aNew ){
@@ -87257,7 +87257,7 @@ static int vdbePmaReadBlob(
     /* Extend the p->aAlloc[] allocation if required. */
     if( p->nAlloc<nByte ){
       u8 *aNew;
-      int nNew = MAX(128, p->nAlloc*2);
+      sqlite3_int64 nNew = MAX(128, 2*(sqlite3_int64)p->nAlloc);
       while( nByte>nNew ) nNew = nNew*2;
       aNew = sqlite3Realloc(p->aAlloc, nNew);
       if( !aNew ) return SQLITE_NOMEM_BKPT;
@@ -88552,7 +88552,7 @@ SQLITE_PRIVATE int sqlite3VdbeSorterWrite(
     if( nMin>pSorter->nMemory ){
       u8 *aNew;
       int iListOff = (u8*)pSorter->list.pList - pSorter->list.aMemory;
-      int nNew = pSorter->nMemory * 2;
+      sqlite3_int64 nNew = 2 * (sqlite3_int64)pSorter->nMemory;
       while( nNew < nMin ) nNew = nNew*2;
       if( nNew > pSorter->mxPmaSize ) nNew = pSorter->mxPmaSize;
       if( nNew < nMin ) nNew = nMin;
@@ -104030,9 +104030,9 @@ SQLITE_PRIVATE void *sqlite3ArrayAllocate(
   int *pIdx         /* Write the index of a new slot here */
 ){
   char *z;
-  int n = *pnEntry;
+  sqlite3_int64 n = *pnEntry;
   if( (n & (n-1))==0 ){
-    int sz = (n==0) ? 1 : 2*n;
+    sqlite3_int64 sz = (n==0) ? 1 : 2*n;
     void *pNew = sqlite3DbRealloc(db, pArray, sz*szEntry);
     if( pNew==0 ){
       *pIdx = -1;
@@ -104857,7 +104857,7 @@ SQLITE_PRIVATE With *sqlite3WithAdd(
   }
 
   if( pWith ){
-    int nByte = sizeof(*pWith) + (sizeof(pWith->a[1]) * pWith->nCte);
+    sqlite3_int64 nByte = sizeof(*pWith) + (sizeof(pWith->a[1]) * pWith->nCte);
     pNew = sqlite3DbRealloc(db, pWith, nByte);
   }else{
     pNew = sqlite3DbMallocZero(db, sizeof(*pWith));
@@ -126317,9 +126317,13 @@ SQLITE_PRIVATE void sqlite3VtabClear(sqlite3 *db, Table *p){
 ** string will be freed automatically when the table is
 ** deleted.
 */
-static void addModuleArgument(sqlite3 *db, Table *pTable, char *zArg){
-  int nBytes = sizeof(char *)*(2+pTable->nModuleArg);
+static void addModuleArgument(Parse *pParse, Table *pTable, char *zArg){
+  sqlite3_int64 nBytes = sizeof(char *)*(2+pTable->nModuleArg);
   char **azModuleArg;
+  sqlite3 *db = pParse->db;
+  if( pTable->nModuleArg+3>=db->aLimit[SQLITE_LIMIT_COLUMN] ){
+    sqlite3ErrorMsg(pParse, "too many columns on %s", pTable->zName);
+  }
   azModuleArg = sqlite3DbRealloc(db, pTable->azModuleArg, nBytes);
   if( azModuleArg==0 ){
     sqlite3DbFree(db, zArg);
@@ -126357,9 +126361,9 @@ SQLITE_PRIVATE void sqlite3VtabBeginParse(
   assert( iDb>=0 );
 
   assert( pTable->nModuleArg==0 );
-  addModuleArgument(db, pTable, sqlite3NameFromToken(db, pModuleName));
-  addModuleArgument(db, pTable, 0);
-  addModuleArgument(db, pTable, sqlite3DbStrDup(db, pTable->zName));
+  addModuleArgument(pParse, pTable, sqlite3NameFromToken(db, pModuleName));
+  addModuleArgument(pParse, pTable, 0);
+  addModuleArgument(pParse, pTable, sqlite3DbStrDup(db, pTable->zName));
   assert( (pParse->sNameToken.z==pName2->z && pName2->z!=0)
        || (pParse->sNameToken.z==pName1->z && pName2->z==0)
   );
@@ -126390,7 +126394,7 @@ static void addArgumentToVtab(Parse *pParse){
     const char *z = (const char*)pParse->sArg.z;
     int n = pParse->sArg.n;
     sqlite3 *db = pParse->db;
-    addModuleArgument(db, pParse->pNewTable, sqlite3DbStrNDup(db, z, n));
+    addModuleArgument(pParse, pParse->pNewTable, sqlite3DbStrNDup(db, z, n));
   }
 }
 
@@ -126677,7 +126681,8 @@ static int growVTrans(sqlite3 *db){
   /* Grow the sqlite3.aVTrans array if required */
   if( (db->nVTrans%ARRAY_INCR)==0 ){
     VTable **aVTrans;
-    int nBytes = sizeof(sqlite3_vtab *) * (db->nVTrans + ARRAY_INCR);
+    sqlite3_int64 nBytes = sizeof(sqlite3_vtab*)*
+                                 ((sqlite3_int64)db->nVTrans + ARRAY_INCR);
     aVTrans = sqlite3DbRealloc(db, (void *)db->aVTrans, nBytes);
     if( !aVTrans ){
       return SQLITE_NOMEM_BKPT;
@@ -127168,9 +127173,9 @@ SQLITE_PRIVATE int sqlite3VtabEponymousTableInit(Parse *pParse, Module *pMod){
   pTab->pSchema = db->aDb[0].pSchema;
   assert( pTab->nModuleArg==0 );
   pTab->iPKey = -1;
-  addModuleArgument(db, pTab, sqlite3DbStrDup(db, pTab->zName));
-  addModuleArgument(db, pTab, 0);
-  addModuleArgument(db, pTab, sqlite3DbStrDup(db, pTab->zName));
+  addModuleArgument(pParse, pTab, sqlite3DbStrDup(db, pTab->zName));
+  addModuleArgument(pParse, pTab, 0);
+  addModuleArgument(pParse, pTab, sqlite3DbStrDup(db, pTab->zName));
   rc = vtabCallConstructor(db, pTab, pMod, pModule->xConnect, &zErr);
   if( rc ){
     sqlite3ErrorMsg(pParse, "%s", zErr);
@@ -142280,7 +142285,7 @@ static int setupLookaside(sqlite3 *db, void *pBuf, int sz, int cnt){
     pStart = 0;
   }else if( pBuf==0 ){
     sqlite3BeginBenignMalloc();
-    pStart = sqlite3Malloc( sz*cnt );  /* IMP: R-61949-35727 */
+    pStart = sqlite3Malloc( sz*(sqlite3_int64)cnt );  /* IMP: R-61949-35727 */
     sqlite3EndBenignMalloc();
     if( pStart ) cnt = sqlite3MallocSize(pStart)/sz;
   }else{
@@ -156082,8 +156087,8 @@ SQLITE_PRIVATE int sqlite3Fts3InitTokenizer(
     int iArg = 0;
     z = &z[n+1];
     while( z<zEnd && (NULL!=(z = (char *)sqlite3Fts3NextToken(z, &n))) ){
-      int nNew = sizeof(char *)*(iArg+1);
-      char const **aNew = (const char **)sqlite3_realloc((void *)aArg, nNew);
+      sqlite3_int64 nNew = sizeof(char *)*(iArg+1);
+      char const **aNew = (const char **)sqlite3_realloc64((void *)aArg, nNew);
       if( !aNew ){
         sqlite3_free(zCopy);
         sqlite3_free((void *)aArg);
@@ -156990,7 +156995,7 @@ static int fts3tokFilterMethod(
   if( idxNum==1 ){
     const char *zByte = (const char *)sqlite3_value_text(apVal[0]);
     int nByte = sqlite3_value_bytes(apVal[0]);
-    pCsr->zInput = sqlite3_malloc(nByte+1);
+    pCsr->zInput = sqlite3_malloc64(nByte+1);
     if( pCsr->zInput==0 ){
       rc = SQLITE_NOMEM;
     }else{
@@ -158841,8 +158846,9 @@ SQLITE_PRIVATE int sqlite3Fts3SegReaderPending(
   }
 
   if( nElem>0 ){
-    int nByte = sizeof(Fts3SegReader) + (nElem+1)*sizeof(Fts3HashElem *);
-    pReader = (Fts3SegReader *)sqlite3_malloc(nByte);
+    sqlite3_int64 nByte;
+    nByte = sizeof(Fts3SegReader) + (nElem+1)*sizeof(Fts3HashElem *);
+    pReader = (Fts3SegReader *)sqlite3_malloc64(nByte);
     if( !pReader ){
       rc = SQLITE_NOMEM;
     }else{
@@ -160443,7 +160449,7 @@ static void fts3InsertDocsize(
   int rc;                  /* Result code from subfunctions */
 
   if( *pRC ) return;
-  pBlob = sqlite3_malloc( 10*p->nColumn );
+  pBlob = sqlite3_malloc64( 10*(sqlite3_int64)p->nColumn );
   if( pBlob==0 ){
     *pRC = SQLITE_NOMEM;
     return;
@@ -160493,7 +160499,7 @@ static void fts3UpdateDocTotals(
   const int nStat = p->nColumn+2;
 
   if( *pRC ) return;
-  a = sqlite3_malloc( (sizeof(u32)+10)*nStat );
+  a = sqlite3_malloc64( (sizeof(u32)+10)*(sqlite3_int64)nStat );
   if( a==0 ){
     *pRC = SQLITE_NOMEM;
     return;
@@ -160613,8 +160619,8 @@ static int fts3DoRebuild(Fts3Table *p){
     }
 
     if( rc==SQLITE_OK ){
-      int nByte = sizeof(u32) * (p->nColumn+1)*3;
-      aSz = (u32 *)sqlite3_malloc(nByte);
+      sqlite3_int64 nByte = sizeof(u32) * ((sqlite3_int64)p->nColumn+1)*3;
+      aSz = (u32 *)sqlite3_malloc64(nByte);
       if( aSz==0 ){
         rc = SQLITE_NOMEM;
       }else{
@@ -162659,7 +162665,7 @@ SQLITE_PRIVATE int sqlite3Fts3UpdateMethod(
   }
 
   /* Allocate space to hold the change in document sizes */
-  aSzDel = sqlite3_malloc( sizeof(aSzDel[0])*(p->nColumn+1)*2 );
+  aSzDel = sqlite3_malloc64(sizeof(aSzDel[0])*((sqlite3_int64)p->nColumn+1)*2);
   if( aSzDel==0 ){
     rc = SQLITE_NOMEM;
     goto update_out;
@@ -162916,10 +162922,11 @@ struct StrBuffer {
 */
 static MatchinfoBuffer *fts3MIBufferNew(int nElem, const char *zMatchinfo){
   MatchinfoBuffer *pRet;
-  int nByte = sizeof(u32) * (2*nElem + 1) + sizeof(MatchinfoBuffer);
-  int nStr = (int)strlen(zMatchinfo);
+  sqlite3_int64 nByte = sizeof(u32) * (2*(sqlite3_int64)nElem + 1)
+                           + sizeof(MatchinfoBuffer);
+  sqlite3_int64 nStr = strlen(zMatchinfo);
 
-  pRet = sqlite3_malloc(nByte + nStr+1);
+  pRet = sqlite3_malloc64(nByte + nStr+1);
   if( pRet ){
     memset(pRet, 0, nByte);
     pRet->aMatchinfo[0] = (u8*)(&pRet->aMatchinfo[1]) - (u8*)pRet;
@@ -168721,9 +168728,9 @@ static int rtreeInit(
   sqlite3_vtab_config(db, SQLITE_VTAB_CONSTRAINT_SUPPORT, 1);
 
   /* Allocate the sqlite3_vtab structure */
-  nDb = (int)strlen(argv[1]);
-  nName = (int)strlen(argv[2]);
-  pRtree = (Rtree *)sqlite3_malloc(sizeof(Rtree)+nDb+nName+2);
+  nDb = strlen(argv[1]);
+  nName = strlen(argv[2]);
+  pRtree = (Rtree *)sqlite3_malloc64(sizeof(Rtree)+nDb+nName+2);
   if( !pRtree ){
     return SQLITE_NOMEM;
   }
@@ -201871,7 +201878,7 @@ static int fts5UnicodeCreate(
       memcpy(p->aTokenChar, aAsciiTokenChar, sizeof(aAsciiTokenChar));
       p->bRemoveDiacritic = 1;
       p->nFold = 64;
-      p->aFold = sqlite3_malloc(p->nFold * sizeof(char));
+      p->aFold = sqlite3_malloc64(p->nFold * sizeof(char));
       if( p->aFold==0 ){
         rc = SQLITE_NOMEM;
       }
