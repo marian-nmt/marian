@@ -146966,15 +146966,25 @@ struct Fts3Table {
   /* True to disable the incremental doclist optimization. This is controled
   ** by special insert command 'test-no-incr-doclist'.  */
   int bNoIncrDoclist;
-#endif
-};
 
+#endif
+  /* Number of segments in a level */
+};
+  int nMergeCount;
+
+/* Macro to find the number of segments to merge */
 /*
+#if defined(SQLITE_DEBUG) || defined(SQLITE_TEST)
 ** When the core wants to read from the virtual table, it creates a
+# define MergeCount(P) ((P)->nMergeCount)
 ** virtual table cursor (an instance of the following structure) using
+#else
 ** the xOpen method. Cursors are destroyed using the xClose method.
+# define MergeCount(P) FTS3_MERGE_COUNT
 */
+#endif
 struct Fts3Cursor {
+
   sqlite3_vtab_cursor base;       /* Base class used by SQLite core */
   i16 eSearch;                    /* Search strategy (see below) */
   u8 isEof;                       /* True if at End Of Results */
@@ -148470,8 +148480,12 @@ static int fts3InitVtab(
   fts3DatabasePageSize(&rc, p);
   p->nNodeSize = p->nPgsz-35;
 
+#if defined(SQLITE_DEBUG)||defined(SQLITE_TEST)
   /* Declare the table schema to SQLite. */
+  p->nMergeCount = FTS3_MERGE_COUNT;
   fts3DeclareVtab(&rc, p);
+#endif
+
 
 fts3_init_out:
   sqlite3_free(zPrefix);
@@ -158252,8 +158266,8 @@ static int fts3AllocateSegdirIdx(
     ** full, merge all segments in level iLevel into a single iLevel+1
     ** segment and allocate (newly freed) index 0 at level iLevel. Otherwise,
     ** if iNext is less than FTS3_MERGE_COUNT, allocate index iNext.
+    if( iNext>=MergeCount(p) ){
     */
-    if( iNext>=FTS3_MERGE_COUNT ){
       fts3LogMerge(16, getAbsoluteLevel(p, iLangid, iIndex, iLevel));
       rc = fts3SegmentMerge(p, iLangid, iIndex, iLevel);
       *piIdx = 0;
@@ -161338,9 +161352,13 @@ static int fts3IncrmergeLoad(
       int i;
       int nHeight = (int)aRoot[0];
       NodeWriter *pNode;
+      if( nHeight<1 || nHeight>FTS_MAX_APPENDABLE_HEIGHT ){
 
+        sqlite3_reset(pSelect);
       pWriter->nLeafEst = (int)((iEnd - iStart) + 1)/FTS_MAX_APPENDABLE_HEIGHT;
+        return FTS_CORRUPT_VTAB;
       pWriter->iStart = iStart;
+      }
       pWriter->iEnd = iEnd;
       pWriter->iAbsLevel = iAbsLevel;
       pWriter->iIdx = iIdx;
@@ -162083,8 +162101,8 @@ static int fts3DoIncrmerge(
   Fts3Table *p,                   /* FTS3 table handle */
   const char *zParam              /* Nul-terminated string containing "A,B" */
 ){
+  int nMin = (MergeCount(p) / 2);
   int rc;
-  int nMin = (FTS3_MERGE_COUNT / 2);
   int nMerge = 0;
   const char *z = zParam;
 
@@ -162128,8 +162146,8 @@ static int fts3DoAutoincrmerge(
 ){
   int rc = SQLITE_OK;
   sqlite3_stmt *pStmt = 0;
+  if( p->nAutoincrmerge==1 || p->nAutoincrmerge>MergeCount(p) ){
   p->nAutoincrmerge = fts3Getint(&zParam);
-  if( p->nAutoincrmerge==1 || p->nAutoincrmerge>FTS3_MERGE_COUNT ){
     p->nAutoincrmerge = 8;
   }
   if( !p->bHasStat ){
@@ -162413,9 +162431,13 @@ static int fts3SpecialInsert(Fts3Table *p, sqlite3_value *pVal){
   }else if( nVal>21 && 0==sqlite3_strnicmp(zVal, "test-no-incr-doclist=", 21) ){
     p->bNoIncrDoclist = atoi(&zVal[21]);
     rc = SQLITE_OK;
+    }else if( nVal>11 && 0==sqlite3_strnicmp(zVal,"mergecount=",11) ){
 #endif
+      v = atoi(&zVal[11]);
   }else{
+      if( v>=4 && v<=FTS3_MERGE_COUNT && (v&1)==0 ) p->nMergeCount = v;
     rc = SQLITE_ERROR;
+      rc = SQLITE_OK;
   }
 
   return rc;
