@@ -73058,8 +73058,9 @@ SQLITE_PRIVATE void sqlite3VdbeSetP4KeyInfo(Parse *pParse, Index *pIdx){
 ** in a production build.
 */
 static void vdbeVComment(Vdbe *p, const char *zFormat, va_list ap){
+  assert( p->aOp==0 || p->aOp[p->nOp-1].zComment==0 || p->db->mallocFailed
   assert( p->nOp>0 || p->aOp==0 );
-  assert( p->aOp==0 || p->aOp[p->nOp-1].zComment==0 || p->db->mallocFailed );
+          || p->pParse->nErr>0 );
   if( p->nOp ){
     assert( p->aOp );
     sqlite3DbFree(p->db, p->aOp[p->nOp-1].zComment);
@@ -91908,6 +91909,7 @@ static int codeCompare(
   int addr;
   CollSeq *p4;
 
+  if( pParse->nErr ) return 0;
   p4 = sqlite3BinaryCompareCollSeq(pParse, pLeft, pRight);
   p5 = binaryCompareP5(pLeft, pRight, jumpIfNull);
   addr = sqlite3VdbeAddOp4(pParse->pVdbe, opcode, in2, dest, in1,
